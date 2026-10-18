@@ -59,6 +59,7 @@ presets/
   emotion.json  intensity.json  brightness.json
   instrument.json  voice-treatment.json  ensemble-size.json
   tempo-feel.json  development-shape.json  section.json
+  section-vocal.json（軸G。2026-10-16 追加）
   spatial-texture.json  recording-texture.json  mix-direction.json
 ```
 
@@ -79,7 +80,7 @@ presets/
 | フィールド | 必須 | 内容 |
 |---|---|---|
 | `id` | ○ | 語彙 id（小文字ケバブ） |
-| `axis` | ○ | `A`〜`F`（`input-items.md` §0） |
+| `axis` | ○ | `A`〜`G`（`input-items.md` §0。`G` は歌詞の構成セクション `section-vocal` だけ。2026-10-16 追加） |
 | `label` | ○ | 語彙の表示名（仮） |
 | `structure` | ○ | `categorized`（カテゴリを持つ）／ `flat`（持たない） |
 | `categories` | categorized のとき必須。flat では持てない | §2-3 |
