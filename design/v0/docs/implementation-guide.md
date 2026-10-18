@@ -74,7 +74,7 @@ ai-music-intent-builder/
 
 | # | 確認 | 内容・コマンド（`design/v0/` で実行） | 期待・結果次第 |
 |---|---|---|---|
-| 1 | 既存テストのベースライン | `python tools/check-fields/check_fields.py`、`python tools/check-fields/check_fields.py --song docs/specifications/song.example.json`、`python tools/check-fields/test_check_fields.py`。`pip install jsonschema`（4.18 以降）を入れて実行する | エラー0・警告0、**208ケース通過**（利用者の環境で2026-10-18 に確認済み）。差があれば、実装の前に原因を調べる（教訓4-32） |
+| 1 | 既存テストのベースライン | `python tools/check-fields/check_fields.py`、`python tools/check-fields/check_fields.py --song docs/specifications/song.example.json`、`python tools/check-fields/test_check_fields.py`、`python tools/build-presets/build_presets.py --check`（生成物が最新か。期待: 終了コード0。2026-10-18 の Phase 0 で、`section-vocal` が生成器に未登録のため再生成で差分が出ると判明した。修正後に 0 になる）。`jsonschema`（4.18 以降）を入れて実行する | エラー0・警告0、**208ケース通過**（利用者の環境で2026-10-18 に確認済み）。差があれば、実装の前に原因を調べる（教訓4-32） |
 | 2 | 既定値の関係（宿題25） | `docs/specifications/fields.json` の `default`、`docs/specifications/tool-profiles/suno.json` の `params[].default`、`docs/specifications/tool-profile.md` §13 を突き合わせる。UI の初期値と、依頼文の 5-2 に出る値のどちらが何を使うか | 食い違いがあれば、UI の初期値の決め方を1行決めて判断ポイントに記録する（未確認） |
 | 3 | 試作の所在 | **確認済み**: `think/tree-select-prototype/`（`nuxtui`・`element`・`vuetify` の3実装）。Element Plus・Vuetify の実装は、実装に入る前に削除してよい（`docs/handoff-next-thread.md` §2）。階層選択のロジックは `src/shared/`（ライブラリ非依存） | U4 で、Nuxt UI 版と `shared/` を出発点にする |
 | 4 | Git の設定 | `.gitattributes` を作成済み（2026-10-18。`* text=auto eol=lf` ほか。利用者承認済み）。docs・コードは **LF・UTF-8**。Windows の Git の CRLF 変換で差分・生成物が変わらないように、既にコミット済みのファイルが CRLF のときは、`git add --renormalize .` が要る（利用者に確認してから） | `build_presets.py` の生成物（`docs/specifications/presets/`）が、再生成で差分を出さないことを確認 |
@@ -162,7 +162,7 @@ ai-music-intent-builder/
 
 | 系統 | 場所 | 次の番号 |
 |---|---|---|
-| 語彙 | `docs/decisions/presets.md` §6 と `docs/decisions/vocabulary/README.md` §5（通し番号） | 213 |
+| 語彙 | `docs/decisions/presets.md` §6 と `docs/decisions/vocabulary/README.md` §5（通し番号） | 214 |
 | 入力項目 | `docs/decisions/input-items.md` §4 | 29 |
 | UI・非機能・保存 | `docs/decisions/ui-and-nonfunctional.md` §7（`docs/specifications/song-file.md` §10 にも同じ番号の表） | 42 |
 | ツールプロファイル | `docs/specifications/tool-profile.md` §11 | 10 |
@@ -200,6 +200,7 @@ ai-music-intent-builder/
 - 「そのまま使う」と定めたデータは、全件を一覧して、依頼文に出してよい内容かを確かめる（4-41）
 - 識別子は、言語の予約語を避ける（4-10）。jsdom のテストは構造だけで、見た目は目視（4-9）
 - 1回の作業は完結する単位に分け、区切りごとに要約を出す（4-11）
+- **語彙（md）や生成物（`presets/`）を変えたら、`build_presets.py` を実行し、`--check` が 0 であることと、`git diff` が意図した差だけであることを確かめる。新しい語彙を足したら、生成器のマニフェスト（`VOCABULARIES` など。`tools/build-presets/README.md` に書いてある）への登録を忘れない。** 2026-10-18、L-01 の `section-vocal` で登録を漏らし、Claude Code の Phase 0 で初めて判明した（教訓4-50）
 - Windows 環境の注意: `\` と `/` の違い、改行コード（§4 の4）、パスの空白・括弧
 
 ---

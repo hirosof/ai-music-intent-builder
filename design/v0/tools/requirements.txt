@@ -1,0 +1,2 @@
+# check-fields・build-presets のスキーマ検証に使う（未導入だと一部の検証とテストがスキップになる）
+jsonschema>=4.18

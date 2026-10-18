@@ -141,3 +141,7 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Python（design/v0/ の検証ツール用の venv）
+.venv/
+__pycache__/

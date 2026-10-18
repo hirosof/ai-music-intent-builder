@@ -40,16 +40,31 @@ design/v0/   設計（生きた仕様。実装中も直接更新する。「正�
 
 ## コマンド（`design/v0/` で実行）
 
+Python は、プロジェクトの venv（`design/v0/.venv`。Git の管理外）を使う。初回だけ作る:
+
 ```
-python tools/check-fields/check_fields.py
-python tools/check-fields/check_fields.py --song docs/specifications/song.example.json
-python tools/check-fields/test_check_fields.py          # 期待: 208ケース通過（jsonschema 4.18 以降を入れて実行）
-python tools/build-presets/build_presets.py            # 語彙（md）を変えたときに再生成
+python -m venv .venv
+.venv/Scripts/python -m pip install -r tools/requirements.txt
 ```
+
+```
+.venv/Scripts/python tools/check-fields/check_fields.py
+.venv/Scripts/python tools/check-fields/check_fields.py --song docs/specifications/song.example.json
+.venv/Scripts/python tools/check-fields/test_check_fields.py   # 期待: 208ケース通過・スキップ0（2分以上かかる）
+.venv/Scripts/python tools/build-presets/build_presets.py      # 語彙（md）を変えたときに再生成
+.venv/Scripts/python tools/build-presets/build_presets.py --check   # 生成物が最新か（終了コード0）。語彙を変えたら最後に必ず行う
+```
+
+## 実行環境（2026-10-18 に確認）
+
+- OS: Windows 11。Node v24.21.0、npm 11.19.0（pnpm はなし。yarn 1.3.2 は古いため使わない）。Python 3.14.8、Git 2.56.0
+- パッケージマネージャ: npm（提案。U0 で確定する）
+- `jsonschema` は、グローバルの Python ではなく、プロジェクトの venv に入れる（`tools/requirements.txt`。設計スレッドの推奨を利用者が共有、2026-10-18）。未導入だと 208 件中 47 件がスキップになる
+- `test_check_fields.py` は `jsonschema` ありで2分以上かかる（バックグラウンドで実行する）
 
 ## 最初にやること
 
-Phase 0（implementation-guide §4）: テストのベースライン（208件）、`fields.json` と `suno.json` の既定値の関係、`.gitattributes`（作成済み。既存ファイルの CRLF の有無の確認）、実行環境の確認、移動後のリンク修復（`temp (user-to-claude)` を指す参照を `validations/` に直す）。その後、U0（足場）→ U1（データ層）→ U2（依頼文の生成器。受け入れ基準: `-12` §1 との突き合わせ）。
+Phase 0（implementation-guide §4）は完了（2026-10-18。`build_presets.py` の `section-vocal` の登録漏れを直した。判断ポイント213）。次は、U0（足場）→ U1（データ層）→ U2（依頼文の生成器。受け入れ基準: `-12` §1 との突き合わせ）。
 
 ## モデルについて
 
