@@ -1,0 +1,13 @@
+{
+"schemaVersion": 1,
+"id": "section", "axis": "E", "label": "構成のセクション", "structure": "flat",
+"items": [
+{"id": "intro", "label": "イントロ", "term": {"en": "intro"}},
+{"id": "theme", "label": "主題提示", "term": {"en": "main theme"}},
+{"id": "development", "label": "展開部", "term": {"en": "development"}},
+{"id": "interlude", "label": "間奏", "term": {"en": "interlude"}},
+{"id": "climax", "label": "クライマックス", "term": {"en": "climax"}},
+{"id": "bridge", "label": "ブリッジ（つなぎ）", "term": {"en": "bridge"}},
+{"id": "outro", "label": "アウトロ", "term": {"en": "outro"}}
+]
+}

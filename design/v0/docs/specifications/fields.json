@@ -1,0 +1,311 @@
+{
+  "schemaVersion": 1,
+  "states": [
+    {"id": "specified", "label": "指定", "number": 1},
+    {"id": "delegated", "label": "お任せ", "number": 2},
+    {"id": "defaulted", "label": "既定値", "number": 3},
+    {"id": "toolManaged", "label": "ツール任せ", "number": 4}
+  ],
+  "groups": [
+    {"id": "purpose-context", "axis": "A", "label": "用途・文脈", "order": 10},
+    {"id": "genre-style", "axis": "B", "label": "ジャンル・様式", "order": 20},
+    {"id": "mood-tone", "axis": "C", "label": "情緒・雰囲気", "order": 30},
+    {"id": "sound", "axis": "D", "label": "音の構成", "order": 40},
+    {"id": "time", "axis": "E", "label": "時間的な構造", "order": 50},
+    {"id": "production", "axis": "F", "label": "制作・質感", "order": 60},
+    {"id": "lyrics", "axis": "G", "label": "歌詞", "order": 65},
+    {"id": "exclusion", "axis": null, "label": "除外", "order": 70},
+    {"id": "notes", "axis": null, "label": "自由記述", "order": 80}
+  ],
+  "fields": [
+    {
+      "id": "purpose", "label": "用途", "group": "purpose-context", "kind": "select", "vocabulary": "usage", "freeText": true,
+      "specificity": "expand", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "derive", "cues": ["*"], "fallback": {"type": "text", "text": "特定の用途を想定しない楽曲"}}
+      },
+      "note": "他の項目全体から逆算する。最終的な拠り所（`request-text.md` B-02 の 2-1）"
+    },
+    {
+      "id": "purposeDetail", "label": "用途の詳細", "group": "purpose-context", "kind": "text", "freeText": false,
+      "specificity": "expand", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "derive", "cues": ["purpose"], "fallback": {"type": "omit"}}
+      },
+      "note": "用途から自然に導ける範囲。用途が②お任せなら詳細も②（crossFieldRules）"
+    },
+    {
+      "id": "listeningEnvironment", "label": "想定する聴取環境", "group": "purpose-context", "kind": "select", "vocabulary": "listening-environment", "freeText": false,
+      "leaveValues": ["no-playback"],
+      "specificity": "adapt", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "derive", "cues": ["purpose"], "fallback": {"type": "omit"}}
+      },
+      "note": "③は持たない（既定値が未定義だったため。判断ポイント11）。導かせたくないときは値 `no-playback` を指定する"
+    },
+    {
+      "id": "mainGenre", "label": "主ジャンル", "group": "genre-style", "kind": "select", "vocabulary": "genre", "freeText": true,
+      "specificity": "adapt", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "derive", "cues": ["purpose", "mood"], "fallback": {"type": "choose"}}
+      },
+      "note": "最も一般的なものを選ぶ。単一選択（除外の概念がない）"
+    },
+    {
+      "id": "subGenres", "label": "副ジャンル", "group": "genre-style", "kind": "triSelect", "vocabulary": "genre", "freeText": true,
+      "specificity": "adapt", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "leave"}
+      },
+      "note": "②は足さない（RP-11）。主ジャンルと語彙を共有する（`presets.md` 判断ポイント13）"
+    },
+    {
+      "id": "regionStyles", "label": "地域・文化の様式", "group": "genre-style", "kind": "triSelect", "vocabulary": "region-style", "freeText": true,
+      "specificity": "expand", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "leave"}
+      },
+      "note": "②は足さない（RP-11）。拡張した内容は音の構成（軸D）に書く（RP-10）"
+    },
+    {
+      "id": "styleLean", "label": "様式の寄せ方", "group": "genre-style", "kind": "select", "vocabulary": "style-lean", "freeText": false,
+      "specificity": "adapt", "initialState": "defaulted",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "derive", "cues": ["purpose", "mainGenre"], "fallback": {"type": "value", "value": "style"}},
+        "defaulted": {"value": "style"}
+      },
+      "note": "地域・文化の様式に「使用する」があるときだけ意味を持つ（crossFieldRules）"
+    },
+    {
+      "id": "era", "label": "年代・時代感", "group": "genre-style", "kind": "select", "vocabulary": "era", "freeText": false,
+      "leaveValues": ["no-era"],
+      "specificity": "adapt", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "derive", "cues": ["mainGenre"], "fallback": {"type": "omit"}}
+      },
+      "note": "導かせたくないときは値 `no-era` を指定する（判断ポイント9）"
+    },
+    {
+      "id": "mood", "label": "基調となる情緒", "group": "mood-tone", "kind": "triSelect", "vocabulary": "emotion", "freeText": true,
+      "specificity": "expand", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "derive", "cues": ["purpose", "mainGenre"], "fallback": {"type": "choose"}}
+      }
+    },
+    {
+      "id": "intensity", "label": "強度", "group": "mood-tone", "kind": "select", "vocabulary": "intensity", "freeText": false,
+      "specificity": "adapt", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "derive", "cues": [], "fallback": {"type": "value", "value": "medium"}},
+        "defaulted": {"value": "medium"}
+      },
+      "note": "②は手がかりを持たず、フォールバックの中程度を使う（`input-items.md` 「②なら中程度」）"
+    },
+    {
+      "id": "brightness", "label": "明暗", "group": "mood-tone", "kind": "select", "vocabulary": "brightness", "freeText": false,
+      "specificity": "adapt", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "derive", "cues": ["mood"], "fallback": {"type": "value", "value": "neutral"}},
+        "defaulted": {"value": "neutral"}
+      }
+    },
+    {
+      "id": "leadInstruments", "label": "主旋律を担う楽器", "group": "sound", "kind": "triSelect", "vocabulary": "instrument", "freeText": true,
+      "specificity": "expand", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "derive", "cues": ["mainGenre", "regionStyles"], "fallback": {"type": "choose"}}
+      },
+      "note": "楽器の語彙を伴奏・リズムと共有する。除外は3項目で連動する（crossFieldRules）"
+    },
+    {
+      "id": "accompanimentInstruments", "label": "伴奏・支える楽器", "group": "sound", "kind": "triSelect", "vocabulary": "instrument", "freeText": true,
+      "specificity": "expand", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "derive", "cues": ["leadInstruments", "ensembleSize"], "fallback": {"type": "choose"}}
+      }
+    },
+    {
+      "id": "rhythmInstruments", "label": "リズムの担い手", "group": "sound", "kind": "triSelect", "vocabulary": "instrument", "freeText": true,
+      "specificity": "expand", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "derive", "cues": ["mainGenre", "tempoFeel"], "fallback": {"type": "choose"}}
+      }
+    },
+    {
+      "id": "voiceTreatment", "label": "声の扱い", "group": "sound", "kind": "select", "vocabulary": "voice-treatment", "freeText": false,
+      "leaveValues": ["no-voice"],
+      "specificity": "keep", "initialState": "defaulted",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "derive", "cues": ["mainGenre", "mood"], "fallback": {"type": "value", "value": "no-voice"}},
+        "defaulted": {"value": "no-voice"}
+      },
+      "note": "②はAIが決めてよい（歌詞のない形に限る。判断ポイント9）。手がかりとフォールバックは、定義がなかったため補完した。歌ありでも有効（2026-09-28。L-01。`input-items.md` 判断ポイント27）"
+    },
+    {
+      "id": "ensembleSize", "label": "編成の規模", "group": "sound", "kind": "select", "vocabulary": "ensemble-size", "freeText": false,
+      "specificity": "adapt", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "derive", "cues": ["purpose", "mainGenre"], "fallback": {"type": "value", "value": "small-ensemble"}},
+        "defaulted": {"value": "small-ensemble"}
+      }
+    },
+    {
+      "id": "length", "label": "長さ", "group": "time", "kind": "length", "freeText": false,
+      "specificity": "uiSetting", "initialState": "toolManaged",
+      "states": {
+        "specified": {},
+        "toolManaged": {"note": "特定の長さを前提にした構成を書かせない（RP-02 の④）"}
+      },
+      "rangeFrom": {"param": "length"},
+      "note": "範囲は、ツールプロファイルのパラメータ length が持つ（tool-profile.md §9）"
+    },
+    {
+      "id": "tempoFeel", "label": "テンポ感", "group": "time", "kind": "select", "vocabulary": "tempo-feel", "freeText": false,
+      "specificity": "adapt", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "derive", "cues": ["mainGenre", "mood"], "fallback": {"type": "choose"}}
+      },
+      "note": "BPM と両方指定されたときは BPM を優先する（`input-items.md` 判断ポイント2）"
+    },
+    {
+      "id": "bpm", "label": "BPM の目安", "group": "time", "kind": "bpm", "freeText": false,
+      "specificity": "keep", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "leave"}
+      },
+      "note": "単一値または範囲（判断ポイント8）。③は持たない（②が「足さない」のため。判断ポイント11）"
+    },
+    {
+      "id": "developmentShape", "label": "展開の形", "group": "time", "kind": "select", "vocabulary": "development-shape", "freeText": true,
+      "specificity": "expand", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "derive", "cues": ["purpose"], "fallback": {"type": "choose"}}
+      },
+      "note": "ループ用途なら「一定を保つ」寄り"
+    },
+    {
+      "id": "structure", "label": "構成（セクションの並び）", "group": "time", "kind": "sectionList", "vocabulary": "section", "freeText": false,
+      "specificity": "keep", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "leave"}
+      },
+      "note": "③は持たない（判断ポイント11）。並び替え可能なリスト。歌あり（`vocalMode` = `vocal`）のときは無効（`lyricsStructure` を使う。`song.schema.json` 側で制御。2026-09-28。L-01）"
+    },
+    {
+      "id": "lyricsTheme", "label": "歌詞のテーマ・内容", "group": "lyrics", "kind": "text", "freeText": false,
+      "specificity": "expand", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "derive", "cues": ["purpose"], "fallback": {"type": "omit"}}
+      },
+      "note": "歌あり（`vocalMode` = `vocal`）のときのみ有効（`song.schema.json` 側で制御）。`purposeDetail` と同型（`input-items.md` 判断ポイント21）"
+    },
+    {
+      "id": "lyricsLanguage", "label": "歌詞本文の言語", "group": "lyrics", "kind": "select", "freeText": false,
+      "options": [
+        {"id": "japanese", "label": "日本語"},
+        {"id": "english", "label": "英語"},
+        {"id": "mixed", "label": "混在"}
+      ],
+      "specificity": "adapt", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "derive", "cues": ["mainGenre", "regionStyles"], "fallback": {"type": "value", "value": "japanese"}}
+      },
+      "note": "歌あり（`vocalMode` = `vocal`）のときのみ有効（`song.schema.json` 側で制御）。専用の語彙ファイルを持たず、固定3値の列挙とする。`era` に近い型（`input-items.md` 判断ポイント21）"
+    },
+    {
+      "id": "lyricsStructure", "label": "歌詞の構成", "group": "lyrics", "kind": "sectionList", "vocabulary": "section-vocal", "freeText": false,
+      "specificity": "keep", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "leave"}
+      },
+      "note": "歌あり（`vocalMode` = `vocal`）のときのみ有効（`structure` と排他。`song.schema.json` 側で制御）。③は持たない。②は構成タグを付けず空行で区切る（`input-items.md` 判断ポイント22・26）"
+    },
+    {
+      "id": "spatialTexture", "label": "空間の質感", "group": "production", "kind": "select", "vocabulary": "spatial-texture", "freeText": false,
+      "specificity": "adapt", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "derive", "cues": ["mainGenre", "purpose"], "fallback": {"type": "value", "value": "natural"}},
+        "defaulted": {"value": "natural"}
+      }
+    },
+    {
+      "id": "recordingTexture", "label": "音質・録音の質感", "group": "production", "kind": "select", "vocabulary": "recording-texture", "freeText": false,
+      "specificity": "adapt", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "derive", "cues": [], "fallback": {"type": "value", "value": "clean-studio"}},
+        "defaulted": {"value": "clean-studio"}
+      },
+      "note": "グループ6は、指定しなくても何かが決まる領域のため、②でもフォールバックを持つ"
+    },
+    {
+      "id": "mixDirection", "label": "ミックスの方向性", "group": "production", "kind": "select", "vocabulary": "mix-direction", "freeText": false,
+      "specificity": "adapt", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "derive", "cues": [], "fallback": {"type": "value", "value": "natural-mix"}},
+        "defaulted": {"value": "natural-mix"}
+      }
+    },
+    {
+      "id": "exclusions", "label": "除外したい要素", "group": "exclusion", "kind": "text", "freeText": false,
+      "specificity": "keep", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "leave"}
+      },
+      "note": "プリセットの選択肢にない除外だけを書く。選択肢にある除外は各項目の3値で行う"
+    },
+    {
+      "id": "notes", "label": "その他・補足", "group": "notes", "kind": "text", "freeText": false,
+      "specificity": "keep", "initialState": "delegated",
+      "states": {
+        "specified": {},
+        "delegated": {"rule": "leave"}
+      },
+      "note": "RP-04 で構造化項目より優先される"
+    }
+  ],
+  "crossFieldRules": [
+    {"id": "purposeDetail-follows-purpose", "type": "follows-delegated", "field": "purposeDetail", "source": "purpose", "severity": "warning", "note": "用途が②お任せのとき、用途の詳細は①指定でも②として扱う（実効状態）。指定が無視されるので警告する"},
+    {"id": "styleLean-needs-region", "type": "active-when", "field": "styleLean", "when": {"field": "regionStyles", "choice": "use"}, "severity": "info", "note": "地域・文化の様式に「使用する」がないとき、様式の寄せ方は依頼文に出さない"},
+    {"id": "instrument-exclusion-linked", "type": "linked-exclusion", "fields": ["leadInstruments", "accompanimentInstruments", "rhythmInstruments"], "severity": "warning", "note": "楽器の除外は3項目で連動する。どれかで「使用しない」にすると3項目すべてで除外になり、「使用する」は外れる。Suno の除外欄は役割別に持てないため。ファイルに矛盾があれば、読み込み時に除外を優先して解決し警告する"},
+    {"id": "mainGenre-not-excluded", "type": "single-not-excluded", "field": "mainGenre", "against": "subGenres", "severity": "warning", "note": "主ジャンルに選んだ語を、副ジャンルで「使用しない」にしていると警告する"}
+  ],
+  "output": [
+    {"id": "variantCount", "label": "案の数", "kind": "number", "default": 3, "note": "初期値は仮（依頼文の例では3）。上限は未定"},
+    {"id": "diffAxis", "label": "案ごとの差の付け方", "kind": "select", "default": "auto", "options": [{"id": "auto", "label": "お任せ"}, {"id": "mood", "label": "情緒の幅"}, {"id": "arrangement", "label": "編成の幅"}, {"id": "texture", "label": "質感の幅"}, {"id": "interpretation", "label": "解釈の幅"}], "note": "RP-12。軸B（ジャンル）は含めない"},
+    {"id": "granularity", "label": "出力する粒度", "kind": "multiSelect", "default": ["basic", "detailed"], "options": [{"id": "basic", "label": "基本"}, {"id": "detailed", "label": "詳細"}], "note": "R-17"},
+    {"id": "variation", "label": "想定するバリエーション", "kind": "select", "default": "standard", "optionsFrom": {"param": "variation"}, "note": "R-12。選択肢は、ツールプロファイルのパラメータ variation が持つ（tool-profile.md §9）。既定値は本ツールの既定値で、いまは Suno の既定値と同じ"},
+    {"id": "outputLanguage", "label": "出力言語", "kind": "select", "default": "mixed", "options": [{"id": "all-english", "label": "すべて英語"}, {"id": "all-japanese", "label": "すべて日本語"}, {"id": "mixed", "label": "標準"}], "note": "R-08"},
+    {"id": "titleSuggestions", "label": "曲名案を出させるか", "kind": "boolean", "default": false, "note": "R-14"},
+    {"id": "titleCount", "label": "曲名案の数", "kind": "number", "default": 3, "note": "R-14"},
+    {"id": "titleLanguage", "label": "曲名案の言語", "kind": "select", "default": null, "options": null, "note": "R-14。選択肢と既定値は未定"},
+    {"id": "recommendParams", "label": "パラメータの推奨値を出させるか", "kind": "perItemBoolean", "default": false, "itemsFrom": {"requestRole": "recommend"}, "note": "R-12。項目は、ツールプロファイルの requestRole が recommend のパラメータ（tool-profile.md §9）。既定はすべてオフ。保存する値は {パラメータ id: 真偽}（省略した項目はオフ。input-items.md 判断ポイント18）"},
+    {"id": "requestScope", "label": "依頼文の範囲", "kind": "select", "default": "combined", "options": [{"id": "combined", "label": "スタイルと歌詞"}, {"id": "style", "label": "スタイルのみ"}, {"id": "lyrics", "label": "歌詞のみ"}], "note": "L-01a の C・L-01c（2026-10-18。input-items.md 判断ポイント28）。combined は現行の1依頼文。style・lyrics は vocalMode = vocal のときだけ有効（検査 F13）。lyrics では案の数・粒度・バリエーション・推奨パラメータ・出力言語を使わない（値は保持する）。lyricsAuthor は lyrics でも使い、style では使わない"}
+  ]
+}

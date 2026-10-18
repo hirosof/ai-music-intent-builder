@@ -1,0 +1,15 @@
+{
+"schemaVersion": 1,
+"id": "era", "axis": "B", "label": "年代・時代感", "structure": "flat",
+"items": [
+{"id": "no-era", "label": "年代を特定しない"},
+{"id": "1950s-or-earlier", "label": "1950年代以前", "term": {"en": "1950s or earlier"}},
+{"id": "1960s", "label": "1960年代", "term": {"en": "1960s"}},
+{"id": "1970s", "label": "1970年代", "term": {"en": "1970s"}},
+{"id": "1980s", "label": "1980年代", "term": {"en": "1980s"}},
+{"id": "1990s", "label": "1990年代", "term": {"en": "1990s"}},
+{"id": "2000s", "label": "2000年代", "term": {"en": "2000s"}},
+{"id": "2010s", "label": "2010年代", "term": {"en": "2010s"}},
+{"id": "2020s", "label": "2020年代", "term": {"en": "2020s"}}
+]
+}

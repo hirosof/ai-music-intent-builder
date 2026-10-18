@@ -1,0 +1,29 @@
+{
+"schemaVersion": 1,
+"id": "usage", "axis": "A", "label": "用途", "structure": "flat",
+"items": [
+{"id": "boss-battle-theme", "label": "ボス戦BGM", "term": {"en": "Boss Battle Theme"}},
+{"id": "battle-theme", "label": "戦闘BGM", "term": {"en": "Battle Theme"}},
+{"id": "village-theme", "label": "村のテーマ", "term": {"en": "Village Theme"}},
+{"id": "town-theme", "label": "街のテーマ", "term": {"en": "Town Theme"}},
+{"id": "metropolis-theme", "label": "都市のテーマ", "term": {"en": "City Theme"}},
+{"id": "victory-theme", "label": "勝利のテーマ", "term": {"en": "Victory Theme"}},
+{"id": "title-screen-theme", "label": "タイトル画面BGM", "term": {"en": "Title Screen Theme"}},
+{"id": "opening-theme", "label": "オープニングBGM", "term": {"en": "Opening Theme"}},
+{"id": "ending-theme", "label": "エンディングテーマ", "term": {"en": "Ending Theme"}},
+{"id": "game-music", "label": "ゲーム音楽全般", "term": {"en": "Game Music"}},
+{"id": "video-bgm-general", "label": "動画BGM全般", "term": {"en": "Video Background Music"}},
+{"id": "streaming-bgm", "label": "実況・配信BGM", "term": {"en": "Streaming Background Music"}},
+{"id": "ad-cm-bgm", "label": "広告・CM BGM", "term": {"en": "Advertisement/Commercial Music"}},
+{"id": "vlog-bgm", "label": "Vlog・日常動画BGM", "term": {"en": "Vlog Background Music"}},
+{"id": "soundtrack", "label": "映像作品のサウンドトラック", "term": {"en": "Soundtrack"}},
+{"id": "film-score", "label": "映画音楽", "term": {"en": "Film Score"}},
+{"id": "holiday-music", "label": "ホリデー音楽", "term": {"en": "Holiday Music"}},
+{"id": "christmas-music", "label": "クリスマス音楽", "term": {"en": "Christmas Music"}},
+{"id": "easy-listening", "label": "イージーリスニング", "term": {"en": "Easy Listening"}},
+{"id": "comedy", "label": "コミカル・ユーモラスな用途", "term": {"en": "Comedy"}},
+{"id": "childrens-music", "label": "子供向け", "term": {"en": "Children's Music"}},
+{"id": "work-background", "label": "作業用BGM", "term": {"en": "Work/Study Background"}},
+{"id": "meditation-music", "label": "瞑想用BGM", "term": {"en": "Meditation Music"}}
+]
+}

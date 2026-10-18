@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "exportType": "profiles",
+  "exportedAt": "2026-09-21T10:00:00+09:00",
+  "profiles": [
+    {
+      "name": "和風戦闘BGM",
+      "updatedAt": "2026-09-21T09:30:00+09:00",
+      "data": {
+        "schemaVersion": 1,
+        "requests": [
+          {
+            "id": "r1",
+            "toolId": "suno",
+            "toolVersion": "v6",
+            "generationType": "new",
+            "vocalMode": "instrumental",
+            "lyricsAuthor": null,
+            "derivedFrom": null,
+            "axes": {
+              "purpose": { "state": "specified", "value": "boss-battle-theme" },
+              "purposeDetail": { "state": "delegated" },
+              "listeningEnvironment": { "state": "specified", "value": "loop" },
+              "mainGenre": { "state": "specified", "value": "orchestral" },
+              "subGenres": { "state": "delegated" },
+              "regionStyles": {
+                "state": "specified",
+                "choices": { "japanese": "use", "celtic": "exclude" }
+              },
+              "styleLean": { "state": "specified", "value": "traditional" },
+              "era": { "state": "delegated" },
+              "mood": {
+                "state": "specified",
+                "choices": { "tense": "use", "valiant": "use", "nostalgic": "exclude" }
+              },
+              "intensity": { "state": "defaulted" },
+              "brightness": { "state": "delegated" },
+              "leadInstruments": {
+                "state": "specified",
+                "choices": { "shakuhachi": "use", "guitar": "exclude" },
+                "freeText": "尺八が旋律をとる"
+              },
+              "accompanimentInstruments": {
+                "state": "specified",
+                "choices": { "taiko": "use", "strings": "use", "guitar": "exclude" }
+              },
+              "rhythmInstruments": { "state": "delegated" },
+              "voiceTreatment": { "state": "specified", "value": "wordless-choir" },
+              "ensembleSize": { "state": "delegated" },
+              "length": { "state": "toolManaged" },
+              "tempoFeel": { "state": "delegated" },
+              "bpm": { "state": "specified", "value": { "min": 120, "max": 140 } },
+              "developmentShape": { "state": "specified", "value": "steady" },
+              "structure": { "state": "specified", "value": ["intro", "theme", "climax", "outro"] },
+              "exclusions": { "state": "specified", "value": "歪んだ音色を避けたい" },
+              "notes": { "state": "delegated" }
+            },
+            "output": { "variantCount": 3, "granularity": ["basic", "detailed"], "outputLanguage": "mixed" }
+          }
+        ]
+      }
+    }
+  ]
+}

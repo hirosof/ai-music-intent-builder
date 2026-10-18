@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "song.schema.json",
+  "title": "楽曲データ",
+  "description": "1曲分の入力内容（自動保存の値、プロファイルの data）。仕様は docs/specifications/song-file.md。構造だけを検証する。axes の中身（項目・語彙・状態の整合）と、依頼をまたぐ規則（id の一意、derivedFrom の参照先、generationType との整合、初版の制約）と、derivedFrom の項目どうしの整合（source と requestId・externalSourceLabel、元のスタイルの3項目）は tools/check-fields/check_fields.py が検証する（JSON Schema では表現しない）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "requests"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "requests": {
+      "description": "依頼の配列。1件以上。順序に意味はない。初版が扱えるのは、ちょうど1件（チェッカーが検証する）。",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/request" }
+    }
+  },
+  "$defs": {
+    "requestId": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]{1,32}$"
+    },
+    "kebabId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "request": {
+      "description": "1つの依頼文に対応する要素（新規生成または派生生成。DP-05）。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "toolId", "toolVersion", "generationType", "vocalMode", "lyricsAuthor", "derivedFrom", "axes", "output"],
+      "properties": {
+        "id": { "$ref": "#/$defs/requestId" },
+        "toolId": { "type": "string", "minLength": 1 },
+        "toolVersion": { "type": "string", "minLength": 1 },
+        "generationType": { "enum": ["new", "derived"] },
+        "vocalMode": { "enum": ["instrumental", "vocal"] },
+        "lyricsAuthor": {
+          "description": "作詞の主体（L-01a。input-items.md 判断ポイント20）。vocalMode = vocal のとき①指定必須（②お任せを持たない。chat-ai／chat-ai-instruction のいずれか）。vocalMode = instrumental のときは null。vocalMode との整合はチェッカーが検証する（宿題38。F6 の緩和に合わせて実装）。",
+          "enum": ["chat-ai", "chat-ai-instruction", null]
+        },
+        "derivedFrom": { "$ref": "#/$defs/derivedFrom" },
+        "axes": {
+          "description": "楽曲の入力項目。項目 id をキーに持つ。形は input-items.md §5。",
+          "type": "object",
+          "propertyNames": { "pattern": "^[a-z][A-Za-z0-9]*$" },
+          "additionalProperties": { "$ref": "#/$defs/axisValue" }
+        },
+        "output": {
+          "description": "出力の制御。出力項目 id をキーに持つ。キーと値の検証はチェッカーが行う。",
+          "type": "object"
+        }
+      }
+    },
+    "derivedFrom": {
+      "description": "派生元（song-file.md §3。判断ポイント12・23〜27）。null（新規生成）またはオブジェクト。null を oneOf で分けず、type に含めるのは、違反したキーの場所を、検証の指摘（F1）に出すため（オブジェクトの規則は、null には適用されない）。ここは各キーの型と取れる値だけを検証する。source と requestId・externalSourceLabel の整合、元のスタイルの項目どうしの整合は check_fields.py（F3・F10・F11）。",
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["source", "operation"],
+      "properties": {
+        "source": {
+          "description": "元曲の所在。internal = 同じ楽曲データ内の別の依頼（requestId が指す）。external = このツールの外で作った曲（requestId は持たない）。",
+          "enum": ["internal", "external"]
+        },
+        "requestId": { "$ref": "#/$defs/requestId" },
+        "externalSourceLabel": {
+          "description": "source が external のときの、元曲を識別するための自由記述（名前・メモ）。項目名・文字数上限は未定（song-file.md §3-2）のため、上限は設けない。",
+          "type": "string"
+        },
+        "operation": {
+          "description": "派生生成の操作種別（R-02）。ツールプロファイル（R-10）の operations の id、または null。値の検証は check_fields.py が行う（F9。tool-profile.md §4-3）。",
+          "type": ["string", "null"],
+          "minLength": 1
+        },
+        "sourceStyleText": {
+          "description": "元曲の実際のスタイルテキスト（自由記述）。null または空は「持たない」（判断ポイント24）。",
+          "type": ["string", "null"]
+        },
+        "sourceStyleEditMethod": { "$ref": "#/$defs/sourceStyleEditMethod" },
+        "sourceStyleCloseness": { "$ref": "#/$defs/sourceStyleCloseness" },
+        "originalLength": {
+          "description": "元曲の長さの実値（秒の正の整数）、または null（持たない）。参照先の axes.length は初期値の候補に留め、自動流用しない（判断ポイント27）。",
+          "type": ["integer", "null"],
+          "minimum": 1
+        }
+      }
+    },
+    "sourceStyleEditMethod": {
+      "description": "元のスタイルの編集方法（判断ポイント26）。value: keep = 完全保持し要素の追加のみ、change = 変更する。状態は①指定（specified）と②お任せ（delegated）だけ（input-items.md §1 の状態モデルの一部。③④は持たない）。①指定のとき value が要ること、sourceStyleText が空のとき無効なことは F11。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state"],
+      "properties": {
+        "state": { "enum": ["specified", "delegated"] },
+        "value": { "enum": ["keep", "change"] }
+      }
+    },
+    "sourceStyleCloseness": {
+      "description": "元のスタイルとの近さ（判断ポイント26）。value: near／far。状態は①指定・②お任せだけ。sourceStyleEditMethod が change のときだけ有効（整合は F11）。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state"],
+      "properties": {
+        "state": { "enum": ["specified", "delegated"] },
+        "value": { "enum": ["near", "far"] }
+      }
+    },
+    "axisValue": {
+      "description": "1項目の値。value・choices・freeText のどれを持てるかは、項目の種類による（チェッカーが検証する）。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state"],
+      "properties": {
+        "state": { "enum": ["specified", "delegated", "defaulted", "toolManaged"] },
+        "value": { "not": { "type": "null" } },
+        "choices": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/kebabId" },
+          "additionalProperties": { "enum": ["use", "exclude"] }
+        },
+        "freeText": { "type": "string" }
+      }
+    }
+  }
+}

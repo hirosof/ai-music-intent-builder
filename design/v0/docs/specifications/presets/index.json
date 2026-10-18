@@ -1,0 +1,24 @@
+{
+"schemaVersion": 1,
+"vocabularies": [
+{"id": "usage", "file": "usage.json"},
+{"id": "listening-environment", "file": "listening-environment.json"},
+{"id": "genre", "file": "genre.json"},
+{"id": "region-style", "file": "region-style.json"},
+{"id": "style-lean", "file": "style-lean.json"},
+{"id": "era", "file": "era.json"},
+{"id": "emotion", "file": "emotion.json"},
+{"id": "intensity", "file": "intensity.json"},
+{"id": "brightness", "file": "brightness.json"},
+{"id": "instrument", "file": "instrument.json"},
+{"id": "voice-treatment", "file": "voice-treatment.json"},
+{"id": "ensemble-size", "file": "ensemble-size.json"},
+{"id": "tempo-feel", "file": "tempo-feel.json"},
+{"id": "development-shape", "file": "development-shape.json"},
+{"id": "section", "file": "section.json"},
+{"id": "section-vocal", "file": "section-vocal.json"},
+{"id": "spatial-texture", "file": "spatial-texture.json"},
+{"id": "recording-texture", "file": "recording-texture.json"},
+{"id": "mix-direction", "file": "mix-direction.json"}
+]
+}

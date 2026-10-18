@@ -1,0 +1,4 @@
+# --models ast,clap を使う場合に追加で入れる
+# torch は CPU 版で足りる。GPU 版は不要（入れる場合は PyTorch 公式の手順に従う）
+torch
+transformers>=4.40

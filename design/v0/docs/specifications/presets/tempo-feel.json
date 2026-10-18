@@ -1,0 +1,11 @@
+{
+"schemaVersion": 1,
+"id": "tempo-feel", "axis": "E", "label": "テンポ感", "structure": "flat",
+"items": [
+{"id": "very-slow", "label": "とても遅い", "term": {"en": "very slow"}},
+{"id": "slow", "label": "遅い", "term": {"en": "slow"}},
+{"id": "moderate", "label": "中程度", "term": {"en": "moderate tempo"}},
+{"id": "fast", "label": "速い", "term": {"en": "fast"}},
+{"id": "very-fast", "label": "とても速い", "term": {"en": "very fast"}}
+]
+}

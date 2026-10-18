@@ -1,0 +1,12 @@
+{
+"schemaVersion": 1,
+"id": "mix-direction", "axis": "F", "label": "ミックスの方向性", "structure": "flat",
+"items": [
+{"id": "natural-mix", "label": "自然な", "term": {"en": "natural"}},
+{"id": "punchy", "label": "パンチの効いた・力強い", "term": {"en": "punchy, powerful"}},
+{"id": "wide", "label": "ワイドで広がりのある", "term": {"en": "wide, spacious"}},
+{"id": "dense", "label": "密度が高く層が厚い", "term": {"en": "dense, layered"}},
+{"id": "lead-forward", "label": "リード楽器を前面に出す", "term": {"en": "lead-forward"}},
+{"id": "clean-minimal", "label": "クリーンでミニマル", "term": {"en": "clean, minimal"}}
+]
+}

@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "song-export.schema.json",
+  "title": "エクスポートファイル（プロファイルの配列）",
+  "description": "ファイル入出力の形（根）。仕様は docs/specifications/song-file.md §4。プロファイルのストア（localStorage の値）は #/$defs/profileStore で検証する（ファイルから exportType と exportedAt を除いた形）。プロファイルの data は song.schema.json を参照する。名前の一意（ファイル内・ストア内）は JSON Schema では表現できないため、tools/check-fields/check_fields.py が検証する。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "exportType", "exportedAt", "profiles"],
+  "properties": {
+    "schemaVersion": {
+      "description": "この外側の形（ファイル）の版。data の版とは別。",
+      "const": 1
+    },
+    "exportType": {
+      "description": "ファイルの内容の種類。単一・一括の区別ではない（単一は profiles が1要素）。",
+      "const": "profiles"
+    },
+    "exportedAt": { "$ref": "#/$defs/timestamp" },
+    "profiles": {
+      "description": "プロファイルの配列。ファイルは1件以上。",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/profile" }
+    }
+  },
+  "$defs": {
+    "timestamp": {
+      "description": "タイムゾーン付きの ISO 8601 の日時。",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]\\d{2}:\\d{2})$"
+    },
+    "profile": {
+      "description": "名前を付けて保存した楽曲データ。ユーザープロファイルとファクトリープロファイルは同じ形。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "updatedAt", "data"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "updatedAt": { "$ref": "#/$defs/timestamp" },
+        "data": { "$ref": "song.schema.json" }
+      }
+    },
+    "profileStore": {
+      "description": "プロファイルのストア（localStorage の値）。プロファイルは0件でもよい。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "profiles"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "profiles": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/profile" }
+        }
+      }
+    }
+  }
+}

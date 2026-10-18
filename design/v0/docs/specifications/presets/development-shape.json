@@ -1,0 +1,10 @@
+{
+"schemaVersion": 1,
+"id": "development-shape", "axis": "E", "label": "展開の形", "structure": "flat",
+"items": [
+{"id": "steady", "label": "一定を保つ・ループ向き", "term": {"en": "steady, loop-friendly"}},
+{"id": "quiet-to-swell", "label": "静かに始まり盛り上がる", "term": {"en": "quiet opening building to a swell"}},
+{"id": "arc", "label": "山型（起承転結）", "term": {"en": "rise-and-fall arc"}},
+{"id": "wave", "label": "起伏を繰り返す", "term": {"en": "repeating waves of dynamics"}}
+]
+}

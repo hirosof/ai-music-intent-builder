@@ -1,0 +1,13 @@
+{
+"schemaVersion": 1,
+"id": "spatial-texture", "axis": "F", "label": "空間の質感", "structure": "flat",
+"items": [
+{"id": "dry", "label": "ドライ・残響なし", "term": {"en": "dry, no reverb"}},
+{"id": "natural", "label": "自然な響き", "term": {"en": "natural room ambience"}},
+{"id": "tight-room", "label": "タイトな小部屋", "term": {"en": "tight small room"}},
+{"id": "spacious-hall", "label": "広がりのあるホール", "term": {"en": "wide hall reverb"}},
+{"id": "cathedral", "label": "荘厳な礼拝堂的残響", "term": {"en": "grand cathedral reverb"}},
+{"id": "outdoor", "label": "屋外・開放的な響き", "term": {"en": "open-air outdoor ambience"}},
+{"id": "intimate", "label": "親密でクローズド", "term": {"en": "intimate, close-mic'd"}}
+]
+}

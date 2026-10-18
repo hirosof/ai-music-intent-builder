@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "presets-index.schema.json",
+  "title": "プリセットの索引",
+  "description": "docs/specifications/presets/index.json。語彙ファイルの一覧（順序つき）。語彙の内容は各ファイル（presets.schema.json）にある。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "vocabularies"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "vocabularies": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "file"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+          "file": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*\\.json$" }
+        }
+      }
+    }
+  }
+}

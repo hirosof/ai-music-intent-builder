@@ -1,0 +1,17 @@
+{
+"schemaVersion": 1,
+"id": "region-style", "axis": "B", "label": "地域・文化の様式", "structure": "flat",
+"items": [
+{"id": "japanese", "label": "日本", "term": {"en": "Japanese"}},
+{"id": "chinese", "label": "中国", "term": {"en": "Chinese"}},
+{"id": "korean", "label": "韓国", "term": {"en": "Korean"}},
+{"id": "celtic", "label": "ケルト", "term": {"en": "Celtic"}, "aliases": ["アイルランド", "スコットランド", "Irish", "Scottish"]},
+{"id": "middle-eastern", "label": "中東", "term": {"en": "Middle Eastern"}, "aliases": ["アラブ", "Arabic"]},
+{"id": "balkan", "label": "バルカン", "term": {"en": "Balkan"}},
+{"id": "nordic", "label": "北欧", "term": {"en": "Nordic"}},
+{"id": "african", "label": "アフリカ", "term": {"en": "African"}},
+{"id": "indian", "label": "インド", "term": {"en": "Indian"}, "aliases": ["南アジア", "South Asian"]},
+{"id": "southeast-asian", "label": "東南アジア", "term": {"en": "Southeast Asian"}},
+{"id": "latin-american", "label": "ラテンアメリカ", "term": {"en": "Latin American"}}
+]
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ui-settings.schema.json",
+  "title": "UI 設定",
+  "description": "画面の見え方の設定（localStorage の別のキー）。仕様は docs/specifications/song-file.md §5。楽曲データ・プロファイル・エクスポートファイルには含めない。語彙 id・語 id が語彙に存在するかは検証しない（不明な id は、読み込み時に無視する）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "termVisibility"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "termVisibility": {
+      "description": "語ごとの表示の有無。{ 語彙 id: { 語 id: true｜false } }。語彙の既定値から変えたものだけを持つ。",
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/kebabId" },
+      "additionalProperties": {
+        "type": "object",
+        "propertyNames": { "$ref": "#/$defs/kebabId" },
+        "additionalProperties": { "type": "boolean" }
+      }
+    }
+  },
+  "$defs": {
+    "kebabId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    }
+  }
+}

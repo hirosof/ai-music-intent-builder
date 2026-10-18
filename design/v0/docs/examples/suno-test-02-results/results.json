@@ -1,0 +1,949 @@
+{
+  "script_version": "1.0.0",
+  "created": "2026-09-18T00:18:27",
+  "args": {
+    "input": "..\\..\\temp (user-to-claude)\\suno_exports\\jp_traditional_style",
+    "models": "ast,clap",
+    "pattern": "^([abAB])(\\d+)_"
+  },
+  "judgement": {
+    "rows": [
+      {
+        "key": "pulse_clarity",
+        "label": "D1 ビートの明瞭さ",
+        "expect": "B",
+        "wins": 12.0,
+        "total": 16,
+        "ratio": 0.75,
+        "status": "差なし"
+      },
+      {
+        "key": "perc_ratio",
+        "label": "D2 打楽器成分の比率",
+        "expect": "B",
+        "wins": 12.0,
+        "total": 16,
+        "ratio": 0.75,
+        "status": "差なし"
+      },
+      {
+        "key": "polyphony_index",
+        "label": "D3 同時に鳴る音高の数（和音の厚さ）",
+        "expect": "B",
+        "wins": 13.0,
+        "total": 16,
+        "ratio": 0.8125,
+        "status": "傾向あり"
+      },
+      {
+        "key": "scale_index",
+        "label": "D4 日本の音階への当てはまり − 七音音階",
+        "expect": "A",
+        "wins": 7.0,
+        "total": 16,
+        "ratio": 0.4375,
+        "status": "差なし"
+      },
+      {
+        "key": "ast_index",
+        "label": "M1 AST: 伝統寄りラベル − 現代寄りラベル",
+        "expect": "A",
+        "wins": 13.0,
+        "total": 16,
+        "ratio": 0.8125,
+        "status": "傾向あり"
+      },
+      {
+        "key": "clap_index",
+        "label": "M2 CLAP: 伝統寄りの文 − 現代寄りの文",
+        "expect": "A",
+        "wins": 11.0,
+        "total": 16,
+        "ratio": 0.6875,
+        "status": "差なし"
+      }
+    ],
+    "n": 6,
+    "separated": 0,
+    "reversed": 0,
+    "need": 4,
+    "verdict": "判定不能",
+    "n_a": 4,
+    "n_b": 4
+  },
+  "tracks": [
+    {
+      "file": "a1_cherry blossoms in the rain.mp3",
+      "group": "A",
+      "take": "1",
+      "metrics": {
+        "duration_sec": 173.44,
+        "perc_ratio": 0.06946304953666042,
+        "low_perc_ratio": 0.016494739800691605,
+        "pulse_clarity": 0.8090150253207086,
+        "tempo_bpm": 172.265625,
+        "ioi_cv": 0.03991249050666516,
+        "onset_rate": 3.9610239852398523,
+        "quiet_ratio": 0.010977242302543508,
+        "polyphony_index": 2.0712121212121213,
+        "chord_change": 0.18931140005588531,
+        "fit_diatonic": 0.9288098486992004,
+        "fit_anhemitonic": 0.8681861242421411,
+        "fit_miyakobushi": 0.8035732015701251,
+        "scale_index": -0.060623724457059214,
+        "ast_index": 0.021140708957682365,
+        "clap_index": -1.0186340659856796e-05
+      },
+      "ast": {
+        "Music of Asia": 0.0019075644668191671,
+        "Traditional music": 0.029054565355181694,
+        "Flute": 0.006045751739293337,
+        "Zither": 0.059894829988479614,
+        "Synthesizer": 0.002210484119132161,
+        "Piano": 0.010170318186283112,
+        "Drum kit": 0.00022663871641270816,
+        "Drum machine": 0.00013019503967370838,
+        "Electronic music": 0.0026872085873037577,
+        "Harp": 0.019315816462039948,
+        "Guitar": 0.009150595404207706,
+        "Acoustic guitar": 0.002032048301771283,
+        "Bowed string instrument": 0.006285952404141426,
+        "Orchestra": 0.0020091820042580366,
+        "Percussion": 0.002349400892853737,
+        "Drum": 0.0009230113355442882,
+        "New-age music": 0.056101758033037186,
+        "Ambient music": 0.0037687451113015413,
+        "Theremin": 0.0027985412161797285,
+        "_top10": [
+          [
+            "Music",
+            0.7644600868225098
+          ],
+          [
+            "Zither",
+            0.059894829988479614
+          ],
+          [
+            "New-age music",
+            0.056101758033037186
+          ],
+          [
+            "Tender music",
+            0.05041596293449402
+          ],
+          [
+            "Musical instrument",
+            0.048244837671518326
+          ],
+          [
+            "Pizzicato",
+            0.03877245634794235
+          ],
+          [
+            "Background music",
+            0.03673351928591728
+          ],
+          [
+            "Sad music",
+            0.03656761720776558
+          ],
+          [
+            "Traditional music",
+            0.029054565355181694
+          ],
+          [
+            "Folk music",
+            0.021758776158094406
+          ]
+        ]
+      },
+      "clap": {
+        "traditional Japanese music played on shakuhachi and koto": 0.0049680182710289955,
+        "Japanese classical court music, gagaku": 0.0047383857890963554,
+        "solo shakuhachi bamboo flute with a breathy tone": 0.004160997923463583,
+        "plucked koto zither melody": 0.006788908503949642,
+        "shamisen music": 0.005237305536866188,
+        "modern Japanese-style background music with piano and strings": 0.004775549750775099,
+        "music with warm synthesizer pads": 0.004954515025019646,
+        "music with a steady drum kit beat": 0.004521752241998911,
+        "electronic music": 0.006091400980949402,
+        "cinematic orchestral music": 0.005601326934993267,
+        "shakuhachi": 0.006037617102265358,
+        "shinobue flute": 0.007299439050257206,
+        "koto": 0.009098583832383156,
+        "shamisen": 0.005300070624798536,
+        "taiko drums": 0.008066068403422832,
+        "piano": 0.005102886352688074,
+        "acoustic guitar": 0.0033058738335967064,
+        "harp": 0.006545607000589371,
+        "string ensemble": 0.006826604250818491,
+        "synthesizer": 0.007396480534225702,
+        "drum kit": 0.0070647746324539185
+      }
+    },
+    {
+      "file": "a2_cherry blossoms in the rain.mp3",
+      "group": "A",
+      "take": "2",
+      "metrics": {
+        "duration_sec": 182.76,
+        "perc_ratio": 0.047011461420461906,
+        "low_perc_ratio": 0.010991896502673626,
+        "pulse_clarity": 0.7903747057235263,
+        "tempo_bpm": 135.99917763157896,
+        "ioi_cv": 0.029047443696265458,
+        "onset_rate": 3.2118625519807398,
+        "quiet_ratio": 0.003938508448735866,
+        "polyphony_index": 2.256622302623078,
+        "chord_change": 0.19717256724834442,
+        "fit_diatonic": 0.9344471172493952,
+        "fit_anhemitonic": 0.8609607335215939,
+        "fit_miyakobushi": 0.8109501716773126,
+        "scale_index": -0.07348638372780136,
+        "ast_index": 0.03682028184412047,
+        "clap_index": -9.362096898257732e-05
+      },
+      "ast": {
+        "Music of Asia": 0.0018675902392715216,
+        "Traditional music": 0.019797345623373985,
+        "Flute": 0.11659546941518784,
+        "Zither": 0.026957841590046883,
+        "Synthesizer": 0.003285723039880395,
+        "Piano": 0.015131784602999687,
+        "Drum kit": 0.00024554732954129577,
+        "Drum machine": 0.00012318469816818833,
+        "Electronic music": 0.003635159693658352,
+        "Harp": 0.03606541082262993,
+        "Guitar": 0.007875833660364151,
+        "Acoustic guitar": 0.0020757417660206556,
+        "Bowed string instrument": 0.0067824991419911385,
+        "Orchestra": 0.00324304960668087,
+        "Percussion": 0.0009400802082382143,
+        "Drum": 0.0006210270803421736,
+        "New-age music": 0.09215536713600159,
+        "Ambient music": 0.0045951432548463345,
+        "Theremin": 0.008550691418349743,
+        "_top10": [
+          [
+            "Music",
+            0.703389048576355
+          ],
+          [
+            "Flute",
+            0.11659546941518784
+          ],
+          [
+            "New-age music",
+            0.09215536713600159
+          ],
+          [
+            "Tender music",
+            0.0787019208073616
+          ],
+          [
+            "Sad music",
+            0.07043999433517456
+          ],
+          [
+            "Musical instrument",
+            0.06101438030600548
+          ],
+          [
+            "Background music",
+            0.05412468686699867
+          ],
+          [
+            "Harp",
+            0.03606541082262993
+          ],
+          [
+            "Wind instrument, woodwind instrument",
+            0.03566901385784149
+          ],
+          [
+            "Pizzicato",
+            0.03221461549401283
+          ]
+        ]
+      },
+      "clap": {
+        "traditional Japanese music played on shakuhachi and koto": 0.00249300105497241,
+        "Japanese classical court music, gagaku": 0.002137628383934498,
+        "solo shakuhachi bamboo flute with a breathy tone": 0.00207583699375391,
+        "plucked koto zither melody": 0.00438665971159935,
+        "shamisen music": 0.0027374564670026302,
+        "modern Japanese-style background music with piano and strings": 0.002495965687558055,
+        "music with warm synthesizer pads": 0.002721550175920129,
+        "music with a steady drum kit beat": 0.0020632613450288773,
+        "electronic music": 0.003787991823628545,
+        "cinematic orchestral music": 0.0032299202866852283,
+        "shakuhachi": 0.0036235020961612463,
+        "shinobue flute": 0.004881055559962988,
+        "koto": 0.0067466627806425095,
+        "shamisen": 0.0029486774001270533,
+        "taiko drums": 0.005739090498536825,
+        "piano": 0.0032597705721855164,
+        "acoustic guitar": 0.001075561624020338,
+        "harp": 0.004277875646948814,
+        "string ensemble": 0.004331239499151707,
+        "synthesizer": 0.005040037911385298,
+        "drum kit": 0.0046377661637961864
+      }
+    },
+    {
+      "file": "a3_cherry blossoms in the rain.mp3",
+      "group": "A",
+      "take": "3",
+      "metrics": {
+        "duration_sec": 191.96,
+        "perc_ratio": 0.0601386761730417,
+        "low_perc_ratio": 0.023898109793663025,
+        "pulse_clarity": 0.7815426603241037,
+        "tempo_bpm": 135.99917763157896,
+        "ioi_cv": 0.030327907264446556,
+        "onset_rate": 3.370493852886018,
+        "quiet_ratio": 0.008466376390904693,
+        "polyphony_index": 2.2357814045499507,
+        "chord_change": 0.18154187500476837,
+        "fit_diatonic": 0.9255323101389581,
+        "fit_anhemitonic": 0.8513875349725937,
+        "fit_miyakobushi": 0.8037830376611533,
+        "scale_index": -0.07414477516636442,
+        "ast_index": 0.04554041508963565,
+        "clap_index": 1.671724021434784e-06
+      },
+      "ast": {
+        "Music of Asia": 0.0034120839554816484,
+        "Traditional music": 0.023598454892635345,
+        "Flute": 0.11518912762403488,
+        "Zither": 0.0556204617023468,
+        "Synthesizer": 0.0019839233718812466,
+        "Piano": 0.014501560479402542,
+        "Drum kit": 0.0002114314993377775,
+        "Drum machine": 0.00010750829096650705,
+        "Electronic music": 0.002768661128357053,
+        "Harp": 0.021532490849494934,
+        "Guitar": 0.008162816055119038,
+        "Acoustic guitar": 0.0024710758589208126,
+        "Bowed string instrument": 0.005588227417320013,
+        "Orchestra": 0.0028431499376893044,
+        "Percussion": 0.0009690182050690055,
+        "Drum": 0.000514919578563422,
+        "New-age music": 0.06200086325407028,
+        "Ambient music": 0.003490870352834463,
+        "Theremin": 0.008996867574751377,
+        "_top10": [
+          [
+            "Music",
+            0.7312811017036438
+          ],
+          [
+            "Flute",
+            0.11518912762403488
+          ],
+          [
+            "New-age music",
+            0.06200086325407028
+          ],
+          [
+            "Tender music",
+            0.060198426246643066
+          ],
+          [
+            "Zither",
+            0.0556204617023468
+          ],
+          [
+            "Musical instrument",
+            0.051750458776950836
+          ],
+          [
+            "Sad music",
+            0.04695989564061165
+          ],
+          [
+            "Background music",
+            0.037631724029779434
+          ],
+          [
+            "Pizzicato",
+            0.03373592719435692
+          ],
+          [
+            "Wedding music",
+            0.0251258946955204
+          ]
+        ]
+      },
+      "clap": {
+        "traditional Japanese music played on shakuhachi and koto": 0.0039773061871528625,
+        "Japanese classical court music, gagaku": 0.0038224831223487854,
+        "solo shakuhachi bamboo flute with a breathy tone": 0.0033339306246489286,
+        "plucked koto zither melody": 0.005878192838281393,
+        "shamisen music": 0.004284449387341738,
+        "modern Japanese-style background music with piano and strings": 0.0038950489833950996,
+        "music with warm synthesizer pads": 0.004105074796825647,
+        "music with a steady drum kit beat": 0.0036390565801411867,
+        "electronic music": 0.005051048006862402,
+        "cinematic orchestral music": 0.004597775172442198,
+        "shakuhachi": 0.005183037370443344,
+        "shinobue flute": 0.006373620126396418,
+        "koto": 0.008091885596513748,
+        "shamisen": 0.004438304342329502,
+        "taiko drums": 0.007177338935434818,
+        "piano": 0.004404817707836628,
+        "acoustic guitar": 0.002481423784047365,
+        "harp": 0.005621321499347687,
+        "string ensemble": 0.00586565351113677,
+        "synthesizer": 0.006402189377695322,
+        "drum kit": 0.006155790761113167
+      }
+    },
+    {
+      "file": "a4_cherry blossoms in the rain.mp3",
+      "group": "A",
+      "take": "4",
+      "metrics": {
+        "duration_sec": 177.04,
+        "perc_ratio": 0.09726997645167165,
+        "low_perc_ratio": 0.009184805676341057,
+        "pulse_clarity": 0.8050573133542364,
+        "tempo_bpm": 151.99908088235293,
+        "ioi_cv": 0.02874992554598392,
+        "onset_rate": 3.5020334387708996,
+        "quiet_ratio": 0.0045901639344262295,
+        "polyphony_index": 2.484985384002126,
+        "chord_change": 0.19113947451114655,
+        "fit_diatonic": 0.9015920710896705,
+        "fit_anhemitonic": 0.8516011828726942,
+        "fit_miyakobushi": 0.7970756398063208,
+        "scale_index": -0.04999088821697639,
+        "ast_index": 0.027358069735055324,
+        "clap_index": -4.122825339436531e-05
+      },
+      "ast": {
+        "Music of Asia": 0.0016836350550875068,
+        "Traditional music": 0.04042011499404907,
+        "Flute": 0.01822197623550892,
+        "Zither": 0.05877479165792465,
+        "Synthesizer": 0.0015354796778410673,
+        "Piano": 0.008159968070685863,
+        "Drum kit": 0.00013053481234237552,
+        "Drum machine": 6.439866410801187e-05,
+        "Electronic music": 0.0021949175279587507,
+        "Harp": 0.038709525018930435,
+        "Guitar": 0.00885162316262722,
+        "Acoustic guitar": 0.0019504243973642588,
+        "Bowed string instrument": 0.0070846229791641235,
+        "Orchestra": 0.002284175483509898,
+        "Percussion": 0.0009419287089258432,
+        "Drum": 0.00041272977250628173,
+        "New-age music": 0.04898679256439209,
+        "Ambient music": 0.0020659426227211952,
+        "Theremin": 0.002461062278598547,
+        "_top10": [
+          [
+            "Music",
+            0.7803875803947449
+          ],
+          [
+            "Tender music",
+            0.06316765397787094
+          ],
+          [
+            "Zither",
+            0.05877479165792465
+          ],
+          [
+            "Sad music",
+            0.05544836446642876
+          ],
+          [
+            "Musical instrument",
+            0.051460862159729004
+          ],
+          [
+            "New-age music",
+            0.04898679256439209
+          ],
+          [
+            "Background music",
+            0.048098936676979065
+          ],
+          [
+            "Traditional music",
+            0.04042011499404907
+          ],
+          [
+            "Pizzicato",
+            0.04033460468053818
+          ],
+          [
+            "Harp",
+            0.038709525018930435
+          ]
+        ]
+      },
+      "clap": {
+        "traditional Japanese music played on shakuhachi and koto": 0.0034230982419103384,
+        "Japanese classical court music, gagaku": 0.0031673493795096874,
+        "solo shakuhachi bamboo flute with a breathy tone": 0.0028546692337840796,
+        "plucked koto zither melody": 0.005248975474387407,
+        "shamisen music": 0.003685720730572939,
+        "modern Japanese-style background music with piano and strings": 0.003352297469973564,
+        "music with warm synthesizer pads": 0.0035318341106176376,
+        "music with a steady drum kit beat": 0.0030545685440301895,
+        "electronic music": 0.00458581792190671,
+        "cinematic orchestral music": 0.004061435349285603,
+        "shakuhachi": 0.0045687551610171795,
+        "shinobue flute": 0.005755277816206217,
+        "koto": 0.007662741467356682,
+        "shamisen": 0.0038447827100753784,
+        "taiko drums": 0.006543456111103296,
+        "piano": 0.0038621434941887856,
+        "acoustic guitar": 0.0018742106622084975,
+        "harp": 0.005138535052537918,
+        "string ensemble": 0.005454546771943569,
+        "synthesizer": 0.005836195778101683,
+        "drum kit": 0.005570984911173582
+      }
+    },
+    {
+      "file": "b1_桜の下で.mp3",
+      "group": "B",
+      "take": "1",
+      "metrics": {
+        "duration_sec": 167.56,
+        "perc_ratio": 0.07683481510626265,
+        "low_perc_ratio": 0.036749739199876785,
+        "pulse_clarity": 0.8482246366513032,
+        "tempo_bpm": 143.5546875,
+        "ioi_cv": 0.028701344207515633,
+        "onset_rate": 4.183576032465982,
+        "quiet_ratio": 0.0052653457115144795,
+        "polyphony_index": 2.805762473647224,
+        "chord_change": 0.1464003324508667,
+        "fit_diatonic": 0.8905240803423626,
+        "fit_anhemitonic": 0.8297074577058535,
+        "fit_miyakobushi": 0.7848034738500844,
+        "scale_index": -0.06081662263650911,
+        "ast_index": 0.008451403339859099,
+        "clap_index": -8.477456867694855e-05
+      },
+      "ast": {
+        "Music of Asia": 0.0023092993069440126,
+        "Traditional music": 0.009098670445382595,
+        "Flute": 0.047427110373973846,
+        "Zither": 0.011246055364608765,
+        "Synthesizer": 0.006202177610248327,
+        "Piano": 0.019809143617749214,
+        "Drum kit": 0.0004893974983133376,
+        "Drum machine": 0.0004592068144120276,
+        "Electronic music": 0.018384477123618126,
+        "Harp": 0.030528852716088295,
+        "Guitar": 0.01068771444261074,
+        "Acoustic guitar": 0.0026168394833803177,
+        "Bowed string instrument": 0.004374069627374411,
+        "Orchestra": 0.002950807102024555,
+        "Percussion": 0.0008376500336453319,
+        "Drum": 0.0008400779333896935,
+        "New-age music": 0.08475472778081894,
+        "Ambient music": 0.006345602683722973,
+        "Theremin": 0.0034880568273365498,
+        "_top10": [
+          [
+            "Music",
+            0.6764682531356812
+          ],
+          [
+            "New-age music",
+            0.08475472778081894
+          ],
+          [
+            "Background music",
+            0.0786762535572052
+          ],
+          [
+            "Musical instrument",
+            0.07021534442901611
+          ],
+          [
+            "Tender music",
+            0.05939502641558647
+          ],
+          [
+            "Flute",
+            0.047427110373973846
+          ],
+          [
+            "Sad music",
+            0.03975359722971916
+          ],
+          [
+            "Harp",
+            0.030528852716088295
+          ],
+          [
+            "Soundtrack music",
+            0.022570958361029625
+          ],
+          [
+            "Piano",
+            0.019809143617749214
+          ]
+        ]
+      },
+      "clap": {
+        "traditional Japanese music played on shakuhachi and koto": 0.005032029934227467,
+        "Japanese classical court music, gagaku": 0.0047495546750724316,
+        "solo shakuhachi bamboo flute with a breathy tone": 0.004566159099340439,
+        "plucked koto zither melody": 0.006815402302891016,
+        "shamisen music": 0.005282942205667496,
+        "modern Japanese-style background music with piano and strings": 0.0049975113943219185,
+        "music with warm synthesizer pads": 0.005170094780623913,
+        "music with a steady drum kit beat": 0.0046155499294400215,
+        "electronic music": 0.006316611543297768,
+        "cinematic orchestral music": 0.005770192481577396,
+        "shakuhachi": 0.00617382163181901,
+        "shinobue flute": 0.007442529313266277,
+        "koto": 0.009225822053849697,
+        "shamisen": 0.005501762498170137,
+        "taiko drums": 0.00841198954731226,
+        "piano": 0.005770458839833736,
+        "acoustic guitar": 0.003579604672268033,
+        "harp": 0.006854534614831209,
+        "string ensemble": 0.006865283008664846,
+        "synthesizer": 0.007583480328321457,
+        "drum kit": 0.007242611609399319
+      }
+    },
+    {
+      "file": "b2_桜の下で.mp3",
+      "group": "B",
+      "take": "2",
+      "metrics": {
+        "duration_sec": 163.16,
+        "perc_ratio": 0.07790499029953891,
+        "low_perc_ratio": 0.039993610233068466,
+        "pulse_clarity": 0.8501359887564743,
+        "tempo_bpm": 143.5546875,
+        "ioi_cv": 0.028540557876624045,
+        "onset_rate": 4.32091198823241,
+        "quiet_ratio": 0.0015653906361178312,
+        "polyphony_index": 2.9078719723183393,
+        "chord_change": 0.14589481055736542,
+        "fit_diatonic": 0.9197183792088894,
+        "fit_anhemitonic": 0.8415693144026672,
+        "fit_miyakobushi": 0.821601385817565,
+        "scale_index": -0.07814906480622219,
+        "ast_index": 0.0025766173086594797,
+        "clap_index": -7.084757089614868e-05
+      },
+      "ast": {
+        "Music of Asia": 0.0025046763475984335,
+        "Traditional music": 0.011343630030751228,
+        "Flute": 0.0420193076133728,
+        "Zither": 0.012959593906998634,
+        "Synthesizer": 0.006800109054893255,
+        "Piano": 0.052539046853780746,
+        "Drum kit": 0.00042852465412579477,
+        "Drum machine": 0.0005759033374488354,
+        "Electronic music": 0.012807339429855347,
+        "Harp": 0.010496930219233036,
+        "Guitar": 0.011234992183744907,
+        "Acoustic guitar": 0.003352020401507616,
+        "Bowed string instrument": 0.005346793681383133,
+        "Orchestra": 0.004032535944133997,
+        "Percussion": 0.0009483610629104078,
+        "Drum": 0.0007560085505247116,
+        "New-age music": 0.05823041498661041,
+        "Ambient music": 0.004397055134177208,
+        "Theremin": 0.003546270541846752,
+        "_top10": [
+          [
+            "Music",
+            0.6694351434707642
+          ],
+          [
+            "Background music",
+            0.07839123904705048
+          ],
+          [
+            "Musical instrument",
+            0.07519274204969406
+          ],
+          [
+            "Tender music",
+            0.05953215807676315
+          ],
+          [
+            "New-age music",
+            0.05823041498661041
+          ],
+          [
+            "Piano",
+            0.052539046853780746
+          ],
+          [
+            "Keyboard (musical)",
+            0.04446396976709366
+          ],
+          [
+            "Electric piano",
+            0.04376786947250366
+          ],
+          [
+            "Flute",
+            0.0420193076133728
+          ],
+          [
+            "Sad music",
+            0.0403696671128273
+          ]
+        ]
+      },
+      "clap": {
+        "traditional Japanese music played on shakuhachi and koto": 0.004104271065443754,
+        "Japanese classical court music, gagaku": 0.0038048457354307175,
+        "solo shakuhachi bamboo flute with a breathy tone": 0.003710234072059393,
+        "plucked koto zither melody": 0.005918550305068493,
+        "shamisen music": 0.00439222389832139,
+        "modern Japanese-style background music with piano and strings": 0.003983665723353624,
+        "music with warm synthesizer pads": 0.004362683743238449,
+        "music with a steady drum kit beat": 0.003793989308178425,
+        "electronic music": 0.005350703839212656,
+        "cinematic orchestral music": 0.0047933245077729225,
+        "shakuhachi": 0.00548973074182868,
+        "shinobue flute": 0.006668670568615198,
+        "koto": 0.008510410785675049,
+        "shamisen": 0.004688229411840439,
+        "taiko drums": 0.007669289130717516,
+        "piano": 0.004971582908183336,
+        "acoustic guitar": 0.0028712120838463306,
+        "harp": 0.0061174980364739895,
+        "string ensemble": 0.006185385398566723,
+        "synthesizer": 0.006670377682894468,
+        "drum kit": 0.006481355056166649
+      }
+    },
+    {
+      "file": "b3_桜の季節.mp3",
+      "group": "B",
+      "take": "3",
+      "metrics": {
+        "duration_sec": 184.32,
+        "perc_ratio": 0.06170222355288929,
+        "low_perc_ratio": 0.020441433414816856,
+        "pulse_clarity": 0.775867082468585,
+        "tempo_bpm": 135.99917763157896,
+        "ioi_cv": 0.03847776372181847,
+        "onset_rate": 3.781467013888889,
+        "quiet_ratio": 0.004408615694671873,
+        "polyphony_index": 2.1357372826786865,
+        "chord_change": 0.1921217292547226,
+        "fit_diatonic": 0.9192952219229814,
+        "fit_anhemitonic": 0.8647061824632118,
+        "fit_miyakobushi": 0.7925317901281077,
+        "scale_index": -0.05458903945976956,
+        "ast_index": 0.03799871928495122,
+        "clap_index": -3.875722177326679e-05
+      },
+      "ast": {
+        "Music of Asia": 0.0018574369605630636,
+        "Traditional music": 0.024438314139842987,
+        "Flute": 0.09955514967441559,
+        "Zither": 0.04185415059328079,
+        "Synthesizer": 0.002204057527706027,
+        "Piano": 0.014478853903710842,
+        "Drum kit": 0.0002326224639546126,
+        "Drum machine": 0.00010334369289921597,
+        "Electronic music": 0.0026188401971012354,
+        "Harp": 0.05546391382813454,
+        "Guitar": 0.007054426707327366,
+        "Acoustic guitar": 0.001957912929356098,
+        "Bowed string instrument": 0.004587761592119932,
+        "Orchestra": 0.001589384046383202,
+        "Percussion": 0.0013382283505052328,
+        "Drum": 0.0006919782608747482,
+        "New-age music": 0.08278191089630127,
+        "Ambient music": 0.004240884445607662,
+        "Theremin": 0.0033506208565086126,
+        "_top10": [
+          [
+            "Music",
+            0.7424808740615845
+          ],
+          [
+            "Flute",
+            0.09955514967441559
+          ],
+          [
+            "New-age music",
+            0.08278191089630127
+          ],
+          [
+            "Tender music",
+            0.07021092623472214
+          ],
+          [
+            "Background music",
+            0.06358437985181808
+          ],
+          [
+            "Harp",
+            0.05546391382813454
+          ],
+          [
+            "Sad music",
+            0.051525410264730453
+          ],
+          [
+            "Musical instrument",
+            0.050048504024744034
+          ],
+          [
+            "Zither",
+            0.04185415059328079
+          ],
+          [
+            "Pizzicato",
+            0.037582699209451675
+          ]
+        ]
+      },
+      "clap": {
+        "traditional Japanese music played on shakuhachi and koto": -0.0011223088949918747,
+        "Japanese classical court music, gagaku": -0.0016000285977497697,
+        "solo shakuhachi bamboo flute with a breathy tone": -0.001568759442307055,
+        "plucked koto zither melody": 0.0005903476849198341,
+        "shamisen music": -0.0010748491622507572,
+        "modern Japanese-style background music with piano and strings": -0.0012526613427326083,
+        "music with warm synthesizer pads": -0.001197534380480647,
+        "music with a steady drum kit beat": -0.0016841604374349117,
+        "electronic music": 7.454528531525284e-05,
+        "cinematic orchestral music": -0.000522001413628459,
+        "shakuhachi": -0.00015478690329473466,
+        "shinobue flute": 0.0009230810101144016,
+        "koto": 0.003032401204109192,
+        "shamisen": -0.0008621544693596661,
+        "taiko drums": 0.0018773121992126107,
+        "piano": -0.0004172633052803576,
+        "acoustic guitar": -0.0025141562800854445,
+        "harp": 0.0007345045451074839,
+        "string ensemble": 0.0007797981379553676,
+        "synthesizer": 0.0013395952992141247,
+        "drum kit": 0.0009224290843121707
+      }
+    },
+    {
+      "file": "b4_桜の季節.mp3",
+      "group": "B",
+      "take": "4",
+      "metrics": {
+        "duration_sec": 192.12,
+        "perc_ratio": 0.12336088240073637,
+        "low_perc_ratio": 0.05780253931879997,
+        "pulse_clarity": 0.8509688191579737,
+        "tempo_bpm": 99.38401442307692,
+        "ioi_cv": 0.03001516623057787,
+        "onset_rate": 4.611701020195711,
+        "quiet_ratio": 0.004230118443316413,
+        "polyphony_index": 2.728352725045928,
+        "chord_change": 0.13299259543418884,
+        "fit_diatonic": 0.9255136453279498,
+        "fit_anhemitonic": 0.8775965078973404,
+        "fit_miyakobushi": 0.7909110115761726,
+        "scale_index": -0.047917137430609325,
+        "ast_index": 0.011599372082855552,
+        "clap_index": -6.278930231928825e-05
+      },
+      "ast": {
+        "Music of Asia": 0.002940269187092781,
+        "Traditional music": 0.014343305490911007,
+        "Flute": 0.06591058522462845,
+        "Zither": 0.013901022262871265,
+        "Synthesizer": 0.009670871309936047,
+        "Piano": 0.030379323288798332,
+        "Drum kit": 0.0007717726402916014,
+        "Drum machine": 0.0014676053542643785,
+        "Electronic music": 0.021082544699311256,
+        "Harp": 0.014276593923568726,
+        "Guitar": 0.009326906874775887,
+        "Acoustic guitar": 0.002860814332962036,
+        "Bowed string instrument": 0.002967648906633258,
+        "Orchestra": 0.002510271966457367,
+        "Percussion": 0.0014757238095626235,
+        "Drum": 0.0013359049335122108,
+        "New-age music": 0.040950167924165726,
+        "Ambient music": 0.005262325052171946,
+        "Theremin": 0.0022637054789811373,
+        "_top10": [
+          [
+            "Music",
+            0.6693596839904785
+          ],
+          [
+            "Background music",
+            0.0685943067073822
+          ],
+          [
+            "Flute",
+            0.06591058522462845
+          ],
+          [
+            "Musical instrument",
+            0.05863145738840103
+          ],
+          [
+            "New-age music",
+            0.040950167924165726
+          ],
+          [
+            "Tender music",
+            0.03885381296277046
+          ],
+          [
+            "Piano",
+            0.030379323288798332
+          ],
+          [
+            "Speech",
+            0.025156302377581596
+          ],
+          [
+            "Keyboard (musical)",
+            0.024082373827695847
+          ],
+          [
+            "Soundtrack music",
+            0.023776525631546974
+          ]
+        ]
+      },
+      "clap": {
+        "traditional Japanese music played on shakuhachi and koto": 0.005137176252901554,
+        "Japanese classical court music, gagaku": 0.0047830017283558846,
+        "solo shakuhachi bamboo flute with a breathy tone": 0.004824670031666756,
+        "plucked koto zither melody": 0.006844762712717056,
+        "shamisen music": 0.005417800508439541,
+        "modern Japanese-style background music with piano and strings": 0.004943450912833214,
+        "music with warm synthesizer pads": 0.0053633577190339565,
+        "music with a steady drum kit beat": 0.004851555917412043,
+        "electronic music": 0.006411442067474127,
+        "cinematic orchestral music": 0.005751552060246468,
+        "shakuhachi": 0.006612339988350868,
+        "shinobue flute": 0.0075956122018396854,
+        "koto": 0.00959879532456398,
+        "shamisen": 0.005754876881837845,
+        "taiko drums": 0.008780223317444324,
+        "piano": 0.006157524883747101,
+        "acoustic guitar": 0.004020859487354755,
+        "harp": 0.007277666591107845,
+        "string ensemble": 0.007327771279960871,
+        "synthesizer": 0.007799600251019001,
+        "drum kit": 0.007605184800922871
+      }
+    }
+  ],
+  "warnings": []
+}

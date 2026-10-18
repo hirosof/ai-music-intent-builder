@@ -1,0 +1,18 @@
+{
+"schemaVersion": 1,
+"id": "emotion", "axis": "C", "label": "基調となる情緒", "structure": "flat",
+"items": [
+{"id": "tense", "label": "緊迫感", "term": {"en": "tense"}},
+{"id": "solemn", "label": "荘厳", "term": {"en": "solemn"}},
+{"id": "epic-scale", "label": "壮大", "term": {"en": "epic"}},
+{"id": "nostalgic", "label": "郷愁", "term": {"en": "nostalgic"}},
+{"id": "mysterious", "label": "神秘的", "term": {"en": "mysterious"}},
+{"id": "bittersweet", "label": "切なさ", "term": {"en": "bittersweet"}},
+{"id": "uplifting", "label": "高揚感", "term": {"en": "uplifting"}},
+{"id": "elegant", "label": "優雅", "term": {"en": "elegant"}},
+{"id": "ominous", "label": "不穏", "term": {"en": "ominous"}},
+{"id": "fantastical", "label": "幻想的", "term": {"en": "fantastical"}},
+{"id": "warmth", "label": "温かみ", "term": {"en": "warm"}},
+{"id": "valiant", "label": "勇壮", "term": {"en": "valiant"}}
+]
+}

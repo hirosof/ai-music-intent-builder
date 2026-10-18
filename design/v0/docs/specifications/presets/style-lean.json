@@ -1,0 +1,9 @@
+{
+"schemaVersion": 1,
+"id": "style-lean", "axis": "B", "label": "様式の寄せ方", "structure": "flat",
+"items": [
+{"id": "style", "label": "〜風", "term": {"en": "style"}},
+{"id": "traditional", "label": "伝統寄り", "term": {"en": "traditional"}},
+{"id": "modern", "label": "現代寄り", "term": {"en": "modern"}}
+]
+}

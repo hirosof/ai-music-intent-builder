@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "requests": [
+    {
+      "id": "r2",
+      "toolId": "suno",
+      "toolVersion": "v6",
+      "generationType": "derived",
+      "vocalMode": "instrumental",
+      "lyricsAuthor": null,
+      "derivedFrom": {
+        "source": "external",
+        "operation": "cover",
+        "externalSourceLabel": "別ツールで作った元曲",
+        "sourceStyleText": null,
+        "sourceStyleEditMethod": {
+          "state": "delegated"
+        },
+        "sourceStyleCloseness": {
+          "state": "delegated"
+        },
+        "originalLength": null
+      },
+      "axes": {
+        "purpose": {
+          "state": "specified",
+          "value": "boss-battle-theme",
+          "freeText": "第2形態版"
+        },
+        "listeningEnvironment": {
+          "state": "specified",
+          "value": "loop"
+        },
+        "mainGenre": {
+          "state": "specified",
+          "value": "orchestral"
+        },
+        "regionStyles": {
+          "state": "specified",
+          "choices": {
+            "japanese": "use"
+          }
+        },
+        "mood": {
+          "state": "specified",
+          "choices": {
+            "tense": "use",
+            "solemn": "use"
+          }
+        },
+        "intensity": {
+          "state": "specified",
+          "value": "intense"
+        },
+        "leadInstruments": {
+          "state": "specified",
+          "choices": {
+            "shakuhachi": "use",
+            "shinobue": "use"
+          }
+        },
+        "rhythmInstruments": {
+          "state": "specified",
+          "choices": {
+            "taiko": "use"
+          }
+        },
+        "voiceTreatment": {
+          "state": "specified",
+          "value": "wordless-choir"
+        },
+        "ensembleSize": {
+          "state": "specified",
+          "value": "large-ensemble"
+        },
+        "length": {
+          "state": "specified",
+          "value": 180
+        },
+        "tempoFeel": {
+          "state": "specified",
+          "value": "fast"
+        },
+        "developmentShape": {
+          "state": "specified",
+          "value": "arc"
+        },
+        "spatialTexture": {
+          "state": "specified",
+          "value": "spacious-hall"
+        },
+        "mixDirection": {
+          "state": "defaulted"
+        },
+        "exclusions": {
+          "state": "specified",
+          "value": "歪んだ音色"
+        }
+      },
+      "output": {
+        "variantCount": 3,
+        "granularity": [
+          "basic",
+          "detailed"
+        ],
+        "outputLanguage": "mixed"
+      }
+    }
+  ]
+}

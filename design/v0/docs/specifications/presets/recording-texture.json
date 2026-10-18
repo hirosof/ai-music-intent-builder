@@ -1,0 +1,13 @@
+{
+"schemaVersion": 1,
+"id": "recording-texture", "axis": "F", "label": "音質・録音の質感", "structure": "flat",
+"items": [
+{"id": "clean-studio", "label": "クリアなスタジオ品質", "term": {"en": "clean studio quality"}},
+{"id": "vintage-tape", "label": "ヴィンテージ・アナログ質感", "term": {"en": "vintage analog tape warmth"}},
+{"id": "vinyl", "label": "ヴィニール・レコード風", "term": {"en": "vinyl crackle"}},
+{"id": "lofi", "label": "ローファイ", "term": {"en": "lo-fi"}},
+{"id": "chiptune-bit", "label": "チップチューン・8/16bit風", "term": {"en": "chiptune, 8/16-bit console"}},
+{"id": "radio", "label": "ラジオ・帯域制限風", "term": {"en": "radio, band-limited"}},
+{"id": "live", "label": "ライブ録音風", "term": {"en": "live recording feel"}}
+]
+}

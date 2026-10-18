@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "presets.schema.json",
+  "title": "プリセット（語彙）1語彙分のファイル",
+  "description": "docs/specifications/presets/<語彙 id>.json の構造。仕様は docs/specifications/presets.md。id 形式・語彙内の一意・語彙間の重複の例外・ラベルや別名の衝突・itemOrder の網羅などの検証は tools/build-presets/build_presets.py が行う（JSON Schema では表現しない）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "axis", "label", "structure", "items"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "$ref": "#/$defs/id" },
+    "axis": { "enum": ["A", "B", "C", "D", "E", "F", "G"] },
+    "label": { "type": "string", "minLength": 1 },
+    "structure": { "enum": ["categorized", "flat"] },
+    "categories": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/category" } },
+    "items": { "type": "array", "minItems": 1 },
+    "warningPairs": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/warningPair" } }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "structure": { "const": "categorized" } }, "required": ["structure"] },
+      "then": {
+        "required": ["categories"],
+        "properties": { "items": { "items": { "$ref": "#/$defs/categorizedItem" } } }
+      }
+    },
+    {
+      "if": { "properties": { "structure": { "const": "flat" } }, "required": ["structure"] },
+      "then": {
+        "not": { "required": ["categories"] },
+        "properties": { "items": { "items": { "$ref": "#/$defs/flatItem" } } }
+      }
+    }
+  ],
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "aliases": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "term": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["en"],
+      "properties": { "en": { "type": "string", "minLength": 1 } }
+    },
+    "category": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "order", "itemOrder"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "type": "string", "minLength": 1 },
+        "order": { "type": "integer", "minimum": 0 },
+        "aliases": { "$ref": "#/$defs/aliases" },
+        "itemOrder": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/id" } }
+      }
+    },
+    "categorizedItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "categories"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "type": "string", "minLength": 1 },
+        "categories": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+        "represents": { "$ref": "#/$defs/id" },
+        "term": { "$ref": "#/$defs/term" },
+        "jpNative": { "const": true },
+        "aliases": { "$ref": "#/$defs/aliases" },
+        "defaultVisible": { "const": false },
+        "exclusion": { "$ref": "#/$defs/exclusion" }
+      },
+      "dependentRequired": { "defaultVisible": ["exclusion"], "exclusion": ["defaultVisible"] }
+    },
+    "flatItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "type": "string", "minLength": 1 },
+        "term": { "$ref": "#/$defs/term" },
+        "jpNative": { "const": true },
+        "aliases": { "$ref": "#/$defs/aliases" },
+        "defaultVisible": { "const": false },
+        "exclusion": { "$ref": "#/$defs/exclusion" }
+      },
+      "dependentRequired": { "defaultVisible": ["exclusion"], "exclusion": ["defaultVisible"] }
+    },
+    "exclusion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["substitutable", "not-instrumental", "vocal", "contained", "count", "other-axis", "hold"] },
+        "note": { "type": "string", "minLength": 1 },
+        "substitute": { "type": "string", "minLength": 1 },
+        "targetAxis": { "type": ["string", "null"] }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "enum": ["not-instrumental", "vocal", "other-axis", "hold"] } }, "required": ["kind"] },
+          "then": { "required": ["note"] }
+        },
+        {
+          "if": { "properties": { "kind": { "enum": ["substitutable", "contained"] } }, "required": ["kind"] },
+          "then": { "required": ["substitute"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "other-axis" } }, "required": ["kind"] },
+          "then": { "required": ["targetAxis"] },
+          "else": { "not": { "required": ["targetAxis"] } }
+        }
+      ]
+    },
+    "warningPair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ids", "basis", "reason", "source"],
+      "properties": {
+        "ids": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "$ref": "#/$defs/id" } },
+        "basis": { "enum": ["W-a", "W-b"] },
+        "reason": { "type": "string", "minLength": 1 },
+        "source": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

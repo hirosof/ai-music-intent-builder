@@ -1,0 +1,13 @@
+{
+"schemaVersion": 1,
+"id": "section-vocal", "axis": "G", "label": "歌詞の構成セクション", "structure": "flat",
+"items": [
+{"id": "intro", "label": "イントロ", "term": {"en": "intro"}},
+{"id": "verse", "label": "Aメロ", "term": {"en": "verse"}},
+{"id": "pre-chorus", "label": "Bメロ", "term": {"en": "pre-chorus"}},
+{"id": "chorus", "label": "サビ", "term": {"en": "chorus"}},
+{"id": "post-chorus", "label": "サビ直後", "term": {"en": "post-chorus"}},
+{"id": "bridge", "label": "ブリッジ", "term": {"en": "bridge"}},
+{"id": "outro", "label": "アウトロ", "term": {"en": "outro"}}
+]
+}

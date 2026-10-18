@@ -1,0 +1,174 @@
+{
+  "toolId": "suno",
+  "label": "Suno",
+  "version": {
+    "id": "v6",
+    "label": "v6",
+    "releasedAt": "2026-09-09",
+    "note": "v6 より前のモデルはすべて退役した（R-11 の撤回理由）。モデルの選択肢は models を参照"
+  },
+  "updatedAt": "2026-10-18",
+  "meta": { "source": "screen", "confirmedAt": "2026-09-12", "confirmedBy": "hirosof", "targetVersion": "v6" },
+  "defaultDescriptionField": "style",
+  "screens": [
+    {
+      "id": "simple", "label": "シンプル", "supported": false,
+      "reason": "歌詞欄・除外欄がなく、依頼文のブロック（B-05x / B-06x）が意味を持たない。インスト指定の手段も不明",
+      "meta": { "confirmedAt": "2026-09-16" }
+    },
+    { "id": "advanced", "label": "アドバンスド", "supported": true, "note": "本ツールの対象" },
+    {
+      "id": "sound", "label": "サウンド", "supported": false,
+      "reason": "未調査のため対象外として扱う",
+      "meta": { "source": "unverified" }
+    }
+  ],
+  "modes": [
+    { "id": "standard", "label": "通常", "screen": "advanced", "generationType": "new" },
+    {
+      "id": "remix", "label": "リミックス", "screen": "advanced", "generationType": "derived",
+      "styleOnEnter": [
+        { "id": "reflect-original", "label": "元曲のスタイルを反映" },
+        { "id": "keep-current", "label": "現在の設定を保持" }
+      ],
+      "note": "スタイル等が入力済みで移行するときに styleOnEnter を選ぶ。派生生成の依頼文は、どちらを前提にするかを明示する必要がある。テキスト指示の有無は、説明文からの推測を含む。操作ごとに使える項目・パラメータは未整理（実画面での確認が必要）。**2026-09-23の判断（E1。`song-file.md` 判断ポイント25）**: 本ツールは完成形のスタイルテキストを常に貼り付ける運用のため、`styleOnEnter` の値は依頼文の内容には影響しない。依頼文では扱わず、利用者が Suno 上で選ぶ UI 設定として案内するに留める",
+      "operations": [
+        { "id": "cover", "label": "Cover", "dropdownSection": "remix", "plan": null, "textInstruction": "yes", "scope": "candidate", "lengthHandling": "unknown", "note": "別のジャンルや感じでこの曲を作り直す" },
+        { "id": "mashup", "label": "Mashup", "dropdownSection": "remix", "plan": null, "textInstruction": "unknown", "scope": "pending", "lengthHandling": "unknown", "note": "選んだ別の曲とブレンド", "meta": { "note": "元の表では「将来の候補（優先度低）」" } },
+        { "id": "sample", "label": "Sample", "dropdownSection": "remix", "plan": null, "textInstruction": "yes", "scope": "candidate", "lengthHandling": "unknown", "note": "新しいトラックの中でオーディオの一部を使う" },
+        { "id": "inspiration", "label": "インスピレーション", "dropdownSection": "remix", "plan": "pro", "textInstruction": "yes", "scope": "candidate", "lengthHandling": "unknown", "note": "ゆるくインスパイアを — バイブだけ、細部なし" },
+        { "id": "extend", "label": "延長", "dropdownSection": "edit", "plan": null, "textInstruction": "yes", "scope": "candidate", "lengthHandling": "meaningful", "note": "この曲を止まったところから続ける", "meta": { "note": "長さが意味を持つ（R-15）" } },
+        { "id": "trim", "label": "トリミング", "dropdownSection": "edit", "plan": null, "textInstruction": "no", "scope": "excluded", "lengthHandling": "unknown" },
+        { "id": "delete-section", "label": "セクションを削除", "dropdownSection": "edit", "plan": null, "textInstruction": "no", "scope": "excluded", "lengthHandling": "unknown" },
+        { "id": "reverse", "label": "逆再生", "dropdownSection": "edit", "plan": null, "textInstruction": "no", "scope": "excluded", "lengthHandling": "unknown" },
+        { "id": "speed", "label": "速度", "dropdownSection": "edit", "plan": null, "textInstruction": "no", "scope": "excluded", "lengthHandling": "unknown" },
+        { "id": "edit-instruments", "label": "楽器を編集", "dropdownSection": "edit", "plan": "pro", "textInstruction": "yes", "scope": "candidate", "lengthHandling": "unknown", "note": "曲の楽器編成を追加または置き換える" },
+        {
+          "id": "edit-vocals", "label": "ボーカルを編集", "dropdownSection": "edit", "plan": "pro", "textInstruction": "yes", "scope": "first", "lengthHandling": "fromSource",
+          "note": "曲のボーカルパフォーマンスを追加または置き換える",
+          "meta": { "confirmedAt": "2026-09-16", "note": "派生生成の第一候補（L-01b）。実例: 元曲 3:00 → 2:58〜2:59。Suno が曲名に (Add Vocal) を付ける" }
+        },
+        { "id": "replace-section", "label": "セクションを置き換え", "dropdownSection": "edit", "plan": "pro", "textInstruction": "yes", "scope": "candidate", "lengthHandling": "unknown", "note": "曲の一部を入れ替える", "meta": { "note": "R-04 の代替手段にもなり得る" } },
+        { "id": "fade-in", "label": "フェードイン", "dropdownSection": "edit", "plan": "pro", "textInstruction": "no", "scope": "excluded", "lengthHandling": "unknown" },
+        { "id": "fade-out", "label": "フェードアウト", "dropdownSection": "edit", "plan": "pro", "textInstruction": "no", "scope": "excluded", "lengthHandling": "unknown" },
+        { "id": "add-stem", "label": "stem を追加", "dropdownSection": "edit", "plan": "premier", "textInstruction": "unknown", "scope": "pending", "lengthHandling": "unknown", "note": "新しい stem を重ねる（drums, bass, lead など）", "meta": { "note": "元の表では「将来の候補」" } }
+      ]
+    }
+  ],
+  "fields": [
+    {
+      "id": "lyrics", "label": "歌詞", "kind": "text",
+      "limit": { "status": "confirmed", "value": 5000, "unit": "chars" },
+      "recommended": [
+        { "language": "ja", "kind": "target", "value": 200, "unit": "chars", "condition": "約3分の曲", "meta": { "source": "thirdPartyVersioned", "targetVersion": "v4.5〜v5", "note": "第三者情報。v6 では未検証" } },
+        { "language": "en", "kind": "softUpper", "value": 3000, "unit": "chars", "condition": "超えると曲が駆け足になる", "meta": { "source": "thirdPartyVersioned", "targetVersion": "v5.5", "note": "第三者情報。v6 では未検証" } }
+      ],
+      "modes": ["standard", "remix"],
+      "languageNote": "構成タグは英語、本文は日本語でよい",
+      "note": "空ならインスト（features の instrumental）"
+    },
+    {
+      "id": "lyrics-prompt", "label": "作詞AIへの指示", "kind": "text",
+      "limit": { "status": "unknown" },
+      "recommended": [],
+      "modes": ["standard", "remix"],
+      "note": "歌詞欄内の入力行。通常時・リミックス時の両方で使える。上限が不明のため、推奨長のみで運用する（R-10）。**2026-10-17 の観察**: 貼り付けが240文字までは入力欄にそのまま入り、241文字になると入力欄ではなく添付チップになる。チップだけでは送信できず、入力欄に一言を足す必要がある（一言を足せば歌詞は生成された）。閾値の安定性・原因・チップ化したときの指示の効き方は未検証"
+    },
+    {
+      "id": "style", "label": "スタイル", "kind": "text",
+      "limit": { "status": "confirmed", "value": 1000, "unit": "chars" },
+      "recommended": [],
+      "modes": ["standard", "remix"],
+      "languageNote": "日本語も解釈できる。どの言語が良いかの優劣は示さない（R-08）",
+      "note": "リミックス時は元曲のスタイルが最初から入る"
+    },
+    {
+      "id": "exclude-style", "label": "スタイルを除外", "kind": "text",
+      "limit": { "status": "confirmed", "value": 1000, "unit": "chars" },
+      "recommended": [],
+      "modes": ["standard", "remix"],
+      "note": "否定指定の専用欄。アドバンスドの「その他のオプション」内"
+    },
+    {
+      "id": "title", "label": "曲名", "kind": "text",
+      "limit": { "status": "confirmed", "value": 80, "unit": "chars" },
+      "recommended": [],
+      "modes": ["standard", "remix"],
+      "note": "空なら自動設定される。推奨長は上限よりさらに短いが、数値は未確認（R-10）。オプション欄の下に配置"
+    }
+  ],
+  "params": [
+    {
+      "id": "vocal-gender", "label": "ボーカル性別", "kind": "select", "requestRole": "input", "modes": ["standard", "remix"],
+      "values": [ { "id": "male", "label": "男性" }, { "id": "female", "label": "女性" }, { "id": "unset", "label": "未選択" } ],
+      "default": "unset",
+      "note": "インスト時の扱いは未確認。**2026-10-16 訂正**: 入力項目は持たない（歌い手の性別は Suno 側の設定で決める。`input-items.md` 判断ポイント24【訂正後】）。依頼文には出さない（`requestRole: input` だが `bindings` には載せない）"
+    },
+    {
+      "id": "length", "label": "長さ", "kind": "duration", "requestRole": "input", "modes": ["standard", "remix"],
+      "range": { "min": 10, "max": 360, "step": 1, "sliderStep": 5, "unit": "seconds" },
+      "hasAuto": true, "default": "auto", "inputFormats": ["seconds", "m:ss"],
+      "note": "カスタムは1秒単位。「180」と入力すると「3:00」と表示される。ボーカルを編集では元曲で決まる（operations の lengthHandling）"
+    },
+    {
+      "id": "max-mode", "label": "Max モード", "kind": "toggle", "requestRole": "recommend", "modes": ["standard", "remix"],
+      "default": false,
+      "note": "追加クレジットを消費する。第三者情報では、2分超の曲や原曲に近いカバーに向く"
+    },
+    {
+      "id": "weirdness", "label": "奇抜さ", "kind": "slider", "requestRole": "recommend", "modes": ["standard", "remix"],
+      "range": { "min": 0, "max": 100, "unit": "%" }, "default": 50
+    },
+    {
+      "id": "style-influence", "label": "スタイルの影響", "kind": "slider", "requestRole": "recommend", "modes": ["standard", "remix"],
+      "range": { "min": 0, "max": 100, "unit": "%" }, "default": 50
+    },
+    {
+      "id": "audio-influence", "label": "オーディオの影響", "kind": "slider", "requestRole": "recommend", "modes": ["remix"],
+      "range": { "min": 0, "max": 100, "unit": "%" }, "default": 25,
+      "note": "元音声の影響度。派生生成の依頼文は、想定するこの設定を前提に含める必要がある"
+    },
+    {
+      "id": "variation", "label": "バリエーション", "kind": "select", "requestRole": "input", "modes": ["standard", "remix"],
+      "values": [
+        { "id": "off", "label": "オフ", "rewritesStyle": false },
+        { "id": "standard", "label": "標準", "rewritesStyle": true },
+        { "id": "high", "label": "高", "rewritesStyle": true },
+        { "id": "ultra", "label": "超高", "rewritesStyle": true },
+        { "id": "max", "label": "最大", "rewritesStyle": true }
+      ],
+      "default": "standard",
+      "note": "オフ以外ではスタイルが書き換えられる（R-12、RP-06）。書き換えの程度の差は未確認。既定値は Suno の値。R-17 の推奨（詳細＋オフ）は本ツール側の判断で、ここには持たない"
+    }
+  ],
+  "features": {
+    "exclusion-field": { "supported": true, "field": "exclude-style", "note": "専用の除外欄。シンプルにはない" },
+    "instrumental": {
+      "supported": true, "method": "empty-lyrics", "field": "lyrics",
+      "note": "Instrumental トグルではなく、歌詞欄を空にする。アドバンスドの歌詞欄のプレースホルダが裏付け",
+      "meta": { "confirmedAt": "2026-09-16" }
+    },
+    "meta-tags": {
+      "supported": true, "field": "lyrics",
+      "note": "構成タグ（[Verse] など）。インストで歌詞欄に構成タグだけを入れたときの効果は未検証（R-04）"
+    }
+  },
+  "accountFeatures": [
+    { "id": "lyricist", "label": "作詞家", "requestHandling": "useOrNot", "note": "サンプルの歌詞から作る歌詞ペルソナ", "meta": { "note": "画面で存在を確認。機能は推測" } },
+    { "id": "voice", "label": "Voice", "requestHandling": "useOrNot", "note": "ユーザーの声を複製する（v5.5 で追加）", "meta": { "note": "画面で存在を確認。機能は第三者情報" } },
+    { "id": "custom-model", "label": "Custom Model", "requestHandling": "useOrNot", "note": "アップロードした曲から作るモデル。v6 のモデル選択に表示される", "meta": { "source": "unverified", "note": "未確認" } },
+    { "id": "personalize", "label": "パーソナライズ", "requestHandling": "excluded", "note": "利用履歴から学習（マイ・テイスト）。チャットAI に判断材料がないため依頼文の対象外（R-12）" }
+  ],
+  "models": [
+    { "id": "v6", "label": "v6", "plan": null, "note": "実画面で確認したのはこのモデルのみ" },
+    { "id": "v6-wild", "label": "v6-wild", "plan": "pro", "note": "Pro・Premier 向け", "meta": { "source": "thirdPartyVersioned" } },
+    { "id": "v6-mini", "label": "v6-mini", "plan": "none", "note": "全ユーザー向け", "meta": { "source": "thirdPartyVersioned" } }
+  ],
+  "bindings": [
+    { "item": { "kind": "axis", "id": "length" }, "target": { "kind": "param", "id": "length" }, "route": "uiSetting", "note": "確定条件として扱い、本文には書かない（R-15）" },
+    { "item": { "kind": "output", "id": "variation" }, "target": { "kind": "param", "id": "variation" }, "route": "uiSetting" },
+    { "item": { "kind": "output", "id": "titleSuggestions" }, "target": { "kind": "field", "id": "title" }, "route": "text", "note": "曲名案の書き先。空欄なら Suno が自動設定する（R-14）" },
+    { "item": { "kind": "axis", "id": "structure" }, "target": null, "route": "text", "status": "pending", "note": "構成タグを歌詞欄に入れたときの効果が未検証（R-04）のため、対応先を決めない" },
+    { "item": { "kind": "axis", "id": "lyricsStructure" }, "target": { "kind": "field", "id": "lyrics" }, "route": "text", "note": "歌あり時の構成タグ。各語の `term.en` を歌詞欄に入れる（`scope.md` §4 の対応表。L-01。2026-10-16 追加）" }
+  ]
+}

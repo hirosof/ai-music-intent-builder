@@ -1,0 +1,9 @@
+{
+"schemaVersion": 1,
+"id": "brightness", "axis": "C", "label": "明暗", "structure": "flat",
+"items": [
+{"id": "bright", "label": "明るい"},
+{"id": "neutral", "label": "中間"},
+{"id": "dark", "label": "暗い"}
+]
+}

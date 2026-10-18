@@ -1,0 +1,9 @@
+{
+"schemaVersion": 1,
+"id": "listening-environment", "axis": "A", "label": "想定する聴取環境", "structure": "flat",
+"items": [
+{"id": "no-playback", "label": "再生のされ方を想定しない"},
+{"id": "loop", "label": "ループ再生する"},
+{"id": "full-play", "label": "通して聴く"}
+]
+}

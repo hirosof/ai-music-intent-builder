@@ -1,0 +1,285 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tool-profile.schema.json",
+  "title": "ツールプロファイル（R-10）",
+  "description": "ツール固有の情報を、依頼文の生成ロジックから切り離したデータとして持つ（DP-03）。構造だけを検証する。ID の参照関係・整合は check_fields.py が検証する。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["toolId", "label", "version", "updatedAt", "meta", "defaultDescriptionField", "screens", "modes", "fields", "params", "features", "accountFeatures", "models", "bindings"],
+  "properties": {
+    "toolId": { "$ref": "#/$defs/id" },
+    "label": { "type": "string", "minLength": 1 },
+    "version": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "releasedAt"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string", "minLength": 1 },
+        "releasedAt": { "$ref": "#/$defs/date" },
+        "note": { "type": "string" }
+      }
+    },
+    "updatedAt": { "$ref": "#/$defs/date" },
+    "meta": { "$ref": "#/$defs/metaFull" },
+    "defaultDescriptionField": { "$ref": "#/$defs/id" },
+    "screens": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/screen" } },
+    "modes": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/mode" } },
+    "fields": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/field" } },
+    "params": { "type": "array", "items": { "$ref": "#/$defs/param" } },
+    "features": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/id" },
+      "additionalProperties": { "$ref": "#/$defs/feature" }
+    },
+    "accountFeatures": { "type": "array", "items": { "$ref": "#/$defs/accountFeature" } },
+    "models": { "type": "array", "items": { "$ref": "#/$defs/model" } },
+    "bindings": { "type": "array", "items": { "$ref": "#/$defs/binding" } }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,31}$" },
+    "camelId": { "type": "string", "pattern": "^[a-z][A-Za-z0-9]{0,63}$" },
+    "date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "idList": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+    "source": {
+      "description": "情報源（DP-06 の順）。unverified は、確認できていないもの（DP-06 の下位に置く補完）",
+      "enum": ["screen", "official", "thirdPartyVersioned", "thirdPartyUnversioned", "unverified"]
+    },
+    "metaFull": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "confirmedAt", "targetVersion"],
+      "properties": {
+        "source": { "$ref": "#/$defs/source" },
+        "confirmedAt": { "$ref": "#/$defs/date" },
+        "confirmedBy": { "type": "string" },
+        "targetVersion": { "type": "string" },
+        "note": { "type": "string" }
+      }
+    },
+    "metaPartial": {
+      "description": "項目ごとの上書き。書いたキーだけがプロファイル全体の既定を上書きする",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "source": { "$ref": "#/$defs/source" },
+        "confirmedAt": { "$ref": "#/$defs/date" },
+        "confirmedBy": { "type": "string" },
+        "targetVersion": { "type": "string" },
+        "note": { "type": "string" }
+      }
+    },
+    "plan": {
+      "description": "必要な最小プラン。none は制限なし、null は不明（表の「—」は none と読まない）",
+      "enum": ["none", "pro", "premier", null]
+    },
+    "limit": {
+      "description": "上限値の3状態（R-10）",
+      "oneOf": [
+        { "type": "object", "additionalProperties": false, "required": ["status", "value", "unit"],
+          "properties": { "status": { "const": "confirmed" }, "value": { "type": "integer", "minimum": 1 }, "unit": { "const": "chars" } } },
+        { "type": "object", "additionalProperties": false, "required": ["status", "value", "unit"],
+          "properties": { "status": { "const": "lowerBound" }, "value": { "type": "integer", "minimum": 1 }, "unit": { "const": "chars" } } },
+        { "type": "object", "additionalProperties": false, "required": ["status"],
+          "properties": { "status": { "const": "unknown" } } }
+      ]
+    },
+    "recommendedItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language", "kind", "value", "unit"],
+      "properties": {
+        "language": { "enum": ["ja", "en"] },
+        "kind": { "description": "target は目安、softUpper はそれを超えると品質が落ちるとされる目安", "enum": ["target", "softUpper"] },
+        "value": { "type": "integer", "minimum": 1 },
+        "unit": { "const": "chars" },
+        "condition": { "type": "string" },
+        "meta": { "$ref": "#/$defs/metaPartial" }
+      }
+    },
+    "screen": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "supported"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "type": "string", "minLength": 1 },
+        "supported": { "type": "boolean" },
+        "reason": { "type": "string" },
+        "note": { "type": "string" },
+        "meta": { "$ref": "#/$defs/metaPartial" }
+      },
+      "allOf": [
+        { "if": { "properties": { "supported": { "const": false } } }, "then": { "required": ["reason"] } }
+      ]
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "dropdownSection", "plan", "textInstruction", "scope", "lengthHandling"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "type": "string", "minLength": 1 },
+        "dropdownSection": { "enum": ["remix", "edit"] },
+        "plan": { "$ref": "#/$defs/plan" },
+        "textInstruction": { "enum": ["yes", "no", "unknown"] },
+        "scope": { "description": "excluded は対象外、pending はテキスト指示の有無が不明で保留、candidate は将来の候補、first は派生生成の第一候補", "enum": ["excluded", "pending", "candidate", "first"] },
+        "lengthHandling": { "description": "長さの扱い（R-15）。fromSource は元曲で決まり依頼の対象外、meaningful は長さが意味を持つ", "enum": ["fromSource", "meaningful", "unknown"] },
+        "note": { "type": "string" },
+        "meta": { "$ref": "#/$defs/metaPartial" }
+      },
+      "allOf": [
+        { "if": { "properties": { "scope": { "const": "excluded" } } }, "then": { "properties": { "textInstruction": { "const": "no" } } } },
+        { "if": { "properties": { "scope": { "const": "pending" } } }, "then": { "properties": { "textInstruction": { "const": "unknown" } } } },
+        { "if": { "properties": { "scope": { "enum": ["candidate", "first"] } } }, "then": { "properties": { "textInstruction": { "const": "yes" } } } }
+      ]
+    },
+    "mode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "screen", "generationType"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "type": "string", "minLength": 1 },
+        "screen": { "$ref": "#/$defs/id" },
+        "generationType": { "description": "段階との対応（song-file.md §2-2）", "enum": ["new", "derived"] },
+        "styleOnEnter": {
+          "description": "このモードへ移行するときのスタイルの扱いの選択肢",
+          "type": "array", "minItems": 1,
+          "items": { "type": "object", "additionalProperties": false, "required": ["id", "label"],
+            "properties": { "id": { "$ref": "#/$defs/id" }, "label": { "type": "string", "minLength": 1 } } }
+        },
+        "operations": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/operation" } },
+        "note": { "type": "string" },
+        "meta": { "$ref": "#/$defs/metaPartial" }
+      },
+      "allOf": [
+        { "if": { "properties": { "generationType": { "const": "derived" } } }, "then": { "required": ["operations"] } },
+        { "if": { "properties": { "generationType": { "const": "new" } } }, "then": { "not": { "required": ["operations"] } } }
+      ]
+    },
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "kind", "limit", "recommended", "modes"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "type": "string", "minLength": 1 },
+        "kind": { "const": "text" },
+        "limit": { "$ref": "#/$defs/limit" },
+        "recommended": { "type": "array", "items": { "$ref": "#/$defs/recommendedItem" } },
+        "modes": { "$ref": "#/$defs/idList" },
+        "languageNote": { "type": "string" },
+        "note": { "type": "string" },
+        "meta": { "$ref": "#/$defs/metaPartial" }
+      }
+    },
+    "paramValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "type": "string", "minLength": 1 },
+        "rewritesStyle": { "description": "この値のとき、Suno がスタイル欄を書き換えるか（RP-06）", "type": "boolean" }
+      }
+    },
+    "param": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "kind", "requestRole", "modes", "default"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["select", "slider", "toggle", "duration"] },
+        "requestRole": { "description": "R-12 の分類。input は依頼文への入力、recommend は推奨値を出させる候補、none は依頼文の対象外", "enum": ["input", "recommend", "none"] },
+        "modes": { "$ref": "#/$defs/idList" },
+        "default": { "type": ["string", "number", "boolean"] },
+        "values": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/paramValue" } },
+        "range": {
+          "type": "object", "additionalProperties": false, "required": ["min", "max"],
+          "properties": {
+            "min": { "type": "number" }, "max": { "type": "number" },
+            "step": { "type": "number" }, "sliderStep": { "type": "number" },
+            "unit": { "type": "string" }
+          }
+        },
+        "hasAuto": { "type": "boolean" },
+        "inputFormats": { "type": "array", "items": { "enum": ["seconds", "m:ss"] } },
+        "note": { "type": "string" },
+        "meta": { "$ref": "#/$defs/metaPartial" }
+      },
+      "allOf": [
+        { "if": { "properties": { "kind": { "const": "select" } } }, "then": { "required": ["values"], "properties": { "default": { "type": "string" } } } },
+        { "if": { "properties": { "kind": { "const": "slider" } } }, "then": { "required": ["range"], "properties": { "default": { "type": "number" } } } },
+        { "if": { "properties": { "kind": { "const": "toggle" } } }, "then": { "properties": { "default": { "type": "boolean" } } } },
+        { "if": { "properties": { "kind": { "const": "duration" } } }, "then": { "required": ["range", "hasAuto"] } }
+      ]
+    },
+    "feature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["supported"],
+      "properties": {
+        "supported": { "type": "boolean" },
+        "field": { "$ref": "#/$defs/id" },
+        "method": { "type": "string" },
+        "note": { "type": "string" },
+        "meta": { "$ref": "#/$defs/metaPartial" }
+      }
+    },
+    "accountFeature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "requestHandling"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "type": "string", "minLength": 1 },
+        "requestHandling": { "description": "useOrNot は「使う／使わない」だけを前提に書く。excluded は依頼文の対象外（R-12）", "enum": ["useOrNot", "excluded"] },
+        "note": { "type": "string" },
+        "meta": { "$ref": "#/$defs/metaPartial" }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "plan"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "type": "string", "minLength": 1 },
+        "plan": { "$ref": "#/$defs/plan" },
+        "note": { "type": "string" },
+        "meta": { "$ref": "#/$defs/metaPartial" }
+      }
+    },
+    "binding": {
+      "description": "入力項目（fields.json）とツールの欄・パラメータの対応（判断 D1）。ここに載せない項目は、記述の内容として defaultDescriptionField の本文に書かれる",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item", "target", "route"],
+      "properties": {
+        "item": {
+          "type": "object", "additionalProperties": false, "required": ["kind", "id"],
+          "properties": { "kind": { "description": "axis は fields.json の項目、output は出力項目", "enum": ["axis", "output"] }, "id": { "$ref": "#/$defs/camelId" } }
+        },
+        "target": {
+          "description": "対応先。null は未決（status: pending が必須）",
+          "oneOf": [
+            { "type": "null" },
+            { "type": "object", "additionalProperties": false, "required": ["kind", "id"],
+              "properties": { "kind": { "enum": ["field", "param"] }, "id": { "$ref": "#/$defs/id" } } }
+          ]
+        },
+        "route": { "description": "指定経路（R-13、RP-05）。text は欄の本文、uiSetting は UI 設定のみ（本文には書かない）、both は併用", "enum": ["text", "uiSetting", "both"] },
+        "status": { "const": "pending" },
+        "note": { "type": "string" }
+      },
+      "allOf": [
+        { "if": { "properties": { "target": { "type": "null" } } }, "then": { "required": ["status"] } },
+        { "if": { "required": ["status"] }, "then": { "properties": { "target": { "type": "null" } } } }
+      ]
+    }
+  }
+}

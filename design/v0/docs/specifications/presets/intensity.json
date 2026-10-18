@@ -1,0 +1,9 @@
+{
+"schemaVersion": 1,
+"id": "intensity", "axis": "C", "label": "強度", "structure": "flat",
+"items": [
+{"id": "subdued", "label": "控えめ"},
+{"id": "medium", "label": "中程度"},
+{"id": "intense", "label": "強い"}
+]
+}

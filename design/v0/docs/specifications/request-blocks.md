@@ -1,0 +1,351 @@
+# 依頼文ブロックの仕様（出力条件とデータの出所）
+
+- 作成日: 2026-09-21
+- 状態: **暫定**（**2026-10-18、R-6（除外の合算行。§3-5）を追加。未再検証**。**2026-10-18、依頼文の範囲 `requestScope`（`style`／`lyrics`）の出力条件を §3-4 に追加。未検証**。**2026-10-17、歌ありの6モデル検証〔`-07`・`-08`〕を受けて R-1〜R-4 を §3-3 に反映。未再検証**。段階2の初版。§4 は C1、§5 は D1 を反映。§5 の置き場所は E1 に決定。判断ポイント19。**2026-09-23、B-DF（派生元の情報。§3-2）を追加。未検証（-v4で実施予定）**。**2026-09-28、歌ありのブロック（§3-3）を追加。未検証**。判断・承認は2026-09-28、ファイルへの反映は中断を挟み2026-10-16。**2026-10-17、歌ありのブロックを監査し、§3-3 にタグ表記・テーマ②・B-01v の分岐・リスト番号・1依頼の範囲の規則を追加。未検証**）
+- 対象: Suno v6 / 新規生成 / インスト・歌あり（歌ありは2026-09-28追加。`request-text.md` と同じ範囲）
+- 関連: `../decisions/request-text.md`（**文面の正**）、`../decisions/principles.md` DP-03・DP-04・RP-02・RP-06・RP-11、`tool-profile.md`、`input-items.md`、`fields.json`、`../discussions/2026-09/15_request-blocks.md`
+
+---
+
+## 1. 位置づけ
+
+- 文面は `request-text.md` が正。本書は、**いつ出すか**（出力条件）と、**値をどのデータから得るか**を定める。文面を変えるときは `request-text.md`、条件を変えるときは本書を直す
+- DP-03: ツール固有の値・事実は、ブロックではなくプロファイルが持つ。ブロックは生成ロジックで、`suno.json` の値を直接書かない
+- **未定義の組み合わせは、代替文を出さず、生成を明示的に失敗させる。** 例: 対応するモードがない、`instrumental.method` に対応する文面がない
+- 派生生成のブロック（B-DF・B-03d）は2026-09-23に、歌ありのブロック（B-01v・B-04v・B-05g・B-06G・B-LY 系・B-07-9）は2026-09-28に反映済み（§3・§3-2・§3-3。`discussions/2026-09/16_derived-generation-data-model.md`）。範囲外は §9
+
+## 2. データの参照
+
+| 記法 | 意味 |
+|---|---|
+| `req.*` | 楽曲データの依頼1件（`song-file.md`）。`generationType`、`vocalMode`、`axes.<項目id>`（`state`、`value`、`choices`）、`output.<出力項目id>` |
+| `profile.*` | `req.toolId` のツールプロファイル |
+| `mode` | `profile.modes[]` のうち `generationType` が `req.generationType` と等しいもの。なければ失敗 |
+| `field(id)`／`param(id)`／`feature(id)` | `profile.fields[]`／`profile.params[]`／`profile.features[id]` |
+| `def(id)` | `fields.json` の項目の定義（`states`、`specificity`、`kind`） |
+| `usable(id)` | 項目 `id` が、手がかりとして使える（§4） |
+
+## 3. ブロックの出力条件と読むデータ
+
+| ID | 出力条件 | 読むデータ | `request-text.md` からの変更 |
+|---|---|---|---|
+| B-00 | 常時 | — | なし |
+| B-01 | 常時 | `profile.label`、`profile.version.id`、`mode` の画面名（`screens[mode.screen].label` ＋「モード」）、`derived.operationLabel`（`derived` のときのみ） | `{{intro.subject}}` を `generationType` で分岐（2026-09-23。従来は `new` 固定で `derived` が未定義だった） |
+| B-01i | `req.vocalMode = instrumental` かつ `feature(instrumental).supported` かつ `method = empty-lyrics` | 欄名（`field(feature(instrumental).field).label`） | 3項を個別に条件化: 構成タグの項は `feature(meta-tags).supported`、除外欄の項は `feature(exclusion-field).supported`（判断ポイント9。Suno 実機で確認済み） |
+| B-01v | `req.vocalMode = vocal` | — | 新規（2026-09-28。§3-3）。声の扱い（`voiceTreatment`）の説明文を含む |
+| B-02 | 常時 | `fields.json` の状態の定義 | 2-1 を §4 のとおり改訂 |
+| B-03 | 常時 | — | 「§5-2」への参照は、§5-2 が出力されるときだけ書く（§8） |
+| B-03d | `req.generationType = derived` | — | 文面は「§7との整合」を指すように改訂（2026-09-23） |
+| B-DF | `req.generationType = derived` | `derivedFrom.operation`（→ `mode.operations[]` の `label`・`note`・`lengthHandling`）、`derivedFrom.sourceStyleText`、`derivedFrom.sourceStyleEditMethod`（stateとvalue）、`derivedFrom.sourceStyleCloseness`（stateとvalue。有効時のみ）、`derivedFrom.originalLength` | 新規（2026-09-23。§3-2）。描画時に「7. 派生元の情報」として振られ、「8. 出力形式」は「8.」のままになる（従来の B-07 系は 6 の直後ではなく B-DF の後に描画） |
+| B-04 | 常時 | — | なし |
+| B-04v | `req.vocalMode = vocal` | — | 新規（2026-09-28）。歌詞は既存曲の引用・改変をしない旨 |
+| B-05 | 常時 | `profile.label`、`mode` | 5-1・5-2・5-3 は下の行と §6・§7 |
+| 5-1 スタイル | 常時 | `field(profile.defaultDescriptionField)` の `limit`・`recommended` | 上限・目標は §6 |
+| 5-1 歌詞 | `req.vocalMode = vocal` かつ `req.lyricsAuthor = chat-ai` | 歌詞欄（§3-3）の `limit`・`recommended`・`languageNote` | 新規（2026-09-28）。上限・目標は §6、言語は固定文＋`languageNote` |
+| 5-1 作詞AIへの指示 | `req.vocalMode = vocal` かつ `req.lyricsAuthor = chat-ai-instruction` | `field(lyrics-prompt)`（§3-3） | 新規（2026-09-28）。上限は `unknown`（「不明」）、目標は「できるだけ短く」（§6） |
+| B-05x | 除外対象が1件以上 かつ `feature(exclusion-field).supported` | `field(feature(exclusion-field).field)` | 除外対象の定義は §3-1 |
+| B-05t | `req.output.titleSuggestions = true` かつ `bindings` に曲名の欄（`route: text`）がある | `field(その欄)` | 目標は「できるだけ短く」（§6） |
+| 5-2 | §7 の行が1行以上 | `params`、`bindings`、`req.output.recommendParams` | 行はデータから決める（§7） |
+| B-05L | `req.axes.length.state = toolManaged` | — | 長さの行は出さない（既定案4） |
+| B-05v0 | 選んだ `variation` の値の `rewritesStyle = false` | `param(variation).values[]` | 条件を `variation = off` の比較から、値の属性へ |
+| B-05v1 | 選んだ `variation` の値の `rewritesStyle = true` | 同上、その値の `label` | 同上 |
+| B-05-3 最終項 | `req.vocalMode = instrumental` | — | 「声に関する指定がある場合でも」を「声を決める場合も」に広げる（②の声の反映） |
+| B-05g | `req.vocalMode = vocal` | `req.axes.lyricsStructure`（状態のみ） | 新規（2026-09-28）。B-05-3 最終項（インスト）の代わりに出す。歌唱の質感・歌い方・性別をスタイル欄に書かせない。`lyricsStructure` が①指定のときだけ、「展開」の記述を歌詞の構成と矛盾させない旨の1文を続ける（2026-10-17。R-1） |
+| B-06 | 常時 | `fields.json`、`req.axes` | 「値」列は §4、「足させない」値は §5 |
+| B-06x | 除外対象が1件以上 かつ `feature(exclusion-field).supported` | 要件表の「使用しない」の列の値、`exclusions` の内容 | 「除外・補足」の表に合算行を足す（2026-10-18。R-6。§3-5）。除外欄がないツールは、文面なしで失敗 |
+| B-06G | `req.vocalMode = vocal` | `req.axes.lyricsTheme`・`lyricsLanguage`・`lyricsStructure` | 新規（2026-09-28）。§6 の F の後、除外・補足の前。`structure` は歌ありのとき出さない（§3-3） |
+| B-LY | `req.vocalMode = vocal` | `req.lyricsAuthor` | 新規。「歌詞の作成」の節。B-DF の後、B-07 の前 |
+| B-LY-A | `req.lyricsAuthor = chat-ai` | — | 新規。共通項の後に「一人称を使わず、情景の描写を中心にしてもよい」を出す（2026-10-17。R-4） |
+| B-LY-B | `req.lyricsAuthor = chat-ai-instruction` | `req.axes.length.state`、`req.axes.lyricsStructure`（状態のみ） | 新規。指示文に含める要件は、`lyricsStructure` が①指定なら「テーマ・言語・構成」、②お任せなら「テーマ・言語」とし、構成は含めないと明記する（2026-10-18。R-5）。長さの状態が `toolManaged` 以外なら「指示文に曲の長さを書いてよい」、`toolManaged` なら「書かない」を出す（2026-10-17。R-2） |
+| B-LY-t | `req.lyricsAuthor = chat-ai` かつ `feature(meta-tags).supported` | `req.axes.lyricsStructure`、語彙 `section-vocal` | 新規。構成が①指定なら構成タグの対応（§3-3）、②お任せなら「タグを付けず空行で区切る」文 |
+| B-LY-ja | `lyricsLanguage` が「①指定 かつ english」でない（②お任せを含む） | — | 新規。`chat-ai` なら3項の配慮文、`chat-ai-instruction` なら指示文に含める希望の1文 |
+| B-07-1 | 常時 | `req.output.variantCount` | 「曲名案」の項は B-07-6 の条件に、「歌詞」の項は B-07-9 の条件に連動（2026-09-28）。リストの番号は、出力する項だけで描画時に振る（2026-10-17。§3-3） |
+| B-07-2b | `basic ∈ req.output.granularity` | — | なし |
+| B-07-2d | `detailed ∈ req.output.granularity` | スタイル欄の目標（§6） | 「声の扱い」を「§6 で触れると決めた場合のみ」に限定（2026-10-17。R-3。文面のみの変更で、条件データはない） |
+| B-07-2r | 両方を含む | — | なし |
+| B-07-3 | `req.output.variantCount ≥ 2` | `req.output.diffAxis` | なし |
+| B-07-4 | `req.output.outputLanguage ≠ all-japanese` | — | なし |
+| B-07-5 | 常時 | — | なし |
+| B-07-6 | `req.output.titleSuggestions = true` | `req.output.titleCount`、曲名の欄の `limit` | 言語（`titleLanguage`。R-14 未定）は、暫定で「日本語」固定 |
+| B-07-7 | §7 の推奨の行が1行以上 | `params`、`req.output.recommendParams` | 行はデータから決める（§7） |
+| B-07-8 | 常時 | — | なし |
+| B-07-9 | `req.vocalMode = vocal` | `req.lyricsAuthor` | 新規（2026-09-28）。歌詞（または指示文）は案ごとでなく1回だけ。`request-text.md` §5 判断ポイント19 |
+
+> **2026-10-18 注**: 上表の「出力条件」は `req.output.requestScope = combined`（既定）の場合。`style`／`lyrics` のときは §3-4 の追加条件を重ねる。
+
+### 3-1. 「除外対象が1件以上」の定義
+
+次のいずれかが成り立つこと。
+
+- 3値選択の項目（`kind = triSelect`）の `choices` に、`exclude` が1つ以上ある
+- `exclusions` の状態が①指定で、内容が空でない
+
+### 3-2. B-DF（派生元の情報）の生成規則（2026-09-23）
+
+#### 操作名・注記
+
+`derivedFrom.operation` で指す `mode.operations[]` の要素の `label` と `note` をそのまま使う（専用の文言を新たに作らない。DP-03）。`note` は依頼文にそのまま出るため、内部の参照（R-xx、L-xx、判断ポイント、「元の表では…」など）を含めない。内部の補足は `meta.note` に置く（`tool-profile.md` §4-3・判断ポイント9。2026-09-24）。`operation` が `null` のときは、操作名の部分を省いた文とする（未確定事項。実際には現行の判断ポイントの範囲では `null` は未使用）。
+
+#### スタイルテキストの有無
+
+| 条件 | 出力 |
+|---|---|
+| `sourceStyleText` が空でない | 引用形式で提示し、`{{derived.editInstruction}}`（下表）を続ける |
+| `sourceStyleText` が空 | 「分かっていない」文を出し、`editInstruction` の部分自体を出さない（`sourceStyleEditMethod`・`sourceStyleCloseness` はこのとき項目ごと無効。`song-file.md` §3） |
+
+#### `{{derived.editInstruction}}`（`sourceStyleEditMethod` × `sourceStyleCloseness`）
+
+`sourceStyleText` が空でないときのみ評価する。
+
+| `sourceStyleEditMethod` | `sourceStyleCloseness` | 文言 |
+|---|---|---|
+| `keep`（①指定） | （無効） | 「保持・追加」文 |
+| `change`（①指定） | `near`（①指定） | 「近い範囲で調整」文 |
+| `change`（①指定） | `far`（①指定） | 「大胆に書き換え」文 |
+| `change`（①指定） | ②お任せ（または未保存） | 「どの程度近づけるかは判断に委ねる」文（補完一覧に記載） |
+| ②お任せ（または未保存） | （問わない） | 「参考にしつつ、あなたが判断」文（補完一覧に記載） |
+
+未保存（`derivedFrom` にキー自体がない）は②お任せと同じ列に合流する（初期状態の未決定による。`song-file.md` §3-2）。
+
+#### `{{derived.lengthBlock}}`（`lengthHandling` に応じて）
+
+| `lengthHandling` | 文言 |
+|---|---|
+| `fromSource` | 「長さは元曲で決まる」文。`originalLength` があれば参考値として付加 |
+| `meaningful` | 「長さが意味を持つが、具体的な設定は利用者が UI 側で行う」文（B-05L と同様の扱い） |
+| `unknown` | 「長さの扱いは未確認」文 |
+
+`audio-influence`（`param.requestRole = recommend`、`modes: ["remix"]`）は、既存の §7（§7-7）の仕組みでそのまま扱われるため、B-DF では言及しない。`externalSourceLabel`・`source`（internal/external）は依頼文には出さない（ツール内部の識別情報のため）。
+
+### 3-3. 歌ありのブロックの生成規則（2026-09-28。未検証）
+
+`req.vocalMode = vocal` のとき。判断は `../decisions/input-items.md` 判断ポイント20〜27、`../decisions/request-text.md` §5 判断ポイント19〜24。
+
+#### 使うデータ
+
+| 参照 | 内容 |
+|---|---|
+| `req.lyricsAuthor` | `chat-ai`／`chat-ai-instruction`。歌ありでは必須（`null` は生成を明示的に失敗させる。§1） |
+| 歌詞欄 | `field(feature(instrumental).field)`（現行の Suno では `lyrics`）。構成タグの書き先（`feature(meta-tags).field`）が同じ欄でなければ失敗 |
+| 作詞AIへの指示の欄 | `profile.fields[]` のうち `id = lyrics-prompt`（暫定。欄の種類を表す属性がプロファイルにないため id で引く。`request-text.md` §6 補完14） |
+| `req.axes.lyricsTheme`・`lyricsLanguage`・`lyricsStructure` | §6 の G の表（B-06G）。状態・手がかりの規則は他の項目と同じ（§4） |
+
+#### 5-1 の行
+
+- 欄ごとの上限・目標は §6 の規則のとおり。歌詞欄は `limit.status = confirmed`（5000文字）だが、`recommended`（日本語200字・英語3000字）は第三者情報で `targetVersion` が版と合わないため使わず、目標は「上限の9割」（4500文字以内）になる（`request-text.md` §5 判断ポイント23）
+- 言語の列: 歌詞は「§6 の『歌詞本文の言語』に従う」に歌詞欄の `languageNote` を添える。作詞AIへの指示は、暫定で日本語
+
+#### 構成タグ（B-LY-t）
+
+- `lyricsStructure` が①指定: 並びの順に、初出のセクションを「表示名: [タグ]」の行で列挙する（語彙 `section-vocal`。重複は1回）。タグの表記は下の「2026-10-17 の追加規則」のとおり。②お任せ（初期状態。`leave`）: 「タグを付けず、空行で区切る」文（判断ポイント22）
+- `lyricsAuthor = chat-ai-instruction` のときは B-LY-t を出さない。構成は、指示文に含める要件として、B-LY-B の文が伝える
+
+#### `structure`（インスト用）との関係
+
+歌ありのとき `structure` は出さない（B-06 の E の表から除く）。インストのときは `lyricsStructure` を含む G の表を出さない。検査（`check_fields.py`）は、モードに合わない項目を「無効」として扱う（`request-text.md` §8。仕様側の作業）。
+
+#### 2026-10-17 の追加規則（監査。未検証）
+
+判断は `../decisions/request-text.md` §5 判断ポイント25〜27。
+
+- **構成タグの表記**: `term.en` を、空白・ハイフンで区切った各語の先頭を大文字にして `[` `]` で囲む（`verse` → `[Verse]`、`pre-chorus` → `[Pre-Chorus]`）。語彙データは変えない。`scope.md` §4 の対応表と一致させる
+- **歌詞テーマが「指定しない」のとき**: `lyricsTheme` の値列が「指定しない」（②お任せで手がかりなし）でも、`chat-ai` では歌詞の内容を AI が決める必要がある。B-LY の共通項に補足文を出す（`chat-ai` は決めて補完一覧に書く。`chat-ai-instruction` は指示文にテーマを含めず作詞AIに任せる）。`fields.json` のフォールバック（`omit`）は変えない
+- **B-01v の分岐**: 構成タグの項は `chat-ai` のときだけ出す。`chat-ai-instruction` では歌詞は Suno 側で生成されるため、歌詞欄に入れるタグの話を出さない
+- **リスト番号**: B-07-1 の出力順リストは、出力する項だけで番号を描画時に振る（直書きしない。判断ポイント6と同じ考え方）。歌詞の項が出ないインストで、番号に欠けが出ないようにする
+- **1依頼の範囲**: 初版の歌ありは、1つの依頼文でスタイルと歌詞（または指示文）を両方出させる形。`scope.md` L-01c の「依頼文の分割」は、歌詞部を独立したブロック（B-LY）と独立した出力（7-1 の歌詞の項）に分けた形で満たすものとする。案件ごとに1依頼／2依頼を選べる拡張は、将来の候補（§9）
+
+#### 2026-10-17 の追加規則（6モデル検証後。未再検証）
+
+判断は `../decisions/request-text.md` §5 判断ポイント28〜31。
+
+- **R-1 展開と歌詞構成の整合**: B-05g に1文を足す。`lyricsStructure` が①指定のときだけ出す（未指定のときは対象がない）
+- **R-2 作詞AIへの指示での長さ**: `chat-ai-instruction` で、長さの状態が `toolManaged` 以外なら「曲の長さを分量の目安として書いてよい」、`toolManaged` なら「書かない」を出す。§5-2 の「本文に書かない」はスタイル欄の話に限る（文面で明確化）
+- **R-3 声の扱い**: B-07-2d の詳細プロンプトの内容の列挙で、声の扱いを「§6 で触れると決めた場合のみ」に限定する
+- **R-4 一人称の例示**: `chat-ai` のとき、B-LY-A と B-07-9 に「一人称を使わず情景描写中心でもよい」を出す（選択肢の提示。一人称は禁じない）
+- **R-5 構成②のときの B-LY-B**（2026-10-18。判断ポイント38。`-12` で再検証済み）: `chat-ai-instruction` で `lyricsStructure` が②お任せのとき、指示文に含める要件を「テーマ・言語」とし、「歌詞の構成は指定がないため、指示文に含めない」を出す。①指定のときは現行のまま（テーマ・言語・構成）
+
+#### 出力しないもの
+
+- `vocal-gender` は §5-2・§7-7 のどちらにも出さない（§7 の、`input` で `bindings` がない場合の規則のまま。`input-items.md` 判断ポイント24〔訂正後〕）
+- 作詞家（歌詞ペルソナ）・Voice など、アカウントに紐づく要素は対象外（R-10）
+
+### 3-4. 依頼文の範囲（`requestScope`）の出力条件（2026-10-18。未検証）
+
+判断は `../decisions/input-items.md` 判断ポイント28、`../decisions/request-text.md` §5 判断ポイント32〜35。文面は `request-text.md` §2 末尾「依頼文の範囲による分岐」。
+
+#### データ
+
+- `scope` = `req.output.requestScope`。省略は `combined`。`combined`／`style`／`lyrics` 以外は、生成を明示的に失敗させる（§1）
+- `scope` が `style`／`lyrics` で `req.vocalMode` が `vocal` でない場合も、生成を失敗させる（検査 F13 を通っていれば起きない）
+- `req.lyricsAuthor` は `scope = combined` と `lyrics` で使い、`style` では使わない（値は保持してよい）
+
+#### ブロックごとの条件（§3 の表に重ねる）
+
+| ブロック | `combined` | `style` | `lyrics` |
+|---|---|---|---|
+| B-01 | 従来どおり | `intro.subject` を「スタイル欄に入れるテキスト」へ | `intro.subject` を `lyricsAuthor` で分岐（「歌詞」／「作詞AIへの指示文」） |
+| B-01v | 従来どおり | 変種（歌詞は作らない。「声の扱い」の説明は残す） | 変種（スタイルは作らない。「声の扱い」の説明は出さない。構成タグの項は `chat-ai` のときだけ） |
+| B-04v | ○ | — | ○ |
+| 5-1 の行 | §3 の表どおり | スタイル・除外（B-05x）。歌詞・指示・曲名は出さない | 歌詞（`chat-ai`）または作詞AIへの指示（`chat-ai-instruction`）、曲名（B-05t）。スタイル・除外は出さない |
+| 5-2 | §7 の行が1行以上のとき | 同左 | 長さの行だけ。節は常に出す（B-03p）。`length.state = toolManaged` のときは行の代わりに B-05L の短縮形（文面は `request-text.md` §2 末尾 (4)） |
+| 5-2 末尾の「作詞AIへの指示文に書く曲の長さ」の文 | `chat-ai-instruction` のときのみ | —（参照先の節がない） | —（(4) の文面） |
+| 5-3（B-05g・B-05v0／v1） | ○ | ○ | — |
+| B-06 の A〜F | ○ | ○ | A・B・C のみ。D・E・F は出さない（残りの表にある `voiceTreatment` も出ない） |
+| B-06G | ○ | ○（参照用注記を付ける） | ○ |
+| B-06x、「除外したい要素」の行と合算行（R-6） | ○ | ○ | —（除外欄があるロジックを使わない） |
+| 「その他・補足」の行 | ○ | ○ | ○ |
+| B-LY・B-LY-A／B・B-LY-t・B-LY-ja | ○ | — | ○ |
+| B-07-1 | §3 の表どおり | 「歌詞」「曲名案」の項を出さない | 「案ごとの出力」の項を出さない。「各案の見出しには…」の文も出さない |
+| B-07-2b・2d・2r | ○ | ○ | — |
+| B-07-3・B-07-4・B-07-7 | ○ | ○ | — |
+| B-07-5・B-07-8 | ○ | ○ | ○（B-07-5 の「案ごとに異なる」の項は出さない） |
+| B-07-6 | ○（曲名案＝オン） | — | ○（曲名案＝オン） |
+| B-07-9 | ○ | — | ○ |
+
+- `lyrics` で、`B-05t`（曲名の行）の条件は従来どおり（`titleSuggestions = true` かつ曲名の欄の `bindings` がある）
+- `lyrics` で `variantCount`・`diffAxis`・`granularity`・`variation`・`recommendParams`・`outputLanguage` を読んでも、依頼文には出さない。値は保持し、警告もしない（`style` に切り替えたときに復帰するため）
+- `lyrics` で `lyricsLanguage` が、スタイル欄の言語設定（`style.lang`）に依存しないこと：`{{lyrics.lang}}` は歌詞欄の `languageNote`（§3-3）を使うため、出力言語の設定とは独立
+- この節の解釈で迷う点は、判断ポイント32〜35 と補完・仮定（§11）に済み
+
+### 3-5. 除外の合算行（R-6。2026-10-18。未再検証）
+
+判断は `../decisions/request-text.md` §5 判断ポイント40。文面は§2 の B-06x と「除外の合算行」。AI に合算させず、生成側で行にする（`-11`・`-12` で、「使用しない」の列の値が除外欄から落ちた例が12出力中2件）。
+
+- 条件: B-06x と同じ（除外対象が1件以上 かつ `feature(exclusion-field).supported`。§3-1）。除外欄が使えないツールでは、B-06x と同じく文面なしで失敗する（§1）
+- 位置: B-06 の「除外・補足」の表で、「除外したい要素」の行の次（「その他・補足」の前）
+- 値: 次の順に並べ、「, 」でつなぐ。(1) 要件表の `triSelect` 項目の `choices` のうち `exclude` の値の表示名を、表に出る順（A→F）で。(2) `exclusions` の内容（①指定のとき。自由記述。分割しない）。同じ表示名が複数あれば1つにする。(2) と完全一致する (1) の語は落とす
+- 状態は「指定」、具体化は「保持」。項目名（どの項目の「使用しない」か）は付けない
+- `lyrics` では出さない（除外欄がない。§3-4）
+- データ・チェッカーの形には影響しない（データ→文面の生成側の変更）
+
+## 4. C1: 手がかりの絞り込みと、「値」列の生成
+
+判断ポイント17（値が決まっている項目だけを手がかりにする）を、AI 側の規則でなく、ツールの処理にする。
+
+### 4-1. 使える手がかり
+
+- `usable(id)` は、`req.axes.<id>.state`（未保存なら初期状態）が **①指定 または ③既定値** のとき真。②お任せ・④ツール任せは偽
+- `cues` に `*`（他のすべての項目）を持つ項目（用途）は、**①指定の項目だけ**を数える。③は、ツール側の既定であって利用者の意図ではないため（補完・仮定。判断ポイント17の適用の細部）
+- 手がかりは、`def(id).states.delegated.cues` の順に、`usable` なものだけを残す
+
+### 4-2. ②お任せの「値」列
+
+`rule` と、残った手がかり、`fallback` の種別で決める。手がかりの名は、項目の表示名を「と」でつなぐ。
+
+| `rule`／`fallback.type` | 手がかりが1つ以上 | 手がかりがない |
+|---|---|---|
+| `leave` | `お任せ — 指定しないまま残す`（手がかりは使わない） | 同左 |
+| `derive`／`omit` | `お任せ — {手がかり}から導く。導けない場合は指定しない` | `お任せ — 指定しないまま残す` |
+| `derive`／`value` | `お任せ — {手がかり}から導く。導けない場合は「{値の表示名}」` | `お任せ — 手がかりなし。「{値の表示名}」とする` |
+| `derive`／`choose` | `お任せ — {手がかり}から導く。導けない場合も、必ず決める` | `お任せ — 手がかりなし。必ず決める` |
+| `derive`／`text` | `お任せ — {手がかり}から導く。導けない場合は「{text}」` | `お任せ — 手がかりなし。「{text}」として扱う` |
+
+- `cues` が空（強度・音質・ミックスの方向性）の項目は、常に「手がかりがない」の列になる
+- 用途の `cues: ["*"]` の手がかりの名は「指定されている他の項目」とする
+- 現行の B-02 2-1 のうち、「手がかりが『お任せ』の場合は、さらにその上位をたどる」は削る。「最終的な拠り所は『用途』。用途も『お任せ』の場合は『特定の用途を想定しない楽曲』」は、用途の `fallback.text` を「値」列に出すので、2-1 からは削れる。「指定しないまま残す」の項は残す
+
+### 4-3. ③既定値・④ツール任せ
+
+現行のまま（`{既定値の表示名}（既定値）`、`ツール任せ`）。
+
+### 4-4. 効果の例
+
+基調となる情緒が②のとき、明暗（`cues: [mood]`、`fallback: value neutral`）は、現行だと「お任せ — 情緒から導く。導けない場合は『中間』」で、AI が用途などを経由して情緒を推測し得る。C1 では「お任せ — 手がかりなし。『中間』とする」になる。判断ポイント17の意図どおりだが、AI の挙動は変わるため、v4 で再検証が要る。
+
+## 5. D1: 「足させない」値
+
+- 対象は、`no-voice`（声の扱い）、`no-era`（年代・時代感）、`no-playback`（想定する聴取環境）。項目ごとに、「足させない」値の id の配列 `leaveValues` を持つ（`fields.json` の項目のキー。判断ポイント19。検証は D12）
+- 「値」列にそのいずれかを出すとき（①指定、③既定値、②のフォールバックの値）は、値の表示名の末尾に「（足さない。触れないまま残す）」を付ける。状態は変えない
+- そのとき「具体化」列は `—` とする（足す・言い換える対象がないため。補完・仮定）
+- 例: 声の扱い ③ → `声を入れない（足さない。触れないまま残す）（既定値）`
+- 言い回しは、副ジャンル・BPM の②で5モデルが守った表現（V-03）に寄せたもの。この位置での効果は、v4 で検証する
+
+### 5-1. 置き場所（決定: E1。判断ポイント19）
+
+| 案 | 内容 |
+|---|---|
+| **E1（採用）** | `fields.json` の項目に `leaveValues` を持たせる（対象は3項目）。`fields.schema.json`、`check_fields.py`（値が語彙にあることの検査）、テスト、`input-items.md` に小さな追加をする。語彙は語の一覧のまま。②の `leave` 規則（項目側）と同じ層になる |
+| E2（不採用） | 語彙の項目に属性を持たせる。`presets.schema.json` が項目の属性を固定している（`additionalProperties: false`）ため、スキーマ、語彙の md、その生成、`presets.md`、検査の変更が要る（生成の仕組みは未確認） |
+
+`term` の有無や、id の接頭辞（`no-`）では見分けない。`humming`・`scat` なども `term` を持たず、接頭辞は脆いため。
+
+## 6. 欄の上限と目標（RP-06）
+
+| `limit.status` | 「上限」列 | 「目標」列 |
+|---|---|---|
+| `confirmed` | `{value}文字` | `recommended` に `kind = target` があればその値。なければ `floor(value × 0.9)` 文字以内 |
+| `lowerBound` | `少なくとも{value}文字（上限は未確認）` | `floor(value × 0.9)` 文字以内（入ることが確認済みの範囲の内側なので安全側） |
+| `unknown` | `不明` | `recommended` の `target` があればその値。なければ「できるだけ短く」 |
+
+- 曲名（欄の種類が曲名）の目標は、常に「できるだけ短く」（ツール固有でない、曲名欄の共通文言）。B-07-6 の「実際にはもっと短いほうが扱いやすい」も同じ
+- `suno.json` は `style`・`exclude-style` の `recommended` が空なので、いまは「9割」の規則だけが働く（900文字）
+- 5-1 の注記（「目標は上限の9割で…」）は、`recommended` の `target` を使うときは文言が変わる。実データがないため、初めて必要になったときに決める
+- **`source` は依頼文に出さない**（チャットAI は検証できず、指示量が増えるため）。断定の強さは `limit.status` と `recommended.kind` で決める。`unverified`／`thirdPartyUnversioned`、または `targetVersion` が版と合わない事実は、依頼文に断定として書かず、省略する。ツールの UI の警告には使う（宿題24）
+
+## 7. §5-2 と §7-7 の出し分け
+
+`mode` にあるパラメータ（`param.modes` に `mode.id` を含む）ごとに、次で決める。
+
+| `requestRole` | 条件 | 出力先 |
+|---|---|---|
+| `input` | `bindings` に `route: uiSetting` がある | §5-2 の行。値は、対応する項目の値（`variation` は選んだ値の表示名、`length` は M:SS） |
+| `input` | `bindings` がない（`vocal-gender`） | 出さない（歌ありでも入力項目を持たない。2026-09-28。`input-items.md` 判断ポイント24〔訂正後〕） |
+| `recommend` | `req.output.recommendParams[id] = true` | §7-7 の行（範囲・既定値・理由の欄）。§5-2 には出さない |
+| `recommend` | 上記以外 | §5-2 の行。値は `param.default`（既定値） |
+
+- 長さが④のときは、§5-2 に長さの行を出さず、B-05L の文を出す
+- 行の並びは、`profile.params` の順
+- §5-2 が1行もなければ、5-2 の節を出さない
+
+## 8. 節番号と参照
+
+- 節番号は、描画時に、出力する節だけで振る（判断ポイント6）。参照は、節番号の直書きでなく、ブロックの ID で解決する
+- 現行の参照: §1、§2、§2-1、§2-2、§4、§5、§5-2、§6（`request-text.md` の各ブロック）
+- 参照先の節が出力されないとき、その参照を含む句は書かない（例: B-03 の「§5-2 で確定している設定」）
+
+## 9. 範囲外（後回し）
+
+- （歌ありのブロックは2026-09-28に反映済み。§3-3。範囲外として残るのは、作詞家（歌詞ペルソナ）の利用、B1（Simple）・C（作詞依頼文の別出力）、「両方生成」モード〔`both`〕、歌詞の言語別の分量の目安〔v6 で未検証〕）
+
+- ~~案件ごとに「1依頼（スタイルと歌詞を両方出力）」と「2依頼（スタイル用と歌詞用に分ける）」を選べる拡張（利用者の所見、2026-10-17。今回は実装しない）~~ → **2026-10-18 に一部実現**: §3-4（`requestScope`＝`style`／`lyrics`。新規生成・歌ありの範囲）。派生生成（`edit-vocals` 経路）との組合せは引き続き保留（F6）→ **2026-10-18 に、初版は新規生成のみ（F6 維持）と確定**。派生生成は第2段階（`../handoff-next-thread.md` 宿題48）
+
+- 作詞AIへの指示文を、Suno のチップ化の閾値（240文字。`../research/suno-profile.md` §5-3）以内に収める目標にする案（B'）。チップ化を避けて貼るだけで送れるが、テーマ・言語・構成・読みの配慮を入れると足りない可能性が高く、閾値の安定性も未検証。現状は「できるだけ短く」のまま（利用者の判断、2026-10-18。方針は UI 側で一言を案内する案D。依頼文は変えない）。**2026-10-18 に宿題43として検討し、不採用で確定**（`../decisions/request-text.md` 判断ポイント37。根拠: `-08` の6モデルの指示文は、改行を除いて 176〜495 文字で、240文字以内は1モデルだけ〔Namazu 176〕。240文字に収めるには、禁止事項・読みの配慮・構成のいずれかを削る必要がある。再検討の条件は判断ポイント37）
+
+（派生生成のブロック文面（B-DF・B-03d）は2026-09-23に反映済み。§3・§3-2を参照）
+
+## 10. `request-text.md` に反映する項目
+
+1. B-02 2-1 の改訂（§4-2）
+2. B-06 の「表の生成規則」に、「足させない」値の行を追加（§5）
+3. B-05-3 最終項（声の②）と、②の行の「歌詞のない形に限る」
+4. B-05x・B-05t・B-05v0・B-05v1 の条件を、本書の条件に合わせる
+5. 5-1 の注記の文言（§6）
+6. 参照のID化（§8）
+7. 判断ポイント15以降の記録
+8. B-DF（「7. 派生元の情報」）の新設、B-03d の参照先を「§7との整合」に改訂（2026-09-23。§3-2）
+9. 歌ありのブロック（B-01v・B-04v・B-05g・B-06G・B-LY 系・B-07-9）と、5-1 の歌詞の行（2026-09-28。§3-3）
+
+## 11. 補完・仮定、暗黙の前提
+
+**補完・仮定**
+
+- `cues: ["*"]` は①指定だけを数える（§4-1）
+- 「足させない」値の「具体化」列を `—` にする（§5）
+- `{{tool.mode}}` は、画面名（`アドバンスド`）に「モード」を足して作る（`screens` の `label` は「モード」を含まないため）
+- 除外対象の定義（§3-1）は、`triSelect` の `exclude` と `exclusions` の内容から作る
+- 目標の切り捨て、`lowerBound` を安全側とする扱い（§6）
+- 歌ありでは `structure`（インスト用）を出さず、`lyricsStructure` を使う（§3-3）
+- 作詞AIへの指示の欄を id `lyrics-prompt` で引く（暫定。§3-3）
+- 歌詞の構成が未指定のとき、タグを付けず空行で区切る（§3-3。`request-text.md` §5 判断ポイント22）
+- 構成タグは `term.en` の各語の先頭を大文字にして出す（§3-3。判断ポイント25）。Suno での大文字小文字の効きは未検証
+- R-2 の「長さの状態が `toolManaged` 以外」は、指定・既定値のときを指す（§3-3。判断ポイント31）
+- 歌詞欄を `feature(instrumental).field` で引くのは暫定（この属性は「空にするとインストになる欄」を指し、歌詞欄と同じ欄を指すため流用している。意味は別）
+- 依頼文の範囲（§3-4）: ①曲名案は `lyrics` の依頼に置く。②`style` でも G の表を参照用に残す。③`lyrics` では案の数・粒度・バリエーション・推奨パラメータ・出力言語を使わない（値は保持）。④`lyricsAuthor` は `lyrics` でも使い、`style` では使わない。⑤派生生成との組合せは保留（F6）。⑥`lyrics` では B-06 の D・E・F を出さない（歌詞に関係が薄いため。§3-4 で追加した資料上の補完）、⑦`lyrics` の 5-2 は長さ Auto のときも節を残す（参照先の維持）
+- R-6 の合算行（§3-5）: 行の位置・状態＝指定・具体化＝保持・値だけ・自由記述は分割しない・重複は完全一致のみ（`request-text.md` 補完・仮定24）
+
+**暗黙の前提**
+
+- 「足させない」値の言い回しと、C1 の「手がかりなし」の文言は、検証（v4）まで暫定
+- 依頼文の複数モデルでの検証は、利用者が行う
+- `fields.json` の `states.delegated`（`rule`・`cues`・`fallback`）が、②の文言の唯一の出所である
+- 歌詞の生成規則（§3-3）は、検証（歌あり用のレンダリング例）まで暫定

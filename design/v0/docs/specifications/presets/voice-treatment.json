@@ -1,0 +1,12 @@
+{
+"schemaVersion": 1,
+"id": "voice-treatment", "axis": "D", "label": "声の扱い", "structure": "flat",
+"items": [
+{"id": "no-voice", "label": "声を入れない"},
+{"id": "choir", "label": "合唱", "term": {"en": "choir"}},
+{"id": "wordless-choir", "label": "言葉のない合唱", "term": {"en": "wordless choir"}},
+{"id": "wordless-solo", "label": "言葉のない独唱"},
+{"id": "humming", "label": "ハミング"},
+{"id": "scat", "label": "スキャット"}
+]
+}

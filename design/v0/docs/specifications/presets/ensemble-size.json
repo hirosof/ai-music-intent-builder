@@ -1,0 +1,9 @@
+{
+"schemaVersion": 1,
+"id": "ensemble-size", "axis": "D", "label": "編成の規模", "structure": "flat",
+"items": [
+{"id": "solo", "label": "独奏"},
+{"id": "small-ensemble", "label": "小編成"},
+{"id": "large-ensemble", "label": "大編成"}
+]
+}

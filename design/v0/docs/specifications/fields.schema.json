@@ -1,0 +1,250 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fields.schema.json",
+  "title": "入力項目の定義",
+  "description": "docs/specifications/fields.json の構造。仕様は docs/specifications/input-items.md。語彙との整合（語彙 id、既定値、手がかりの参照など）の検証は tools/check-fields/check_fields.py が行う（JSON Schema では表現しない）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "states", "groups", "fields", "crossFieldRules", "output"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "states": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label", "number"],
+        "properties": {
+          "id": { "$ref": "#/$defs/stateId" },
+          "label": { "type": "string", "minLength": 1 },
+          "number": { "enum": [1, 2, 3, 4] }
+        }
+      }
+    },
+    "groups": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "axis", "label", "order"],
+        "properties": {
+          "id": { "$ref": "#/$defs/kebabId" },
+          "axis": { "enum": ["A", "B", "C", "D", "E", "F", "G", null] },
+          "label": { "type": "string", "minLength": 1 },
+          "order": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "fields": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/field" } },
+    "crossFieldRules": { "type": "array", "items": { "$ref": "#/$defs/rule" } },
+    "output": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/outputControl" } }
+  },
+  "$defs": {
+    "stateId": { "enum": ["specified", "delegated", "defaulted", "toolManaged"] },
+    "kebabId": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "camelId": { "type": "string", "pattern": "^[a-z][A-Za-z0-9]*$" },
+    "profileParamRef": {
+      "description": "ツールプロファイルのパラメータへの参照（tool-profile.md §9）。値は、プロファイルのパラメータ id",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["param"],
+      "properties": { "param": { "$ref": "#/$defs/kebabId" } }
+    },
+    "profileRoleRef": {
+      "description": "ツールプロファイルのパラメータの requestRole による参照（tool-profile.md §9）",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requestRole"],
+      "properties": { "requestRole": { "enum": ["input", "recommend", "none"] } }
+    },
+    "fieldRef": { "type": "string", "pattern": "^([a-z][A-Za-z0-9]*|\\*)$" },
+    "fallback": {
+      "oneOf": [
+        { "type": "object", "additionalProperties": false, "required": ["type"], "properties": { "type": { "const": "omit" } } },
+        { "type": "object", "additionalProperties": false, "required": ["type"], "properties": { "type": { "const": "choose" } } },
+        { "type": "object", "additionalProperties": false, "required": ["type", "value"], "properties": { "type": { "const": "value" }, "value": { "type": "string", "minLength": 1 } } },
+        { "type": "object", "additionalProperties": false, "required": ["type", "text"], "properties": { "type": { "const": "text" }, "text": { "type": "string", "minLength": 1 } } }
+      ]
+    },
+    "delegated": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["rule", "cues", "fallback"],
+          "properties": {
+            "rule": { "const": "derive" },
+            "cues": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/fieldRef" } },
+            "fallback": { "$ref": "#/$defs/fallback" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["rule"],
+          "properties": { "rule": { "const": "leave" } }
+        }
+      ]
+    },
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "group", "kind", "freeText", "specificity", "initialState", "states"],
+      "properties": {
+        "id": { "$ref": "#/$defs/camelId" },
+        "label": { "type": "string", "minLength": 1 },
+        "group": { "$ref": "#/$defs/kebabId" },
+        "kind": { "enum": ["select", "triSelect", "text", "bpm", "length", "sectionList"] },
+        "vocabulary": { "$ref": "#/$defs/kebabId" },
+        "options": {
+          "description": "kind が select のとき、vocabulary の代わりに持てる、専用の語彙ファイルを作らない固定選択肢（`input-items.md` 判断ポイント21）。vocabulary とは排他",
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["id", "label"],
+            "properties": { "id": { "type": "string", "minLength": 1 }, "label": { "type": "string", "minLength": 1 } }
+          }
+        },
+        "leaveValues": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "uniqueItems": true },
+        "freeText": { "type": "boolean" },
+        "specificity": { "enum": ["expand", "adapt", "keep", "uiSetting"] },
+        "initialState": { "$ref": "#/$defs/stateId" },
+        "states": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["specified"],
+          "properties": {
+            "specified": { "type": "object", "additionalProperties": false, "maxProperties": 0 },
+            "delegated": { "$ref": "#/$defs/delegated" },
+            "defaulted": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["value"],
+              "properties": { "value": { "type": "string", "minLength": 1 } }
+            },
+            "toolManaged": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": { "note": { "type": "string", "minLength": 1 } }
+            }
+          }
+        },
+        "rangeFrom": { "$ref": "#/$defs/profileParamRef" },
+        "note": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "enum": ["triSelect", "sectionList"] } }, "required": ["kind"] },
+          "then": { "required": ["vocabulary"], "not": { "required": ["options"] } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "select" } }, "required": ["kind"] },
+          "then": {
+            "oneOf": [
+              { "required": ["vocabulary"], "not": { "required": ["options"] } },
+              { "required": ["options"], "not": { "required": ["vocabulary"] } }
+            ]
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "enum": ["text", "bpm", "length"] } }, "required": ["kind"] },
+          "then": { "not": { "anyOf": [ { "required": ["vocabulary"] }, { "required": ["options"] } ] } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "length" } }, "required": ["kind"] },
+          "then": { "required": ["rangeFrom"] },
+          "else": { "not": { "required": ["rangeFrom"] } }
+        }
+      ]
+    },
+    "rule": {
+      "type": "object",
+      "required": ["id", "type", "severity", "note"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "type": { "enum": ["follows-delegated", "active-when", "linked-exclusion", "single-not-excluded"] },
+        "severity": { "enum": ["info", "warning", "error"] },
+        "note": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "follows-delegated" } }, "required": ["type"] },
+          "then": { "required": ["field", "source"], "properties": { "field": { "$ref": "#/$defs/camelId" }, "source": { "$ref": "#/$defs/camelId" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "active-when" } }, "required": ["type"] },
+          "then": {
+            "required": ["field", "when"],
+            "properties": {
+              "field": { "$ref": "#/$defs/camelId" },
+              "when": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["field", "choice"],
+                "properties": { "field": { "$ref": "#/$defs/camelId" }, "choice": { "enum": ["use", "exclude"] } }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "linked-exclusion" } }, "required": ["type"] },
+          "then": { "required": ["fields"], "properties": { "fields": { "type": "array", "minItems": 2, "uniqueItems": true, "items": { "$ref": "#/$defs/camelId" } } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "single-not-excluded" } }, "required": ["type"] },
+          "then": { "required": ["field", "against"], "properties": { "field": { "$ref": "#/$defs/camelId" }, "against": { "$ref": "#/$defs/camelId" } } }
+        }
+      ]
+    },
+    "outputControl": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "kind", "default"],
+      "properties": {
+        "id": { "$ref": "#/$defs/camelId" },
+        "label": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["number", "select", "multiSelect", "boolean", "perItemBoolean"] },
+        "default": {},
+        "options": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "label"],
+                "properties": { "id": { "$ref": "#/$defs/kebabId" }, "label": { "type": "string", "minLength": 1 } }
+              }
+            }
+          ]
+        },
+        "optionsFrom": { "$ref": "#/$defs/profileParamRef" },
+        "itemsFrom": { "$ref": "#/$defs/profileRoleRef" },
+        "note": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "description": "select・multiSelect は、選択肢（options）か、ツールプロファイルの参照（optionsFrom）のどちらか一方を持つ",
+          "if": { "properties": { "kind": { "enum": ["select", "multiSelect"] } }, "required": ["kind"] },
+          "then": {
+            "oneOf": [
+              { "required": ["options"], "not": { "required": ["optionsFrom"] } },
+              { "required": ["optionsFrom"], "not": { "required": ["options"] } }
+            ]
+          },
+          "else": { "not": { "anyOf": [{ "required": ["options"] }, { "required": ["optionsFrom"] }] } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "perItemBoolean" } }, "required": ["kind"] },
+          "then": { "required": ["itemsFrom"] },
+          "else": { "not": { "required": ["itemsFrom"] } }
+        }
+      ]
+    }
+  }
+}

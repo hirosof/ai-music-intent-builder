@@ -1,0 +1,106 @@
+<mxfile host="Electron">
+  <diagram name="ページ-1" id="ahf_qztKeo6KOYdUUR-z">
+    <mxGraphModel dx="1381" dy="827" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-1" parent="1" style="strokeWidth=1;shadow=0;dashed=0;align=center;html=1;shape=mxgraph.mockup.containers.browserWindow;rSize=0;strokeColor=#666666;strokeColor2=#008cff;strokeColor3=#c4c4c4;mainText=,;recursiveResize=0;" value="" vertex="1">
+          <mxGeometry height="1470" width="750" x="39" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-2" parent="IVtYnJFd-OSKOQIG8tt_-1" style="strokeWidth=1;shadow=0;dashed=0;align=center;html=1;shape=mxgraph.mockup.containers.anchor;fontSize=17;fontColor=#666666;align=left;whiteSpace=wrap;" value="Page 1" vertex="1">
+          <mxGeometry height="26" width="110" x="60" y="12" as="geometry" />
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-5" parent="IVtYnJFd-OSKOQIG8tt_-1" style="html=1;shadow=0;dashed=0;shape=mxgraph.bootstrap.rrect;rSize=5;strokeColor=#6C767D;html=1;whiteSpace=wrap;fillColor=#ffffff;fontColor=#212529;verticalAlign=middle;align=center;spacing=20;spacingBottom=0;fontSize=22;labelPosition=center;verticalLabelPosition=middle;" value="各種設定内容を表示" vertex="1">
+          <mxGeometry height="170" width="680" x="35" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-8" connectable="0" parent="IVtYnJFd-OSKOQIG8tt_-5" style="group" value="" vertex="1">
+          <mxGeometry height="32.5" width="80" x="576" y="7.5" as="geometry" />
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-6" parent="IVtYnJFd-OSKOQIG8tt_-8" style="html=1;shadow=0;dashed=0;shape=mxgraph.bootstrap.topButton;rSize=5;perimeter=none;whiteSpace=wrap;fillColor=#F7F7F7;strokeColor=#6C767D;fontColor=#6C767D;resizeWidth=1;fontSize=18;align=left;spacing=20;" value="基本" vertex="1">
+          <mxGeometry height="50" relative="1" width="680" as="geometry">
+            <mxPoint x="-576" y="-7" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-7" parent="IVtYnJFd-OSKOQIG8tt_-8" style="html=1;shadow=0;dashed=0;shape=mxgraph.bootstrap.rrect;rSize=5;strokeColor=#0085FC;strokeWidth=1;fillColor=none;fontColor=#0085FC;whiteSpace=wrap;align=center;verticalAlign=middle;spacingLeft=0;fontStyle=0;fontSize=16;spacing=5;" value="変更" vertex="1">
+          <mxGeometry height="32.5" width="80" as="geometry" />
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-3" parent="IVtYnJFd-OSKOQIG8tt_-1" style="strokeWidth=1;shadow=0;dashed=0;align=center;html=1;shape=mxgraph.mockup.containers.anchor;rSize=0;fontSize=17;fontColor=#666666;align=left;" value="https://localhost/" vertex="1">
+          <mxGeometry height="26" width="250" x="130" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-9" parent="IVtYnJFd-OSKOQIG8tt_-1" style="html=1;shadow=0;dashed=0;shape=mxgraph.bootstrap.rrect;rSize=5;strokeColor=#6C767D;html=1;whiteSpace=wrap;fillColor=#ffffff;fontColor=#212529;verticalAlign=middle;align=center;spacing=20;spacingBottom=0;fontSize=22;labelPosition=center;verticalLabelPosition=middle;" value="各種設定内容を表示" vertex="1">
+          <mxGeometry height="170" width="680" x="35" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-10" connectable="0" parent="IVtYnJFd-OSKOQIG8tt_-9" style="group" value="" vertex="1">
+          <mxGeometry height="32.5" width="80" x="576" y="7.5" as="geometry" />
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-11" parent="IVtYnJFd-OSKOQIG8tt_-10" style="html=1;shadow=0;dashed=0;shape=mxgraph.bootstrap.topButton;rSize=5;perimeter=none;whiteSpace=wrap;fillColor=#F7F7F7;strokeColor=#6C767D;fontColor=#6C767D;resizeWidth=1;fontSize=18;align=left;spacing=20;" value="表現" vertex="1">
+          <mxGeometry height="50" relative="1" width="680" as="geometry">
+            <mxPoint x="-576" y="-7" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-12" parent="IVtYnJFd-OSKOQIG8tt_-10" style="html=1;shadow=0;dashed=0;shape=mxgraph.bootstrap.rrect;rSize=5;strokeColor=#0085FC;strokeWidth=1;fillColor=none;fontColor=#0085FC;whiteSpace=wrap;align=center;verticalAlign=middle;spacingLeft=0;fontStyle=0;fontSize=16;spacing=5;" value="変更" vertex="1">
+          <mxGeometry height="32.5" width="80" as="geometry" />
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-26" parent="IVtYnJFd-OSKOQIG8tt_-1" style="html=1;shadow=0;dashed=0;shape=mxgraph.bootstrap.rrect;rSize=5;strokeColor=#6C767D;html=1;whiteSpace=wrap;fillColor=#ffffff;fontColor=#212529;verticalAlign=middle;align=center;spacing=20;spacingBottom=0;fontSize=22;labelPosition=center;verticalLabelPosition=middle;" value="各種設定内容を表示" vertex="1">
+          <mxGeometry height="170" width="680" x="35" y="555" as="geometry" />
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-27" connectable="0" parent="IVtYnJFd-OSKOQIG8tt_-26" style="group" value="" vertex="1">
+          <mxGeometry height="32.5" width="80" x="576" y="7.5" as="geometry" />
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-28" parent="IVtYnJFd-OSKOQIG8tt_-27" style="html=1;shadow=0;dashed=0;shape=mxgraph.bootstrap.topButton;rSize=5;perimeter=none;whiteSpace=wrap;fillColor=#F7F7F7;strokeColor=#6C767D;fontColor=#6C767D;resizeWidth=1;fontSize=18;align=left;spacing=20;" value="音の構成" vertex="1">
+          <mxGeometry height="50" relative="1" width="680" as="geometry">
+            <mxPoint x="-576" y="-7" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-29" parent="IVtYnJFd-OSKOQIG8tt_-27" style="html=1;shadow=0;dashed=0;shape=mxgraph.bootstrap.rrect;rSize=5;strokeColor=#0085FC;strokeWidth=1;fillColor=none;fontColor=#0085FC;whiteSpace=wrap;align=center;verticalAlign=middle;spacingLeft=0;fontStyle=0;fontSize=16;spacing=5;" value="変更" vertex="1">
+          <mxGeometry height="32.5" width="80" as="geometry" />
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-30" parent="IVtYnJFd-OSKOQIG8tt_-1" style="html=1;shadow=0;dashed=0;shape=mxgraph.bootstrap.rrect;rSize=5;strokeColor=#6C767D;html=1;whiteSpace=wrap;fillColor=#ffffff;fontColor=#212529;verticalAlign=middle;align=center;spacing=20;spacingBottom=0;fontSize=22;labelPosition=center;verticalLabelPosition=middle;" value="各種設定内容を表示" vertex="1">
+          <mxGeometry height="170" width="680" x="35" y="750" as="geometry" />
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-31" connectable="0" parent="IVtYnJFd-OSKOQIG8tt_-30" style="group" value="" vertex="1">
+          <mxGeometry height="32.5" width="80" x="576" y="7.5" as="geometry" />
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-32" parent="IVtYnJFd-OSKOQIG8tt_-31" style="html=1;shadow=0;dashed=0;shape=mxgraph.bootstrap.topButton;rSize=5;perimeter=none;whiteSpace=wrap;fillColor=#F7F7F7;strokeColor=#6C767D;fontColor=#6C767D;resizeWidth=1;fontSize=18;align=left;spacing=20;" value="構造" vertex="1">
+          <mxGeometry height="50" relative="1" width="680" as="geometry">
+            <mxPoint x="-576" y="-7" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-33" parent="IVtYnJFd-OSKOQIG8tt_-31" style="html=1;shadow=0;dashed=0;shape=mxgraph.bootstrap.rrect;rSize=5;strokeColor=#0085FC;strokeWidth=1;fillColor=none;fontColor=#0085FC;whiteSpace=wrap;align=center;verticalAlign=middle;spacingLeft=0;fontStyle=0;fontSize=16;spacing=5;" value="変更" vertex="1">
+          <mxGeometry height="32.5" width="80" as="geometry" />
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-34" parent="IVtYnJFd-OSKOQIG8tt_-1" style="html=1;shadow=0;dashed=0;shape=mxgraph.bootstrap.rrect;rSize=5;strokeColor=#6C767D;html=1;whiteSpace=wrap;fillColor=#ffffff;fontColor=#212529;verticalAlign=middle;align=center;spacing=20;spacingBottom=0;fontSize=22;labelPosition=center;verticalLabelPosition=middle;" value="各種設定内容を表示" vertex="1">
+          <mxGeometry height="170" width="680" x="35" y="960" as="geometry" />
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-35" connectable="0" parent="IVtYnJFd-OSKOQIG8tt_-34" style="group" value="" vertex="1">
+          <mxGeometry height="32.5" width="80" x="576" y="7.5" as="geometry" />
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-36" parent="IVtYnJFd-OSKOQIG8tt_-35" style="html=1;shadow=0;dashed=0;shape=mxgraph.bootstrap.topButton;rSize=5;perimeter=none;whiteSpace=wrap;fillColor=#F7F7F7;strokeColor=#6C767D;fontColor=#6C767D;resizeWidth=1;fontSize=18;align=left;spacing=20;" value="除外・補足" vertex="1">
+          <mxGeometry height="50" relative="1" width="680" as="geometry">
+            <mxPoint x="-576" y="-7" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-37" parent="IVtYnJFd-OSKOQIG8tt_-35" style="html=1;shadow=0;dashed=0;shape=mxgraph.bootstrap.rrect;rSize=5;strokeColor=#0085FC;strokeWidth=1;fillColor=none;fontColor=#0085FC;whiteSpace=wrap;align=center;verticalAlign=middle;spacingLeft=0;fontStyle=0;fontSize=16;spacing=5;" value="変更" vertex="1">
+          <mxGeometry height="32.5" width="80" as="geometry" />
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-38" parent="IVtYnJFd-OSKOQIG8tt_-1" style="html=1;shadow=0;dashed=0;shape=mxgraph.bootstrap.rrect;rSize=5;strokeColor=#6C767D;html=1;whiteSpace=wrap;fillColor=#ffffff;fontColor=#212529;verticalAlign=middle;align=center;spacing=20;spacingBottom=0;fontSize=22;labelPosition=center;verticalLabelPosition=middle;" value="各種設定内容を表示" vertex="1">
+          <mxGeometry height="170" width="680" x="35" y="1147" as="geometry" />
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-39" connectable="0" parent="IVtYnJFd-OSKOQIG8tt_-38" style="group" value="" vertex="1">
+          <mxGeometry height="32.5" width="80" x="576" y="7.5" as="geometry" />
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-40" parent="IVtYnJFd-OSKOQIG8tt_-39" style="html=1;shadow=0;dashed=0;shape=mxgraph.bootstrap.topButton;rSize=5;perimeter=none;whiteSpace=wrap;fillColor=#F7F7F7;strokeColor=#6C767D;fontColor=#6C767D;resizeWidth=1;fontSize=18;align=left;spacing=20;" value="出力設定" vertex="1">
+          <mxGeometry height="50" relative="1" width="680" as="geometry">
+            <mxPoint x="-576" y="-7" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-41" parent="IVtYnJFd-OSKOQIG8tt_-39" style="html=1;shadow=0;dashed=0;shape=mxgraph.bootstrap.rrect;rSize=5;strokeColor=#0085FC;strokeWidth=1;fillColor=none;fontColor=#0085FC;whiteSpace=wrap;align=center;verticalAlign=middle;spacingLeft=0;fontStyle=0;fontSize=16;spacing=5;" value="変更" vertex="1">
+          <mxGeometry height="32.5" width="80" as="geometry" />
+        </mxCell>
+        <mxCell id="IVtYnJFd-OSKOQIG8tt_-42" parent="IVtYnJFd-OSKOQIG8tt_-1" style="html=1;shadow=0;dashed=0;shape=mxgraph.bootstrap.rrect;rSize=5;strokeColor=#0085FC;strokeWidth=1;fillColor=none;fontColor=#0085FC;whiteSpace=wrap;align=center;verticalAlign=middle;spacingLeft=0;fontStyle=0;fontSize=16;spacing=5;" value="以上の設定を元にチャット系AIに渡すプロンプトを作成する" vertex="1">
+          <mxGeometry height="60" width="689" x="35" y="1370" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
