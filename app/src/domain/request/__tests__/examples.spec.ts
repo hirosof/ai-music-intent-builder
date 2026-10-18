@@ -10,6 +10,7 @@ import { generateRequestText } from '@/domain/request/generate'
 import type { SongData } from '@/domain/types/song'
 import { applyPatches, extractRequestText, type Patch } from './helpers'
 import {
+  DEVELOPMENT_SHAPE_03,
   DP36_2,
   DP44_ALL_ENGLISH,
   Q02_ORDER,
@@ -23,8 +24,8 @@ import {
   R4_OUT,
   R5,
   R6_TEXT,
+  STYLE_LEAN_ROW,
   T02,
-  UNDOCUMENTED,
   r6Row,
   vocabLabel,
 } from './patches'
@@ -63,7 +64,7 @@ const V4_EXCLUSION = r6Row(
   '| 除外したい要素 | 指定 | 歪んだ音色 | 保持 |',
   'ケルト, 郷愁, エレキギター, 歪んだ音色',
 )
-// -01-v4・-05 の §6 の表は、主旋律で除外したエレキギターを、リズムの担い手に反映していない（楽器の除外の連動。input-items.md §4）
+// -01-v4・-05 の §6 の表は、主旋律で除外したエレキギターを、リズムの担い手に反映していない（楽器の除外の連動。補完・仮定34。例の側の事情）
 const V4_WARNINGS = [
   '[楽曲データ] 依頼 r1: R instrument-exclusion-linked: electric-guitar は他の項目で除外されているが、rhythmInstruments に反映されていない（連動で補う）',
 ]
@@ -84,18 +85,7 @@ const CASES: Record<string, ExampleCase> = {
   '-07（chat-ai・構成①・テーマ②）': {
     md: 'rendered-07-new-vocal-chat-ai.md',
     input: 'rendered-07.json',
-    patches: [
-      Q02_ORDER,
-      R2_52,
-      T02,
-      R1,
-      RAP,
-      R6_TEXT,
-      R4_LY,
-      UNDOCUMENTED.lyJaBlankLine,
-      R3,
-      R4_OUT,
-    ],
+    patches: [Q02_ORDER, R2_52, T02, R1, RAP, R6_TEXT, R4_LY, R3, R4_OUT],
   },
   '-09（requestScope = style）': {
     md: 'rendered-09-new-vocal-style-only.md',
@@ -105,36 +95,18 @@ const CASES: Record<string, ExampleCase> = {
   '-10（requestScope = lyrics・曲名案）': {
     md: 'rendered-10-new-vocal-lyrics-only.md',
     input: 'rendered-10.json',
-    patches: [UNDOCUMENTED.lyJaBlankLine, DP36_2],
+    patches: [DP36_2],
   },
   '-01-v4（インスト・除外あり・長さ 3:00）': {
     md: 'rendered-01-new-instrumental-v4.md',
     input: 'rendered-01-v4.json',
-    patches: [
-      Q02_ORDER,
-      R2_52,
-      T02,
-      ...V4_LABELS,
-      UNDOCUMENTED.styleLeanRow,
-      V4_EXCLUSION,
-      R6_TEXT,
-      R3,
-    ],
+    patches: [Q02_ORDER, R2_52, T02, ...V4_LABELS, STYLE_LEAN_ROW, V4_EXCLUSION, R6_TEXT, R3],
     expectedWarnings: V4_WARNINGS,
   },
   '-05（インスト・バリエーション＝オフ）': {
     md: 'rendered-05-new-instrumental-variation-off.md',
     input: 'rendered-05.json',
-    patches: [
-      Q02_ORDER_OFF,
-      R2_52,
-      T02,
-      ...V4_LABELS,
-      UNDOCUMENTED.styleLeanRow,
-      V4_EXCLUSION,
-      R6_TEXT,
-      R3,
-    ],
+    patches: [Q02_ORDER_OFF, R2_52, T02, ...V4_LABELS, STYLE_LEAN_ROW, V4_EXCLUSION, R6_TEXT, R3],
     expectedWarnings: V4_WARNINGS,
   },
   '-03（インスト・お任せ多め・除外なし・長さ Auto・案1・すべて英語）': {
@@ -146,7 +118,7 @@ const CASES: Record<string, ExampleCase> = {
       R2_52,
       T02,
       vocabLabel('| 主ジャンル | 指定 | アンビエント |', '| 主ジャンル | 指定 | Ambient |'),
-      UNDOCUMENTED.developmentShapeDelegated,
+      DEVELOPMENT_SHAPE_03,
       vocabLabel('導けない場合は「自然な」 | — |', '導けない場合は「自然な響き」 | — |'),
       R3,
     ],
