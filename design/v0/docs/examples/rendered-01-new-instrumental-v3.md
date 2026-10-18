@@ -330,7 +330,7 @@ G-01 は「足さない」を強めた副作用で起きたため、今度は「
 ## 6. 検証結果（2026-09-16）
 
 対象: ChatGPT / Gemini / Claude Opus 5 / Claude Sonnet 5 / Claude Haiku 4.5（各1回）
-生ログ: `../../temp (user-to-claude)/prompt-test/try3/`
+生ログ: `../../validations/prompt-test/results/rendered-01-new-instrumental-v3/`
 
 ### 6-1. 判定表
 

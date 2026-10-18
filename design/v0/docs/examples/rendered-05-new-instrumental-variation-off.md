@@ -308,7 +308,7 @@
 ## 6. 検証結果（2026-09-24）
 
 対象: ChatGPT / Gemini / Claude Opus 5.5 / Claude Sonnet 5 / Claude Haiku 4.5 / Sakana AI Namazu（各1回）
-生ログ: `../../temp (user-to-claude)/prompt-test/rendered-05-new-instrumental-variation-off/`
+生ログ: `../../validations/prompt-test/results/rendered-05-new-instrumental-variation-off/`
 比較対象: `rendered-01-new-instrumental-v4.md` §6（同一入力。バリエーションは標準）
 
 確認の範囲: 全文を通読したのは ChatGPT・Gemini・Opus 5.5 の3件。残りは機械測定（文字数、否定表現、除外欄、構造）と、補完一覧・注意事項の通読。基本と詳細の矛盾（V-06）、案の差の実質性（V-10）は精査していない。N-01・N-02 は依頼文自体の構造確認で、作成時点で確認済み。

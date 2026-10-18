@@ -354,7 +354,7 @@ V-01 5-2の設定を本文に書かない／V-02 確認の質問をせず最後�
 ## 5. 実施手順（利用者作業）
 
 1. §1 の依頼文を、6モデルにそれぞれ1回貼り付ける
-2. 生ログを `../../temp (user-to-claude)/prompt-test/rendered-08-new-vocal-lyrics-instruction/` に置く
+2. 生ログを `../../validations/prompt-test/results/rendered-08-new-vocal-lyrics-instruction/` に置く
 3. 結果を、判定表（○△×）と観察項目に整理する（検証結果は本書 §6 に追記）
 4. 実際の Suno での確認（任意）: 出力された指示文を作詞AIに渡し、構成・テーマ・言語が反映されるかを見る（B2 の効果は未検証。判断ポイント21）
 
@@ -362,7 +362,7 @@ V-01 5-2の設定を本文に書かない／V-02 確認の質問をせず最後�
 
 ## 6. 検証結果（2026-10-17。6モデル各1回）
 
-ログ: `../../temp (user-to-claude)/prompt-test/rendered-08-new-vocal-lyrics-instruction/`（chatgpt / gemini / claude_opus_5.5 / claude_sonnet_5.5 / claude_haiku_5.5 / sakana_ai_namazu）。
+ログ: `../../validations/prompt-test/results/rendered-08-new-vocal-lyrics-instruction/`（chatgpt / gemini / claude_opus_5.5 / claude_sonnet_5.5 / claude_haiku_5.5 / sakana_ai_namazu）。
 
 ### 6-1. 判定表（○＝通過、△＝軽微な逸脱、×＝逸脱）
 

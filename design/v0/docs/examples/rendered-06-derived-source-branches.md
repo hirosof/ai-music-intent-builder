@@ -1227,7 +1227,7 @@
 ## 9. 検証結果（2026-09-25）
 
 対象: ChatGPT / Gemini / Claude Opus 5.5 / Claude Sonnet 5 / Claude Haiku 4.5 / Sakana AI Namazu（各モデル、4本すべてを1回ずつ。計24件）
-生ログ: `../../temp (user-to-claude)/prompt-test/rendered-06-derived-source-branches/results/`（モデルごと。各案の出力は md、Claude 系・Gemini・ChatGPT は ZIP も併存）
+生ログ: `../../validations/prompt-test/results/rendered-06-derived-source-branches/results/`（モデルごと。各案の出力は md、Claude 系・Gemini・ChatGPT は ZIP も併存）
 
 **確認の範囲**: 24件すべてを機械測定した（案の数、コードブロック、文字数、否定表現、元スタイルの語の保持、操作の語の混入、時間の記述、除外欄、設定値の混入、節の有無）。補完一覧・注意事項は、分岐に関わる行を全件確認した。詳細プロンプトの全文を通読したのは Opus B のみ。基本と詳細の矛盾（V-06）、案の差の実質性（V-10）は、Namazu の類似度（§9-2）を除いて精査していない。U-01 は依頼文自体の構造確認で、作成時点で確認済み（§8-1）。
 

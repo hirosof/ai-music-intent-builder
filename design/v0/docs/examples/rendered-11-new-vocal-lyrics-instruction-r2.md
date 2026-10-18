@@ -364,7 +364,7 @@ V-01〜V-21、V-22・V-24〜V-27・V-34〜V-39 は `rendered-08-new-vocal-lyrics
 ## 5. 実施手順（利用者作業）
 
 1. §1 の依頼文を、6モデル（ChatGPT／Gemini／Opus5.5／Sonnet5／Haiku4.5／Namazu）にそれぞれ1回、新しいチャットで貼り付ける（`-08` と同条件）
-2. 生ログを `../../temp (user-to-claude)/prompt-test/rendered-11-new-vocal-lyrics-instruction-r2/` に置く（ファイル名は `-08` と同じ規則: chatgpt / gemini / claude_opus_5.5 / claude_sonnet_5.5 / claude_haiku_5.5 / sakana_ai_namazu）
+2. 生ログを `../../validations/prompt-test/results/rendered-11-new-vocal-lyrics-instruction-r2/` に置く（ファイル名は `-08` と同じ規則: chatgpt / gemini / claude_opus_5.5 / claude_sonnet_5.5 / claude_haiku_5.5 / sakana_ai_namazu）
 3. 結果を判定表（○△×）と観察項目に整理し、本書 §6 に追記する。`-08` §6-1 の判定表と並べて比較する
 4. 実際の Suno での確認（任意）: 指示文に曲の長さが書かれたものと、書かれなかったものを作詞AIに渡し、歌詞の分量が変わるかを見る。R-2 の「作詞AI側の扱いは未検証」の確認になる。構成タグの大文字小文字（`[Verse]` と `[verse]`）の効きも、あわせて確認できる（任意）
 
@@ -378,7 +378,7 @@ V-01〜V-21、V-22・V-24〜V-27・V-34〜V-39 は `rendered-08-new-vocal-lyrics
 
 ## 6. 検証結果
 
-ログ: `../../temp (user-to-claude)/prompt-test/rendered-11-new-vocal-lyrics-instruction-r2/`（chatgpt / gemini / claude_opus_5.5 / claude_sonnet_5.5 / claude_haiku_5.5 / sakana_ai_namazu）。
+ログ: `../../validations/prompt-test/results/rendered-11-new-vocal-lyrics-instruction-r2/`（chatgpt / gemini / claude_opus_5.5 / claude_sonnet_5.5 / claude_haiku_5.5 / sakana_ai_namazu）。
 
 **読んだ範囲と方法**: 6ログの全文を通読した。作業環境へのファイルの取り込みが失敗したため、機械測定は未実施（教訓4-40・4-49）。文字数は目視の概算（±15% 程度）で、数え直しではない。判定はすべて目視。
 

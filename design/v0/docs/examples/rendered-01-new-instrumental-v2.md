@@ -321,7 +321,7 @@ V-05 の再確認: 前版では全モデルが通ったが、F-02 で「除外�
 ## 6. 検証結果（2026-09-16）
 
 対象: ChatGPT / Gemini / Claude Opus 5 / Claude Sonnet 5 / Claude Haiku 4.5（各1回）
-生ログ: `../../temp (user-to-claude)/prompt-test/try2/`（前版は `try1/`）
+生ログ: `../../validations/prompt-test/results/rendered-01-new-instrumental-v2/`（前版は `rendered-01-new-instrumental/`）
 
 ### 6-1. 判定表
 

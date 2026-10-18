@@ -325,7 +325,7 @@ V-01 5-2の設定を本文に書かない／V-02 確認の質問をせず最後�
 ## 5. 実施手順（利用者作業）
 
 1. §1 の依頼文を、6モデル（ChatGPT / Gemini / Opus5.5 / Sonnet5 / Haiku4.5 / Namazu）にそれぞれ1回貼り付ける
-2. 生ログを `../../temp (user-to-claude)/prompt-test/rendered-09-new-vocal-style-only/` に置く
+2. 生ログを `../../validations/prompt-test/results/rendered-09-new-vocal-style-only/` に置く
 3. 結果を、判定表（○△×）と観察項目に整理する（検証結果は本書 §6 に追記）
 4. `-10` と合わせて12回になる。モデルを絞る場合は、Haiku4.5 と Namazu を後回しにしてよい（小型モデルの逸脱は既知の傾向。判断ポイント14）
 
@@ -333,7 +333,7 @@ V-01 5-2の設定を本文に書かない／V-02 確認の質問をせず最後�
 
 ## 6. 検証結果
 
-ログ: `../../temp (user-to-claude)/prompt-test/rendered-09-new-vocal-style-only/`（chatgpt / gemini / claude_opus_5.5 / claude_sonnet_5.5 / claude_haiku_5.5 / sakana_ai_namazu）。
+ログ: `../../validations/prompt-test/results/rendered-09-new-vocal-style-only/`（chatgpt / gemini / claude_opus_5.5 / claude_sonnet_5.5 / claude_haiku_5.5 / sakana_ai_namazu）。
 
 測定の範囲（教訓 4-40）: 6件すべてを通読し、コードブロック内の文字数（V-21）、否定表現（`no`・`without`・`rather than`・`not`。ヒットは全モデル0件）、歌詞タグの有無（全モデル0件）、§5-2 の設定の語（長さ・奇抜さ・バリエーション等。スタイル欄への混入は0件）をスクリプトで測った。それ以外は目視。
 

@@ -25,7 +25,7 @@ H-07: 基本プロンプト（短い）＋バリエーション標準 の組み�
 
 ## 2. 使う素材
 
-`../../temp (user-to-claude)/prompt-test/try3/claude_opus_5.md` の **案1**。
+`../../validations/prompt-test/results/rendered-01-new-instrumental-v3/claude_opus_5.md` の **案1**。
 
 理由: try3 で逸脱ゼロだった3モデルのうち、基本プロンプトと詳細プロンプトの
 対応関係が最も明瞭なため。他のモデルの案でも構わないが、

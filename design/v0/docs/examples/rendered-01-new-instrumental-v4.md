@@ -301,7 +301,7 @@
 ## 6. 検証結果（2026-09-23）
 
 対象: ChatGPT / Gemini / Claude Opus 5.5 / Claude Sonnet 5 / Claude Haiku 4.5 / Sakana AI Namazu（各１回）
-生ログ: `../../temp (user-to-claude)/prompt-test/rendered-01-new-instrumental-v4/`
+生ログ: `../../validations/prompt-test/results/rendered-01-new-instrumental-v4/`
 
 ### 6-1. 判定表
 

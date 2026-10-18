@@ -9,7 +9,7 @@ Suno で生成した曲を2グループ（A / B）に分け、音の特徴を数
 ## 1. 準備（Windows / PowerShell）
 
 ```powershell
-cd E:\AI_Works\Claude\ai-music-prompt-request-support\tools\suno-audio-compare
+cd E:\Developments\ClaudeCode\ai-music-intent-builder\design\v0\tools\suno-audio-compare
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt

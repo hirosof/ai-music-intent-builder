@@ -341,7 +341,7 @@
 ## 7. 検証結果（2026-09-24）
 
 対象: ChatGPT / Gemini / Claude Opus 5.5 / Claude Sonnet 5 / Claude Haiku 4.5 / Sakana AI Namazu（各1回）
-生ログ: `../../temp (user-to-claude)/prompt-test/rendered-04-derived-extend-keep/`
+生ログ: `../../validations/prompt-test/results/rendered-04-derived-extend-keep/`
 なお、本例は Q-01 の修正後の依頼文（§7 の操作の注記に「R-15」なし）で検証した。どのモデルの出力にも「R-15」は出ていない。
 
 確認の範囲: 全文を通読したのは Haiku の詳細プロンプトのみ。残りは機械測定（文字数、否定表現、除外欄、元スタイルの保持、時間の記述、構造）と、補完一覧・注意事項の通読。基本と詳細の矛盾（V-06）、案の差の実質性（V-10）は精査していない。M-01〜M-03、M-06 は依頼文自体の構造確認で、作成時点で確認済み。どのモデルの出力にも、オーディオの影響や推奨パラメータの記述は出ていない。

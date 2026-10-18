@@ -289,7 +289,7 @@ V-22 歌詞が回答に1回だけ出る／V-23 構成タグが指定どおり（
 ## 5. 実施手順（利用者作業）
 
 1. §1 の依頼文を、6モデル（ChatGPT / Gemini / Opus5.5 / Sonnet5 / Haiku4.5 / Namazu）にそれぞれ1回貼り付ける
-2. 生ログを `../../temp (user-to-claude)/prompt-test/rendered-10-new-vocal-lyrics-only/` に置く
+2. 生ログを `../../validations/prompt-test/results/rendered-10-new-vocal-lyrics-only/` に置く
 3. 結果を、判定表（○△×）と観察項目に整理する（検証結果は本書 §6 に追記）
 4. `-09` と合わせて12回になる。モデルを絞る場合は、Haiku4.5 と Namazu を後回しにしてよい（小型モデルの逸脱は既知の傾向。判断ポイント14）
 
@@ -297,7 +297,7 @@ V-22 歌詞が回答に1回だけ出る／V-23 構成タグが指定どおり（
 
 ## 6. 検証結果
 
-ログ: `../../temp (user-to-claude)/prompt-test/rendered-10-new-vocal-lyrics-only/`（chatgpt / gemini / claude_opus_5.5 / claude_sonnet_5.5 / claude_haiku_5.5 / sakana_ai_namazu）。
+ログ: `../../validations/prompt-test/results/rendered-10-new-vocal-lyrics-only/`（chatgpt / gemini / claude_opus_5.5 / claude_sonnet_5.5 / claude_haiku_5.5 / sakana_ai_namazu）。
 
 測定の範囲（教訓 4-40）: 6件すべてを通読し、歌詞コードブロックについて、構成タグの数と順、本文の文字数（空白・タグを除く）、行数、漢字・カタカナの数、一人称・二人称の語（僕・ぼく・俺・あたし・わたし・私・あなた・君ほか）をスクリプトで測った。それ以外は目視。
 
