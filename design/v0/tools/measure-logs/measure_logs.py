@@ -56,6 +56,50 @@ def parse(text):
     return blocks, ranges
 
 
+CASE_RE = re.compile(r"^(?:#{1,6}\s*)?(?:\*\*)?案\s*(\d+)\s*/\s*\d+")
+
+
+def parse_positional(text):
+    """欄の見出しがない回答（古い Namazu の形）: 「案 N / M」の行の後のコードブロックを、順に 基本・詳細・除外 とみなす。"""
+    lines = text.splitlines()
+    blocks, ranges = [], []
+    case, k, i = 0, 0, 0
+    order = ["basic", "detailed", "exclude"]
+    while i < len(lines):
+        m = CASE_RE.match(lines[i].strip())
+        if m:
+            case, k = int(m.group(1)), 0
+        if lines[i].strip().startswith("```"):
+            j = i + 1
+            while j < len(lines) and not lines[j].strip().startswith("```"):
+                j += 1
+            kind = order[k] if case and k < len(order) else None
+            ranges.append((i + 1, j + 1, kind))
+            if kind:
+                blocks.append((case, kind, i + 1, "\n".join(lines[i + 1:j])))
+            k += 1
+            i = j + 1
+            continue
+        i += 1
+    return blocks, ranges
+
+
+def parse_any(text):
+    """見出しで取り出す。見出しが1つも取れないときだけ、並び順で取り出す。戻り値の3つめは方法（label / position / ambiguous）。
+    並び順は、どの案もコードブロックがちょうど3つ（基本・詳細・除外）のときだけ使う。2つの案（除外がない、
+    または基本をインラインで書いた）は、どれが詳細か決められないため、取り出さない（ambiguous）。"""
+    blocks, ranges = parse(text)
+    if blocks:
+        return blocks, ranges, "label"
+    blocks, ranges = parse_positional(text)
+    counts = {}
+    for b in blocks:
+        counts[b[0]] = counts.get(b[0], 0) + 1
+    if not counts or any(n != 3 for n in counts.values()):
+        return [], ranges, "ambiguous"
+    return blocks, ranges, "position"
+
+
 def context(s, pos, width=12):
     return s[max(0, pos - width):pos + width + 1].replace("\n", " ")
 
@@ -76,8 +120,10 @@ def main():
     parsed = {}
     for f in files:
         text = f.read_text(encoding="utf-8")
-        blocks, ranges = parse(text)
+        blocks, ranges, method = parse_any(text)
         parsed[f.stem] = (text, blocks, ranges)
+        if method == "position":
+            p("| %s（並び順で判定） | | | | |" % f.stem)
         n = lambda k: sum(1 for b in blocks if b[1] == k)
         p("| %s | %d | %d | %d | %d |" % (f.stem, max([b[0] for b in blocks] or [0]), n("basic"), n("detailed"), n("exclude")))
 

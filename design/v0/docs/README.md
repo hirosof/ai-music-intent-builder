@@ -95,7 +95,8 @@ docs/
 
 リポジトリ直下には `tools/` もある（`tools/suno-audio-compare/`: 生成曲を2グループに分けて音を比べる Python スクリプト。PC 内で完結する）。
 `tools/build-presets/` は、`decisions/vocabulary/` の json ブロックを統合・検証して `specifications/presets/`（語彙ごとの JSON）を生成する Python スクリプト（`specifications/presets.md`）。
-`tools/check-fields/` は、入力項目の定義（`specifications/fields.json`）と語彙の整合、保存データ（楽曲データ・エクスポートファイル・ストア）の検証と、その負例テストを行う Python スクリプト（`specifications/input-items.md`、`specifications/song-file.md`）。
+`tools/check-fields/` は、入力項目の定義（`specifications/fields.json`）と語彙の整合、保存データ（楽曲データ・エクスポートファイル・ストア）の検証と、その負例テストを行う Python スクリプト（`specifications/input-items.md`、`specifications/song-file.md`）。`export_parity_cases.py` は、アプリ（`app/`）の検証との照合用の正解データを書き出す。
+`tools/measure-logs/` は、6モデルの検証ログ（`validations/prompt-test/results/`）の機械測定を行う Python スクリプト（2026-10-19〜。教訓4-40）。`measure_logs.py` は1つの例の回答から、スタイル欄・除外欄のコードブロックを取り出し、日本語の混入・文字数・否定の形・「自由記述」の位置・除外欄の語を測る。`length_summary.py` は、例をまたいで詳細プロンプトの文字数を集計する（目標・上限の超過。宿題50）。欄の見出しがない回答は、どの案もコードブロックが3つのときだけ並び順で取り出し、それ以外は取り出さずに一覧に出す。
 
 | ディレクトリ | 役割 | 更新のしかた |
 |---|---|---|
