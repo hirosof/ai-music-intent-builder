@@ -76,7 +76,7 @@
 | 39 | `-06` の入力 JSON 5件の置き場所 | **F** | 生成器の正解データに使う案がある（§5-1）ので、置くなら実装のとき |
 | 13 | Neoclassical の現代の用法 | **F** | 判断ポイント138・152 |
 | 14 | CLAP の不具合（解析スクリプト） | **F** | `tools/suno-audio-compare/` |
-| 15 | 画像のコピー（利用者作業） | **F** | `examples/assets/suno-test-02/` に8枚 |
+| ~~15~~ | ~~画像のコピー（利用者作業）~~ | **F** | **解決**（2026-10-18。正は `validations/prompt-test/results/style_check/assets/`。`examples/assets/` は利用者が削除） |
 
 ---
 

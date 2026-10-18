@@ -391,7 +391,7 @@ python tools/check-fields/test_check_fields.py
 | 12 | 実装（自前または Claude Code） | 試作を出発点にできる（§2） |
 | 13 | Neoclassical の現代の用法 | 判断ポイント138・152 |
 | 14 | CLAP の不具合（解析スクリプト） | `tools/suno-audio-compare/README.md` §4 |
-| 15 | 画像のコピー（利用者作業） | `examples/assets/suno-test-02/` に8枚 |
+| ~~15~~ | ~~画像のコピー（利用者作業）~~ | **解決**（2026-10-18。コピーせず、正を `validations/prompt-test/results/style_check/assets/` とした。docs 側の参照を直し、`examples/assets/` は利用者が削除） |
 | ~~16~~ | ~~ファクトリープロファイルの中身（件数・用途）~~ | **完了**（2026-09-24。判断ポイント39〜40。`specifications/factory-profiles.json` の6件。議論ログ18） |
 | 17 | 保存に関する UI の仕様 | **完了**（I1・J1・K1。判断ポイント35〜37。`discussions/2026-09/17_ui-spec.md`） |
 | 18 | 将来の追加候補（階層 F2、ラベル、プロジェクト P1'・P2-a） | `song-file.md` §4-5。導入時に、「未分類」の扱いとエクスポート範囲の既定を決め直す |
