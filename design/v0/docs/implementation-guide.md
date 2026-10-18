@@ -168,7 +168,7 @@ ai-music-intent-builder/
 |---|---|---|
 | 語彙 | `docs/decisions/presets.md` §6 と `docs/decisions/vocabulary/README.md` §5（通し番号） | 214 |
 | 入力項目 | `docs/decisions/input-items.md` §4 | 29 |
-| UI・非機能・保存 | `docs/decisions/ui-and-nonfunctional.md` §7（`docs/specifications/song-file.md` §10 にも同じ番号の表） | 42 |
+| UI・非機能・保存 | `docs/decisions/ui-and-nonfunctional.md` §7（`docs/specifications/song-file.md` §10 にも同じ番号の表） | 43 |
 | ツールプロファイル | `docs/specifications/tool-profile.md` §11 | 10 |
 | 依頼文の文面 | `docs/decisions/request-text.md` §5（補完・仮定は §6 で次は 25） | 42 |
 
