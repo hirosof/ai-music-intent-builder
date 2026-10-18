@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "requests": [
+    {
+      "id": "r1",
+      "toolId": "suno",
+      "toolVersion": "v6",
+      "generationType": "new",
+      "vocalMode": "vocal",
+      "lyricsAuthor": "chat-ai",
+      "derivedFrom": null,
+      "axes": {
+        "purpose": {
+          "state": "delegated"
+        },
+        "purposeDetail": {
+          "state": "delegated"
+        },
+        "listeningEnvironment": {
+          "state": "delegated"
+        },
+        "mainGenre": {
+          "state": "specified",
+          "value": "city-pop"
+        },
+        "subGenres": {
+          "state": "delegated"
+        },
+        "regionStyles": {
+          "state": "delegated"
+        },
+        "styleLean": {
+          "state": "defaulted"
+        },
+        "era": {
+          "state": "delegated"
+        },
+        "mood": {
+          "state": "specified",
+          "choices": {
+            "nostalgic": "use",
+            "bittersweet": "use",
+            "tense": "exclude"
+          }
+        },
+        "intensity": {
+          "state": "specified",
+          "value": "subdued"
+        },
+        "brightness": {
+          "state": "delegated"
+        },
+        "leadInstruments": {
+          "state": "delegated"
+        },
+        "accompanimentInstruments": {
+          "state": "delegated"
+        },
+        "rhythmInstruments": {
+          "state": "delegated"
+        },
+        "voiceTreatment": {
+          "state": "defaulted"
+        },
+        "ensembleSize": {
+          "state": "delegated"
+        },
+        "length": {
+          "state": "specified",
+          "value": 180
+        },
+        "tempoFeel": {
+          "state": "specified",
+          "value": "moderate"
+        },
+        "bpm": {
+          "state": "delegated"
+        },
+        "developmentShape": {
+          "state": "delegated"
+        },
+        "structure": {
+          "state": "delegated"
+        },
+        "spatialTexture": {
+          "state": "delegated"
+        },
+        "recordingTexture": {
+          "state": "delegated"
+        },
+        "mixDirection": {
+          "state": "defaulted"
+        },
+        "lyricsTheme": {
+          "state": "delegated"
+        },
+        "lyricsLanguage": {
+          "state": "delegated"
+        },
+        "lyricsStructure": {
+          "state": "specified",
+          "value": [
+            "intro",
+            "verse",
+            "pre-chorus",
+            "chorus",
+            "verse",
+            "pre-chorus",
+            "chorus",
+            "bridge",
+            "chorus",
+            "outro"
+          ]
+        },
+        "exclusions": {
+          "state": "specified",
+          "value": "ラップ"
+        },
+        "notes": {
+          "state": "delegated"
+        }
+      },
+      "output": {
+        "variantCount": 3,
+        "diffAxis": "auto",
+        "granularity": [
+          "basic",
+          "detailed"
+        ],
+        "variation": "standard",
+        "outputLanguage": "mixed",
+        "titleSuggestions": false,
+        "titleCount": 3,
+        "recommendParams": {},
+        "requestScope": "combined"
+      }
+    }
+  ]
+}

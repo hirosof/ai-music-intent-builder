@@ -682,7 +682,8 @@ export function generateRequestText({ spec, req }: GenerateInput): string {
       title: '曲名案',
       body: [
         lines(
-          `- 曲名案を ${String(count)} 個、日本語で出してください。`,
+          // テンプレートは「{{title.count}} 個、{{title.lang}} で出してください」（変数の後に空白）
+          `- 曲名案を ${String(count)} 個、日本語 で出してください。`,
           '- 曲名案は案ごとではなく、回答の末尾にまとめて置いてください。同じプロンプトから複数の曲を作るためです。',
           `- ${limitText(ctx, tf).limit}以内に収めてください。実際にはもっと短いほうが扱いやすいです。`,
         ),

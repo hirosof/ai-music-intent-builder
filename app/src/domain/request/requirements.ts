@@ -347,7 +347,8 @@ export function requirementsBody(ctx: RequirementsContext, opts: RequirementsOpt
           })
       }
     }
-    out.push('### 除外・補足', ...tables(rows))
+    // lyrics の範囲は除外欄がないため、見出しを「補足」とする（描画規則。request-blocks.md §12-3。-10 §3 の3）
+    out.push(ctx.scope === 'lyrics' ? '### 補足' : '### 除外・補足', ...tables(rows))
   }
 
   if (opts.withExclusion) {
