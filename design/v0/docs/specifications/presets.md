@@ -1,8 +1,8 @@
 # プリセット（語彙）データ仕様
 
 - 作成日: 2026-09-19
-- 状態: 暫定（判断ポイント203〜210。承認済みの既定案）
-- 対象: 軸A〜F の語彙（`decisions/vocabulary/` の json ブロック）を、語彙ごとのファイル（`presets/<語彙 id>.json`）と索引（`presets/index.json`）にまとめたもの
+- 状態: 暫定（判断ポイント203〜210・213。承認済みの既定案）
+- 対象: 軸A〜F・G（歌詞の構成セクション。2026-10-16 追加）の語彙（`decisions/vocabulary/` の json ブロック）を、語彙ごとのファイル（`presets/<語彙 id>.json`）と索引（`presets/index.json`）にまとめたもの
 - 関連: `../decisions/presets.md`（選択肢の設計）、`../decisions/vocabulary/README.md`（語彙の選定。判断ポイント203〜210 の記録先）、`../decisions/ui-and-nonfunctional.md` §4-4（保存データ）
 
 ---
@@ -25,7 +25,7 @@
 | `docs/specifications/presets.schema.json` | 語彙ファイル（1語彙分）の JSON Schema（draft 2020-12） | 手書き |
 | `docs/specifications/presets-index.schema.json` | `index.json` の JSON Schema | 手書き |
 | `docs/specifications/presets/index.json` | 生成物。語彙ファイルの一覧（順序つき） | **手で編集しない** |
-| `docs/specifications/presets/<語彙 id>.json` | 生成物。**1語彙1ファイル**（18ファイル） | **手で編集しない** |
+| `docs/specifications/presets/<語彙 id>.json` | 生成物。**1語彙1ファイル**（19ファイル。2026-10-16 に `section-vocal` を追加） | **手で編集しない** |
 | `tools/build-presets/build_presets.py` | 統合と検証のスクリプト（Python 標準ライブラリのみ。jsonschema があればスキーマ検証も行う） | 手書き |
 
 ### 生成の向き（判断ポイント203）
@@ -155,7 +155,7 @@ presets/
 
 ---
 
-## 3. 語彙の一覧（2026-09-19 時点）
+## 3. 語彙の一覧（2026-09-19 時点。2026-10-18 に `section-vocal` を追記）
 
 | 語彙 id | 軸 | 構造 | 表示 / 非表示 | ソース |
 |---|---|---|---|---|
@@ -174,10 +174,11 @@ presets/
 | `tempo-feel` | E | flat | 5 / 0 | `temporal-structure.md` |
 | `development-shape` | E | flat | 4 / 0 | `temporal-structure.md` |
 | `section` | E | flat | 7 / 0 | `temporal-structure.md` |
+| `section-vocal` | G | flat | 7 / 0 | `lyrics.md` |
 | `spatial-texture` | F | flat | 7 / 0 | `production-quality.md` |
 | `recording-texture` | F | flat | 7 / 0 | `production-quality.md` |
 | `mix-direction` | F | flat | 6 / 0 | `production-quality.md` |
-| 計 | | | 441 / 190（631語） | |
+| 計 | | | 448 / 190（638語） | |
 
 語彙 id は、ソースの疑似カテゴリ（§4-2）をそのまま流用したもの（上記のうち、`genre`・`instrument` と少数の択一項目の7語彙は新設）。少数の択一項目の7語彙は `small-choices.md` にまとめている（§9）。
 
@@ -189,6 +190,7 @@ presets/
 
 - 語の識別は「語彙＋id」。**id の名前空間は語彙ごと**
 - 語彙をまたぐ同一 id は、ジャンル側が `other-axis` で、行き先の語彙に同名の語があるときだけ許す。例外リストは `celtic`（`region-style`）と `game-music`（`usage`）の2件。リストは `build_presets.py` の `ALLOWED_CROSS_VOCAB`
+- もう1種類の例外として、**同じ構成の概念をインスト用と歌あり用の別の語彙として持つ組**（`section` と `section-vocal`）では、両方の語彙にある id（`intro`・`bridge`・`outro`）を、`term.en` が一致するときだけ許す（ラベルは違ってよい）。リストは `build_presets.py` の `ALLOWED_SHARED_VOCABS`（判断ポイント213）
 - **同一語彙の同じ id を複数ファイルが定義してよい**。全フィールドが一致するときだけ1語に統合し、不一致は生成エラー。現状は `electric-guitar` と `electric-bass`（`guitar-bass.md` と `electric.md`）の2語
 
 ### 4-2. フラット語彙の `categories`（判断ポイント206）
@@ -229,7 +231,7 @@ flat 語彙の表示順は配列順。
 |---|---|
 | S1 | すべての json ブロックがパースできる |
 | S2 | id が V-08 の形式（`^[a-z0-9]+(-[a-z0-9]+)*$`）で、語彙内で一意 |
-| 案3 | 語彙をまたぐ id 重複は例外リストのみ。二重定義は内容一致のときだけ統合 |
+| 案3 | 語彙をまたぐ id 重複は例外リスト（§4-1 の2種類）のみ。二重定義は内容一致のときだけ統合 |
 | S4 | categorized 語彙の語は `categories` が空でなく、すべて定義済みのカテゴリ。flat 語彙の疑似カテゴリは想定どおり |
 | S5 | 同一語彙内で、ラベル・別名が他の語のラベル・別名と衝突しない（大文字小文字を区別しない）。ジャンルのカテゴリ数が想定どおり |
 | S6 | `defaultVisible: false` と `exclusion` は対。`defaultVisible: true` は明示しない |
@@ -297,6 +299,7 @@ S11 は欠番。語数のスナップショットは検証しない（語彙の�
 | 208 | 表示順 | `itemOrder` を規則で生成。上書きは日本・東アジア系の1件（§4-4） |
 | 209 | 除外情報の非対称 | スキーマは全語彙で対称。`kind` の性質は導出。`substitute`・`targetAxis` はテキストのまま（§2-5） |
 | 210 | 少数の択一項目 | スキーマは同じ形で受ける。中身は `small-choices.md`（7語彙・30語）。「しない」の値（`no-voice`・`no-era`・`no-playback`）を、概念が曲になくてよい項目にだけ持たせる（§9） |
+| 213 | 語彙をまたぐ同一 id の例外の追加 | `section` と `section-vocal` を、共有を許す組にする。両方にある id は `term.en` が一致するときだけ許す（§4-1。`decisions/vocabulary/README.md` §5） |
 
 ---
 

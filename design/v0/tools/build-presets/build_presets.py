@@ -59,6 +59,7 @@ VOCABULARIES = [
     ("tempo-feel", "E", "テンポ感", "flat", ["temporal-structure.md"], "tempo-feel"),
     ("development-shape", "E", "展開の形", "flat", ["temporal-structure.md"], "development-shape"),
     ("section", "E", "構成のセクション", "flat", ["temporal-structure.md"], "section"),
+    ("section-vocal", "G", "歌詞の構成セクション", "flat", ["lyrics.md"], "section-vocal"),
     ("spatial-texture", "F", "空間の質感", "flat", ["production-quality.md"], "spatial-texture"),
     ("recording-texture", "F", "音質・録音の質感", "flat", ["production-quality.md"], "recording-texture"),
     ("mix-direction", "F", "ミックスの方向性", "flat", ["production-quality.md"], "mix-direction"),
@@ -76,6 +77,10 @@ def _own_file(vocab_id, category_id):
 
 # 語彙をまたぐ同一 id を許す例外（判断ポイント205）。値は「ジャンル側が other-axis である語彙」。
 ALLOWED_CROSS_VOCAB = {"celtic": "region-style", "game-music": "usage"}
+
+# 同じ構成の概念を、インスト用と歌あり用の別の語彙として持つ組（判断ポイント213）。
+# 両方の語彙にある id は、term.en が一致するときだけ許す。
+ALLOWED_SHARED_VOCABS = [("section", "section-vocal")]
 
 # 表示順の上書き（判断ポイント208）。ソースに順序の記録がある場合のみ。
 ORDER_OVERRIDES = {
@@ -297,6 +302,13 @@ def validate(out, per_vocab_ids, report):
         if len(lst) < 2:
             continue
         vocabs = sorted(x[0] for x in lst)
+        if tuple(vocabs) in [tuple(sorted(p)) for p in ALLOWED_SHARED_VOCABS]:
+            terms = {json.dumps(it.get("term", {}).get("en")) for _, it in lst}
+            if len(terms) > 1:
+                report.error("案3 共有を許す語彙の組で term.en が一致しない: %s（%s）" % (i, ", ".join(vocabs)))
+            else:
+                report.note("案3 語彙間で同一 id（共有を許す組）: %s（%s）" % (i, ", ".join(vocabs)))
+            continue
         if i not in ALLOWED_CROSS_VOCAB:
             report.error("案3 例外リストにない語彙間の id 重複: %s（%s）" % (i, ", ".join(vocabs)))
             continue

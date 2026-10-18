@@ -1,7 +1,7 @@
 # build-presets
 
 `docs/decisions/vocabulary/**/*.md` の json ブロックを統合・検証し、
-`docs/specifications/presets/` に**語彙（種類）ごとの JSON**（18ファイル）と `index.json` を生成する。
+`docs/specifications/presets/` に**語彙（種類）ごとの JSON**（19ファイル）と `index.json` を生成する。
 仕様は `docs/specifications/presets.md`。
 
 ## 使い方
