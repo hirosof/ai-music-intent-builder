@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "requests": [
+    {
+      "id": "r1",
+      "toolId": "suno",
+      "toolVersion": "v6",
+      "generationType": "new",
+      "vocalMode": "instrumental",
+      "lyricsAuthor": null,
+      "derivedFrom": null,
+      "axes": {
+        "purpose": {
+          "state": "specified",
+          "value": "boss-battle-theme"
+        },
+        "purposeDetail": {
+          "state": "delegated"
+        },
+        "listeningEnvironment": {
+          "state": "specified",
+          "value": "loop"
+        },
+        "mainGenre": {
+          "state": "specified",
+          "value": "orchestral"
+        },
+        "subGenres": {
+          "state": "delegated"
+        },
+        "regionStyles": {
+          "state": "specified",
+          "choices": {
+            "japanese": "use",
+            "celtic": "exclude"
+          }
+        },
+        "styleLean": {
+          "state": "defaulted"
+        },
+        "era": {
+          "state": "delegated"
+        },
+        "mood": {
+          "state": "specified",
+          "choices": {
+            "tense": "use",
+            "solemn": "use",
+            "nostalgic": "exclude"
+          }
+        },
+        "intensity": {
+          "state": "specified",
+          "value": "intense"
+        },
+        "brightness": {
+          "state": "delegated"
+        },
+        "leadInstruments": {
+          "state": "specified",
+          "choices": {
+            "shakuhachi": "use",
+            "shinobue": "use",
+            "electric-guitar": "exclude"
+          }
+        },
+        "accompanimentInstruments": {
+          "state": "delegated"
+        },
+        "rhythmInstruments": {
+          "state": "specified",
+          "choices": {
+            "taiko": "use"
+          }
+        },
+        "voiceTreatment": {
+          "state": "specified",
+          "value": "wordless-choir"
+        },
+        "ensembleSize": {
+          "state": "specified",
+          "value": "large-ensemble"
+        },
+        "length": {
+          "state": "specified",
+          "value": 180
+        },
+        "tempoFeel": {
+          "state": "specified",
+          "value": "fast"
+        },
+        "bpm": {
+          "state": "delegated"
+        },
+        "developmentShape": {
+          "state": "specified",
+          "value": "steady"
+        },
+        "structure": {
+          "state": "delegated"
+        },
+        "spatialTexture": {
+          "state": "specified",
+          "value": "spacious-hall"
+        },
+        "recordingTexture": {
+          "state": "delegated"
+        },
+        "mixDirection": {
+          "state": "defaulted"
+        },
+        "exclusions": {
+          "state": "specified",
+          "value": "歪んだ音色"
+        },
+        "notes": {
+          "state": "delegated"
+        }
+      },
+      "output": {
+        "variantCount": 3,
+        "diffAxis": "auto",
+        "granularity": [
+          "basic",
+          "detailed"
+        ],
+        "variation": "off",
+        "outputLanguage": "mixed",
+        "titleSuggestions": false,
+        "titleCount": 3,
+        "recommendParams": {},
+        "requestScope": "combined"
+      }
+    }
+  ]
+}

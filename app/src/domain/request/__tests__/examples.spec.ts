@@ -11,7 +11,9 @@ import type { SongData } from '@/domain/types/song'
 import { applyPatches, extractRequestText, type Patch } from './helpers'
 import {
   DP36_2,
+  DP44_ALL_ENGLISH,
   Q02_ORDER,
+  Q02_ORDER_OFF,
   R1,
   R2_52,
   R2_52_INSTRUCTION,
@@ -24,6 +26,7 @@ import {
   T02,
   UNDOCUMENTED,
   r6Row,
+  vocabLabel,
 } from './patches'
 
 // テストの実行ディレクトリは app/（vitest.config.ts の root）
@@ -35,7 +38,35 @@ interface ExampleCase {
   /** 入力（examples/inputs/ の下） */
   input: string
   patches: Patch[]
+  /** 入力の検証で出てよい警告（例の §6 の表をそのまま入力にしたことによるもの。理由をそれぞれに書く） */
+  expectedWarnings?: string[]
 }
+
+// -01-v4・-05（入力は同一。-05 はバリエーションだけオフ）の、仮の語彙の表示名と除外
+const V4_LABELS = [
+  vocabLabel('| 用途 | 指定 | ゲームのボス戦BGM |', '| 用途 | 指定 | ボス戦BGM |'),
+  vocabLabel('| 主ジャンル | 指定 | オーケストラ |', '| 主ジャンル | 指定 | Orchestral |'),
+  vocabLabel('| 地域・文化の様式 | 指定 | 和風 |', '| 地域・文化の様式 | 指定 | 日本 |'),
+  vocabLabel('| 基調となる情緒 | 指定 | 緊迫, 荘厳 |', '| 基調となる情緒 | 指定 | 緊迫感, 荘厳 |'),
+  vocabLabel('| リズムの担い手 | 指定 | 和太鼓 |', '| リズムの担い手 | 指定 | 太鼓 |'),
+  vocabLabel(
+    '| 展開の形 | 指定 | 一定の緊張を保つ |',
+    '| 展開の形 | 指定 | 一定を保つ・ループ向き |',
+  ),
+  // 「映画的な広い残響」はいまの語彙にない。もっとも近い spacious-hall を入力にした（U2b の補完）
+  vocabLabel(
+    '| 空間の質感 | 指定 | 映画的な広い残響 |',
+    '| 空間の質感 | 指定 | 広がりのあるホール |',
+  ),
+]
+const V4_EXCLUSION = r6Row(
+  '| 除外したい要素 | 指定 | 歪んだ音色 | 保持 |',
+  'ケルト, 郷愁, エレキギター, 歪んだ音色',
+)
+// -01-v4・-05 の §6 の表は、主旋律で除外したエレキギターを、リズムの担い手に反映していない（楽器の除外の連動。input-items.md §4）
+const V4_WARNINGS = [
+  '[楽曲データ] 依頼 r1: R instrument-exclusion-linked: electric-guitar は他の項目で除外されているが、rhythmInstruments に反映されていない（連動で補う）',
+]
 
 const RAP = r6Row('| 除外したい要素 | 指定 | ラップ | 保持 |', '緊迫感, ラップ')
 
@@ -76,6 +107,50 @@ const CASES: Record<string, ExampleCase> = {
     input: 'rendered-10.json',
     patches: [UNDOCUMENTED.lyJaBlankLine, DP36_2],
   },
+  '-01-v4（インスト・除外あり・長さ 3:00）': {
+    md: 'rendered-01-new-instrumental-v4.md',
+    input: 'rendered-01-v4.json',
+    patches: [
+      Q02_ORDER,
+      R2_52,
+      T02,
+      ...V4_LABELS,
+      UNDOCUMENTED.styleLeanRow,
+      V4_EXCLUSION,
+      R6_TEXT,
+      R3,
+    ],
+    expectedWarnings: V4_WARNINGS,
+  },
+  '-05（インスト・バリエーション＝オフ）': {
+    md: 'rendered-05-new-instrumental-variation-off.md',
+    input: 'rendered-05.json',
+    patches: [
+      Q02_ORDER_OFF,
+      R2_52,
+      T02,
+      ...V4_LABELS,
+      UNDOCUMENTED.styleLeanRow,
+      V4_EXCLUSION,
+      R6_TEXT,
+      R3,
+    ],
+    expectedWarnings: V4_WARNINGS,
+  },
+  '-03（インスト・お任せ多め・除外なし・長さ Auto・案1・すべて英語）': {
+    md: 'rendered-03-delegated-heavy-ambient.md',
+    input: 'rendered-03.json',
+    patches: [
+      DP44_ALL_ENGLISH,
+      Q02_ORDER,
+      R2_52,
+      T02,
+      vocabLabel('| 主ジャンル | 指定 | アンビエント |', '| 主ジャンル | 指定 | Ambient |'),
+      UNDOCUMENTED.developmentShapeDelegated,
+      vocabLabel('導けない場合は「自然な」 | — |', '導けない場合は「自然な響き」 | — |'),
+      R3,
+    ],
+  },
 }
 
 describe('依頼文の生成器: 既存のレンダリング例との照合（U2b）', () => {
@@ -86,7 +161,8 @@ describe('依頼文の生成器: 既存のレンダリング例との照合（U2
 
     it('入力の楽曲データは、保存データの検証を通る（エラー0件・警告0件）', () => {
       const r = checkSaved(JSON.stringify(input))
-      expect([...r.errors, ...r.warnings]).toEqual([])
+      expect(r.errors).toEqual([])
+      expect(r.warnings).toEqual(c.expectedWarnings ?? [])
     })
 
     it('例の §1 と、文書化された差を除いて1文字単位で一致する', () => {

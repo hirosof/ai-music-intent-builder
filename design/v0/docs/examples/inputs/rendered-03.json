@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "requests": [
+    {
+      "id": "r1",
+      "toolId": "suno",
+      "toolVersion": "v6",
+      "generationType": "new",
+      "vocalMode": "instrumental",
+      "lyricsAuthor": null,
+      "derivedFrom": null,
+      "axes": {
+        "purpose": {
+          "state": "delegated"
+        },
+        "purposeDetail": {
+          "state": "delegated"
+        },
+        "listeningEnvironment": {
+          "state": "delegated"
+        },
+        "mainGenre": {
+          "state": "specified",
+          "value": "ambient"
+        },
+        "subGenres": {
+          "state": "delegated"
+        },
+        "regionStyles": {
+          "state": "delegated"
+        },
+        "styleLean": {
+          "state": "defaulted"
+        },
+        "era": {
+          "state": "delegated"
+        },
+        "mood": {
+          "state": "delegated"
+        },
+        "intensity": {
+          "state": "delegated"
+        },
+        "brightness": {
+          "state": "delegated"
+        },
+        "leadInstruments": {
+          "state": "delegated"
+        },
+        "accompanimentInstruments": {
+          "state": "delegated"
+        },
+        "rhythmInstruments": {
+          "state": "delegated"
+        },
+        "voiceTreatment": {
+          "state": "defaulted"
+        },
+        "ensembleSize": {
+          "state": "delegated"
+        },
+        "length": {
+          "state": "toolManaged"
+        },
+        "tempoFeel": {
+          "state": "delegated"
+        },
+        "bpm": {
+          "state": "delegated"
+        },
+        "developmentShape": {
+          "state": "delegated"
+        },
+        "structure": {
+          "state": "delegated"
+        },
+        "spatialTexture": {
+          "state": "delegated"
+        },
+        "recordingTexture": {
+          "state": "delegated"
+        },
+        "mixDirection": {
+          "state": "delegated"
+        },
+        "exclusions": {
+          "state": "delegated"
+        },
+        "notes": {
+          "state": "delegated"
+        }
+      },
+      "output": {
+        "variantCount": 1,
+        "diffAxis": "auto",
+        "granularity": [
+          "basic",
+          "detailed"
+        ],
+        "variation": "standard",
+        "outputLanguage": "all-english",
+        "titleSuggestions": false,
+        "titleCount": 3,
+        "recommendParams": {},
+        "requestScope": "combined"
+      }
+    }
+  ]
+}
