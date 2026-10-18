@@ -73,13 +73,12 @@ function usableRecommendedTarget(ctx: Ctx, f: ToolField): number | null {
       !['unverified', 'thirdPartyUnversioned'].includes(r.meta?.source ?? '') &&
       (r.meta?.targetVersion === undefined || r.meta.targetVersion === ctx.profile.version.id),
   )
-  if (ok.length > 0) {
-    // 推奨値を使うときの 5-1 の注記の文言は、初めて必要になったときに決める（§6）
-    throw new GenerationError(
-      `未定義: 欄 ${f.id} の推奨値（recommended.target）を使うときの文面が決まっていない`,
-    )
+  // 5-1 の注記は、推奨値の有無の両方を含む一般形のまま（判断ポイント47）。
+  // 使える推奨値が複数（言語別など）あるときに、どれを目標にするかは未定義
+  if (ok.length > 1) {
+    throw new GenerationError(`未定義: 欄 ${f.id} に使える推奨値（recommended.target）が複数ある`)
   }
-  return null
+  return ok[0]?.value ?? null
 }
 
 function limitText(ctx: Ctx, f: ToolField): LimitText {
@@ -98,19 +97,25 @@ function limitText(ctx: Ctx, f: ToolField): LimitText {
     }
   }
   if (status === 'unknown') {
-    usableRecommendedTarget(ctx, f)
+    const t = usableRecommendedTarget(ctx, f)
+    if (t !== null) return { limit: '不明', target: `${t}文字以内`, targetValue: t }
     return { limit: '不明', target: 'できるだけ短く', targetValue: null }
   }
   throw new GenerationError(`欄 ${f.id} の上限（limit）を文字列にできない`)
 }
 
-/** スタイル欄・除外欄の言語（{{style.lang}}）。出力言語「標準」以外の文面は未定義 */
+/** スタイル欄・除外欄の言語（{{style.lang}}／{{exclude.lang}}。request-text.md B-05 の対応表。判断ポイント44） */
+const STYLE_LANG: Record<string, string> = {
+  mixed: '英語を基本とし、日本固有のジャンル名・様式名は日本語のままでよい',
+  'all-english': 'すべて英語（日本固有のジャンル名・様式名も、英語の表記にする）',
+  'all-japanese': 'すべて日本語（ジャンル名・様式名なども日本語で書く）',
+}
+
 function styleLang(ctx: Ctx): string {
   const v = ctx.out('outputLanguage')
-  if (v === 'mixed') return '英語を基本とし、日本固有のジャンル名・様式名は日本語のままでよい'
-  throw new GenerationError(
-    `未定義: 出力言語 ${String(v)} のときの欄の言語（{{style.lang}}）の文面が決まっていない`,
-  )
+  const text = STYLE_LANG[String(v)]
+  if (!text) throw new GenerationError(`出力言語が不正: ${String(v)}`)
+  return text
 }
 
 // ---------------------------------------------------------------------------
@@ -172,15 +177,13 @@ function paramRows(ctx: Ctx, modeId: string): ParamRows {
       }
     } else if (p.requestRole === 'recommend') {
       if (recOn(p.id)) {
-        if (p.kind !== 'slider' || !p.range)
-          throw new GenerationError(
-            `未定義: パラメータ ${p.id}（${p.kind}）の推奨値の行の表記が決まっていない`,
-          )
-        rows.recommend.push([
-          p.label,
-          `${p.range.min}〜${p.range.max}${p.range.unit ?? ''}`,
-          defaultText(p),
-        ])
+        // 範囲: スライダーは {min}〜{max}{単位}、トグルは「オン／オフ」。既定値は §5-2 の値と同じ形（判断ポイント46）
+        let range: string
+        if (p.kind === 'slider' && p.range)
+          range = `${p.range.min}〜${p.range.max}${p.range.unit ?? ''}`
+        else if (p.kind === 'toggle') range = 'オン／オフ'
+        else throw new GenerationError(`未定義: パラメータ ${p.id}（${p.kind}）の推奨値の行の表記`)
+        rows.recommend.push([p.label, range, defaultText(p)])
       } else {
         rows.fixed.push([p.label, defaultText(p)])
       }

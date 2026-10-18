@@ -4,6 +4,7 @@ import { fieldItemIds, type Spec } from '../spec'
 import type { FieldDef, StateId } from '../types/fields'
 import type { AxisValue, SongRequest } from '../types/song'
 import { GenerationError } from './errors'
+import { userText } from './user-text'
 
 export type RequestScope = 'combined' | 'style' | 'lyrics'
 
@@ -144,13 +145,24 @@ function delegatedText(ctx: RequirementsContext, f: FieldDef): string {
   }
 }
 
-/** 自由記述は §6 への出し方が未定義（設計スレッドで決める。U2 の決定 B） */
-function rejectFreeText(f: FieldDef, a: AxisValue) {
-  if (a.freeText !== undefined && a.freeText.trim() !== '') {
-    throw new GenerationError(
-      `未定義: 自由記述（freeText）の §6 への出し方が決まっていない: ${f.id}`,
-    )
+/** 項目内の自由記述（request-text.md B-06。判断ポイント42）。なければ null */
+function freeTextPart(f: FieldDef, a: AxisValue): string | null {
+  if (a.freeText === undefined || a.freeText.trim() === '') return null
+  if (!f.freeText) throw new GenerationError(`自由記述を持てない項目に自由記述がある: ${f.id}`)
+  return `自由記述: 「${userText(a.freeText, { inCell: true })}」`
+}
+
+/** 語の列と自由記述を「, 」でつなぐ */
+const withFreeText = (words: string, free: string | null) =>
+  [words, free].filter((x) => x).join(', ')
+
+/** BPM の値（判断ポイント45）。数値は {n} BPM、範囲は {min}〜{max} BPM（min = max は数値の形） */
+function bpmText(v: AxisValue['value']): string | null {
+  if (typeof v === 'number') return `${v} BPM`
+  if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
+    return v.min === v.max ? `${v.min} BPM` : `${v.min}〜${v.max} BPM`
   }
+  return null
 }
 
 type Row = { kind: 'value' | 'tri'; cells: string[] }
@@ -162,19 +174,24 @@ function valueRow(ctx: RequirementsContext, f: FieldDef): Row {
   let value: string
   let specificity = '—'
   if (st === 'specified') {
-    rejectFreeText(f, a)
+    const free = freeTextPart(f, a)
     const v = a.value
-    if (f.kind === 'select' && typeof v === 'string') {
-      value = valueLabel(ctx, f, v)
-      specificity = f.leaveValues?.includes(v) ? '—' : SPECIFICITY_LABEL[f.specificity]!
+    const bpm = f.kind === 'bpm' ? bpmText(v) : null
+    if (f.kind === 'select' && (typeof v === 'string' || free)) {
+      value = withFreeText(typeof v === 'string' ? valueLabel(ctx, f, v) : '', free)
+      specificity =
+        typeof v === 'string' && f.leaveValues?.includes(v)
+          ? '—'
+          : SPECIFICITY_LABEL[f.specificity]!
     } else if (f.kind === 'text' && typeof v === 'string') {
-      value = v
+      value = userText(v, { inCell: true })
+      specificity = SPECIFICITY_LABEL[f.specificity]!
+    } else if (bpm) {
+      value = bpm
       specificity = SPECIFICITY_LABEL[f.specificity]!
     } else if (f.kind === 'sectionList' && Array.isArray(v)) {
       value = v.map((id) => itemLabel(ctx, f, id)).join(' → ')
       specificity = SPECIFICITY_LABEL[f.specificity]!
-    } else if (f.kind === 'bpm') {
-      throw new GenerationError(`未定義: BPM の①指定の §6 への出し方が決まっていない: ${f.id}`)
     } else {
       throw new GenerationError(`①指定の値の形が不正: ${f.id}`)
     }
@@ -212,7 +229,7 @@ function triRow(ctx: RequirementsContext, f: FieldDef): Row {
   const st = effectiveState(ctx, f)
   const a = axisOf(ctx.req, f)
   if (st === 'specified') {
-    rejectFreeText(f, a)
+    const free = freeTextPart(f, a)
     const ch = a.choices ?? {}
     const use = choiceLabels(ctx, f, ch, 'use')
     const exclude = choiceLabels(ctx, f, ch, 'exclude')
@@ -221,7 +238,7 @@ function triRow(ctx: RequirementsContext, f: FieldDef): Row {
       cells: [
         f.label,
         STATE_LABEL[st],
-        use.join(', ') || '—',
+        withFreeText(use.join(', '), free) || '—',
         exclude.join(', ') || '—',
         SPECIFICITY_LABEL[f.specificity]!,
       ],
@@ -269,7 +286,7 @@ export function exclusionSummary(ctx: RequirementsContext): string | null {
     effectiveState(ctx, ex) === 'specified' &&
     typeof exA?.value === 'string' &&
     exA.value.trim()
-      ? exA.value
+      ? userText(exA.value, { inCell: true })
       : null
   const parts = labels.filter((l) => l !== exText)
   if (exText) parts.push(exText)

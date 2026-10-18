@@ -7,6 +7,8 @@ import { spec } from '@/data/spec'
 import { GenerationError } from '@/domain/request/errors'
 import { generateRequestText } from '@/domain/request/generate'
 import type { SongData, SongRequest } from '@/domain/types/song'
+import factory from '@spec/factory-profiles.json'
+import songExample from '@spec/song.example.json'
 
 function base(): SongRequest {
   return structuredClone((input as unknown as SongData).requests[0]!)
@@ -120,29 +122,122 @@ describe('依頼文の生成器: 分岐', () => {
   })
 })
 
-describe('依頼文の生成器: 未定義の組み合わせは明示的に失敗する（request-blocks.md §1）', () => {
-  const cases: [string, (r: SongRequest) => void][] = [
-    ['派生生成（第2段階）', (r) => (r.generationType = 'derived')],
-    [
-      '自由記述（§6 への出し方が未定義）',
-      (r) => (r.axes.purpose = { state: 'specified', value: 'ending-theme', freeText: '補足' }),
-    ],
-    [
-      '出力言語「すべて英語」（欄の言語の文面が未定義）',
-      (r) => (r.output.outputLanguage = 'all-english'),
-    ],
-    [
-      'BPM の①指定（§6 への出し方が未定義）',
-      (r) => (r.axes.bpm = { state: 'specified', value: 120 }),
-    ],
-    [
-      'Max モード（トグル）の推奨値の行（表記が未定義）',
-      (r) => (r.output.recommendParams = { 'max-mode': true }),
-    ],
-  ]
-  it.each(cases)('%s', (_name, mutate) => {
+describe('依頼文の生成器: 2026-10-18 に決めた文面（request-text.md 判断ポイント42〜47）', () => {
+  it('自由記述（42）: 通常項目は「{表示名}, 自由記述: 「…」」、語がなければ「自由記述: 「…」」だけ', () => {
     const req = base()
-    mutate(req)
+    req.axes.mainGenre = { state: 'specified', value: 'city-pop', freeText: '80年代の質感' }
+    req.axes.purpose = { state: 'specified', freeText: '映画の終わりに流す' }
+    const t = gen(req)
+    expect(t).toContain('| 主ジャンル | 指定 | City Pop, 自由記述: 「80年代の質感」 | 翻案可 |')
+    expect(t).toContain('| 用途 | 指定 | 自由記述: 「映画の終わりに流す」 | 拡張可 |')
+  })
+
+  it('自由記述（42）: 3値選択は「使用する」の列にだけ付け、合算行には入れない', () => {
+    const req = base()
+    req.axes.mood = {
+      state: 'specified',
+      choices: { nostalgic: 'use', tense: 'exclude' },
+      freeText: '少し明るく',
+    }
+    req.axes.subGenres = { state: 'specified', freeText: 'AOR 寄り' }
+    const t = gen(req)
+    expect(t).toContain(
+      '| 基調となる情緒 | 指定 | 郷愁, 自由記述: 「少し明るく」 | 緊迫感 | 拡張可 |',
+    )
+    expect(t).toContain('| 副ジャンル | 指定 | 自由記述: 「AOR 寄り」 | — | 翻案可 |')
+    expect(t).toContain('| スタイルを除外欄に入れる要素 | 指定 | 緊迫感, ラップ | 保持 |')
+  })
+
+  it('出力言語（44）: すべて英語・すべて日本語の欄の言語。すべて日本語では 7-4 の訳と「日本語訳」の項を出さない', () => {
+    const req = base()
+    req.output.outputLanguage = 'all-english'
+    const en = gen(req)
+    expect(en).toContain(
+      '| スタイル | 1000文字 | 900文字以内 | すべて英語（日本固有のジャンル名・様式名も、英語の表記にする） |',
+    )
+    expect(en).toContain(
+      '| スタイルを除外 | 1000文字 | 900文字以内 | すべて英語（日本固有のジャンル名・様式名も、英語の表記にする） |',
+    )
+    expect(en).toContain('- 日本語訳')
+    req.output.outputLanguage = 'all-japanese'
+    const ja = gen(req)
+    expect(ja).toContain(
+      '| スタイル | 1000文字 | 900文字以内 | すべて日本語（ジャンル名・様式名なども日本語で書く） |',
+    )
+    expect(ja).not.toContain('- 日本語訳')
+    expect(ja).not.toContain('. 訳\n')
+    expect(ja).toContain('| 作詞AIへの指示 | 不明 | できるだけ短く | 日本語 |')
+  })
+
+  it.each([
+    [120, '120 BPM'],
+    [{ min: 120, max: 140 }, '120〜140 BPM'],
+    [{ min: 128, max: 128 }, '128 BPM'],
+    [92.5, '92.5 BPM'],
+  ] as const)('BPM（45）: %j → %s', (value, text) => {
+    const req = base()
+    req.axes.bpm = { state: 'specified', value: typeof value === 'number' ? value : { ...value } }
+    expect(gen(req)).toContain(`| BPM の目安 | 指定 | ${text} | 保持 |`)
+  })
+
+  it('トグルの推奨値（46）: 7-7 の範囲は「オン／オフ」、既定値は §5-2 と同じ形', () => {
+    const req = base()
+    req.output.recommendParams = { 'max-mode': true }
+    const t = gen(req)
+    expect(t).toContain('| Max モード | オン／オフ | オフ |')
+    expect(t).not.toContain('| Max モード | オフ |\n')
+  })
+})
+
+describe('依頼文の生成器: 利用者が入力した文字列（判断ポイント43）', () => {
+  it('前後の空白を除き、改行は「 / 」1つに（空行が続くときも1つ）、セルの「|」は「\|」に', () => {
+    const req = base()
+    req.axes.exclusions = { state: 'specified', value: '  ラップ\n\n  シャウト | がなり  ' }
+    const t = gen(req)
+    expect(t).toContain('| 除外したい要素 | 指定 | ラップ / シャウト \\| がなり | 保持 |')
+    expect(t).toContain(
+      '| スタイルを除外欄に入れる要素 | 指定 | 緊迫感, ラップ / シャウト \\| がなり | 保持 |',
+    )
+  })
+
+  it("3連以上のバッククォートは、長さを保ったまま「'」に。出力にバッククォート3連が残らない", () => {
+    const req = base()
+    const fence = '`'.repeat(3)
+    req.axes.lyricsTheme = { state: 'specified', value: `${fence}夜明け${'`'.repeat(4)}` }
+    req.axes.notes = { state: 'specified', value: `${fence}\n補足\n${fence}` }
+    req.axes.mainGenre = { state: 'specified', value: 'city-pop', freeText: `a${fence}b` }
+    const t = gen(req)
+    expect(t).not.toContain(fence)
+    expect(t).toContain("| 歌詞のテーマ・内容 | 指定 | '''夜明け'''' | 拡張可 |")
+    expect(t).toContain("| その他・補足 | 指定 | ''' / 補足 / ''' | 保持 |")
+    expect(t).toContain("City Pop, 自由記述: 「a'''b」")
+  })
+
+  it('1・2個のバッククォートは、そのまま出す', () => {
+    const req = base()
+    req.axes.notes = { state: 'specified', value: '`a` と ``b``' }
+    expect(gen(req)).toContain('| その他・補足 | 指定 | `a` と ``b`` | 保持 |')
+  })
+})
+
+describe('依頼文の生成器: ファクトリープロファイル（同梱のデータ）はすべて生成できる', () => {
+  it.each(factory.profiles.map((p) => [p.name, p] as const))('%s', (_name, p) => {
+    const t = generateRequestText({ spec, req: (p.data as unknown as SongData).requests[0]! })
+    expect(t).toContain('# 音楽生成AI用プロンプト作成依頼')
+  })
+
+  it('song.example.json（1件目と同じ）の主旋律の自由記述', () => {
+    const t = generateRequestText({ spec, req: (songExample as unknown as SongData).requests[0]! })
+    expect(t).toContain(
+      '| 主旋律を担う楽器 | 指定 | 尺八, 自由記述: 「尺八が旋律をとる」 | Guitar | 拡張可 |',
+    )
+  })
+})
+
+describe('依頼文の生成器: 未定義の組み合わせは明示的に失敗する（request-blocks.md §1・§12-5）', () => {
+  it('派生生成（第2段階）', () => {
+    const req = base()
+    req.generationType = 'derived'
     expect(() => gen(req)).toThrow(GenerationError)
   })
 })

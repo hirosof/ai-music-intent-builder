@@ -39,7 +39,7 @@ docs/
 │       ├── production-quality.md 制作・質感（軸F）の語彙
 │       └── small-choices.md     少数の択一項目7つ（軸A〜D）の語彙
 ├── examples/                 依頼文のレンダリング例、検証観点、検証結果
-│   └── inputs/               レンダリング例の入力（楽曲データ JSON）。アプリの生成器の照合に使う（2026-10-18〜）
+│   └── inputs/               レンダリング例の入力（楽曲データ JSON）。アプリの生成器の照合に使う（2026-10-18〜）。`*.generated.txt` は生成器の出力（例の元。生成物）
 │   ├── rendered-01-new-instrumental.md     第1回（初版）
 │   ├── rendered-01-new-instrumental-v2.md  第2回
 │   ├── rendered-01-new-instrumental-v3.md  第3回
