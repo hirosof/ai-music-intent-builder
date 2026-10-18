@@ -4,6 +4,7 @@
 import { profileParam, type Spec } from '../spec'
 import type { Param, ToolField, ToolProfile } from '../types/tool-profile'
 import type { SongRequest } from '../types/song'
+import { isSpecifiedEmpty } from '../validation/check-saved'
 import { GenerationError } from './errors'
 import {
   axisOf,
@@ -232,6 +233,16 @@ export function generateRequestText({ spec, req }: GenerateInput): string {
     throw new GenerationError('依頼文の範囲 style／lyrics は、歌ありのときだけ（F13）')
   if (vocal && req.lyricsAuthor === null)
     throw new GenerationError('歌ありで lyricsAuthor がない（F12）')
+  // 未完成（①指定なのに値が空。S5）のデータでは、依頼文を生成しない（判断ポイント43）
+  for (const [fid, a] of Object.entries(req.axes)) {
+    const f = spec.fieldById.get(fid)
+    if (
+      f &&
+      a.state === 'specified' &&
+      isSpecifiedEmpty(f.kind, a as unknown as Record<string, unknown>)
+    )
+      throw new GenerationError(`未完成: ①指定なのに値が空（S5）: ${fid}`)
+  }
 
   const ctx: Ctx = {
     spec,

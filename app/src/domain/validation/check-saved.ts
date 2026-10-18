@@ -12,8 +12,8 @@ import type { SchemaValidators } from './schema'
 export const SUPPORTED_SCHEMA_VERSION = 1
 
 // vocalMode によって有効・無効が切り替わる項目（L-01。宿題38）
-const INSTRUMENTAL_ONLY_FIELDS = ['structure']
-const VOCAL_ONLY_FIELDS = ['lyricsTheme', 'lyricsLanguage', 'lyricsStructure']
+export const INSTRUMENTAL_ONLY_FIELDS = ['structure']
+export const VOCAL_ONLY_FIELDS = ['lyricsTheme', 'lyricsLanguage', 'lyricsStructure']
 // vocalMode = vocal のとき取れる lyricsAuthor の値（L-01a）
 const VOCAL_LYRICS_AUTHORS = ['chat-ai', 'chat-ai-instruction']
 // output.requestScope のうち、vocalMode = vocal のときだけ取れる値（判断ポイント28）
@@ -36,6 +36,19 @@ const isInt = (x: unknown): x is number => typeof x === 'number' && Number.isInt
 const has = (o: object, k: string) => Object.prototype.hasOwnProperty.call(o, k)
 const isBlank = (x: unknown) => !(isStr(x) && x.trim() !== '')
 const sorted = (xs: Iterable<string>) => [...xs].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
+
+/**
+ * S5「①指定なのに値が空」の判定（select・triSelect・text。input-items.md §5）。a は ①指定の項目の値。
+ * 自動保存の「未完成」（判断ポイント43）と、生成器が未完成のデータを拒むときにも使う
+ */
+export function isSpecifiedEmpty(kind: string, a: Obj): boolean {
+  const freeOk = isStr(a.freeText) && a.freeText.trim() !== ''
+  if (kind === 'select') return (a.value === undefined || a.value === null) && !freeOk
+  if (kind === 'triSelect')
+    return (isObj(a.choices) ? Object.keys(a.choices).length === 0 : true) && !freeOk
+  if (kind === 'text') return !(isStr(a.value) && a.value.trim() !== '')
+  return false
+}
 
 class Report implements CheckResult {
   errors: string[] = []
@@ -150,12 +163,11 @@ function checkRequest(req: Obj, spec: Spec, report: Report, profile: ToolProfile
     if (free !== undefined && free !== null && (!isStr(free) || !f.freeText)) {
       report.error(`S4 freeText を持てない、または文字列でない: ${fid}`)
     }
-    const freeOk = isStr(free) && free.trim() !== ''
     const v = a.value
     if (f.kind === 'select') {
       if (v !== undefined && v !== null && !(isStr(v) && vocabItems.has(v)))
         report.error(`S4 語彙にない値: ${fid}.value = ${pyRepr(v)}`)
-      if ((v === undefined || v === null) && !freeOk) report.error(`S5 ①指定なのに値が空: ${fid}`)
+      if (isSpecifiedEmpty(f.kind, a)) report.error(`S5 ①指定なのに値が空: ${fid}`)
     } else if (f.kind === 'triSelect') {
       let ch: unknown = has(a, 'choices') ? a.choices : {}
       if (!isObj(ch)) {
@@ -171,9 +183,9 @@ function checkRequest(req: Obj, spec: Spec, report: Report, profile: ToolProfile
           )
         }
       }
-      if (entries.length === 0 && !freeOk) report.error(`S5 ①指定なのに値が空: ${fid}`)
+      if (isSpecifiedEmpty(f.kind, a)) report.error(`S5 ①指定なのに値が空: ${fid}`)
     } else if (f.kind === 'text') {
-      if (!(isStr(v) && v.trim())) report.error(`S5 ①指定なのに値が空: ${fid}`)
+      if (isSpecifiedEmpty(f.kind, a)) report.error(`S5 ①指定なのに値が空: ${fid}`)
     } else if (f.kind === 'bpm') {
       const ok =
         (isNum(v) && v > 0) ||
@@ -567,6 +579,17 @@ function checkProfilesContainer(
   })
 }
 
+/** 保存データの形（エクスポートファイル／プロファイルのストア／楽曲データ） */
+export type SavedKind = 'file' | 'store' | 'song'
+
+/** 形の自動判別（song-file.md §9-2）。判別できなければ undefined。旧形式（axes が最上位）は楽曲データとして扱い、F0 で拒否する */
+export function detectSavedKind(obj: Obj): SavedKind | undefined {
+  if (has(obj, 'exportType')) return 'file'
+  if (has(obj, 'profiles')) return 'store'
+  if (has(obj, 'requests') || has(obj, 'axes')) return 'song'
+  return undefined
+}
+
 /**
  * 保存データ（楽曲データ／エクスポートファイル／プロファイルのストア）の文字列を、形を自動判別して検証する。
  * エラーが1件でもあれば、その保存データは読み込まない（song-file.md §6-2。ファイルは全体を拒否する）
@@ -588,11 +611,8 @@ export function checkSavedText(
     report.error('F0 最上位がオブジェクトでない')
     return report
   }
-  let kind: 'file' | 'store' | 'song'
-  if (has(obj, 'exportType')) kind = 'file'
-  else if (has(obj, 'profiles')) kind = 'store'
-  else if (has(obj, 'requests') || has(obj, 'axes')) kind = 'song'
-  else {
+  const kind = detectSavedKind(obj)
+  if (kind === undefined) {
     report.error('F0 形を判別できない（exportType・profiles・requests のいずれもない）')
     return report
   }
