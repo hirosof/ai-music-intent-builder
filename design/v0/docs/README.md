@@ -55,6 +55,7 @@ docs/
 │   ├── rendered-10-new-vocal-lyrics-only.md  新規生成・歌あり・依頼文の範囲＝歌詞のみ（`requestScope = lyrics`。検証済み）
 │   ├── rendered-11-new-vocal-lyrics-instruction-r2.md  新規生成・歌あり（作詞AIへの指示文）。R-2 反映後の再検証用（`-08` と同一入力。6モデルで検証済み）
 │   ├── rendered-12-new-vocal-lyrics-instruction-auto.md  新規生成・歌あり（作詞AIへの指示文）・長さ Auto。R-5・T-02・Auto 経路の検証用（`-11` と同一入力で長さだけ Auto。6モデルで検証済み）
+│   ├── rendered-13-new-instrumental-freetext-all-english.md  新規生成・インスト・出力言語＝すべて英語。自由記述・BPM 範囲・Max モード推奨・R-6 の確認用。入力 `inputs/rendered-13.json`、依頼文は生成器の出力。6モデルで検証済み
 │   ├── suno-test-01-granularity.md        Suno での検証（H-07）
 │   ├── suno-test-02-jp-traditional-vs-style.md  Suno での検証（H-09。判定不能）
 │   └── suno-test-03-village-town-city.md  Suno での検証（用途語彙の「街・村のテーマ」分割の根拠）
