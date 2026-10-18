@@ -5,7 +5,7 @@
 ## 現在地（2026-10-18）
 
 - 設計フェーズが完了し、実装フェーズに移る段階（移行判断は利用者承認済み。`design/v0/docs/implementation-readiness.md`）
-- Phase 0（最初の確認）と U0（足場）は完了（2026-10-18）。次は U1（データ層）
+- Phase 0（最初の確認）、U0（足場）、U1（データ層）は完了（2026-10-18）。次は U2（依頼文の生成器）
 - **詳細はすべて `design/v0/docs/implementation-guide.md`**。最初に読むのは、これと本書だけ
 
 ## リポジトリの構成
@@ -53,7 +53,8 @@ python -m venv .venv
 ```
 .venv/Scripts/python tools/check-fields/check_fields.py
 .venv/Scripts/python tools/check-fields/check_fields.py --song docs/specifications/song.example.json
-.venv/Scripts/python tools/check-fields/test_check_fields.py   # 期待: 208ケース通過・スキップ0（2分以上かかる）
+.venv/Scripts/python tools/check-fields/test_check_fields.py   # 期待: 212ケース通過・スキップ0（2分以上かかる）
+.venv/Scripts/python tools/check-fields/export_parity_cases.py # アプリの検証との照合用の正解データを書き出す（--check で最新か確認）。検査やテストを変えたら実行し、アプリのテストも流す
 .venv/Scripts/python tools/build-presets/build_presets.py      # 語彙（md）を変えたときに再生成
 .venv/Scripts/python tools/build-presets/build_presets.py --check   # 生成物が最新か（終了コード0）。語彙を変えたら最後に必ず行う
 ```
@@ -70,6 +71,8 @@ npx oxfmt --check src/
 ```
 
 - テストは `src/**/__tests__/` に置く（tsconfig.vitest の決まり）
+- 構成: `src/domain/`（型と、画面に依存しない純関数。検証は `domain/validation/`）、`src/data/`（仕様の JSON の読み込み）
+- 保存データの検証（`domain/validation/check-saved.ts`）は `check_fields.py` の移植で、文言も同じ。照合の正解データ（`src/domain/__tests__/fixtures/check-fields-cases.json`）は生成物で、`design/v0/tools/check-fields/export_parity_cases.py` が書き出す（手で編集しない）
 - Pinia・Playwright（e2e）は入っているが、使っていない（U0 の決定。使うかは U3・U4 で決める。e2e はブラウザ本体が未導入）
 
 ## 実行環境（2026-10-18 に確認）
@@ -81,7 +84,7 @@ npx oxfmt --check src/
 
 ## 最初にやること
 
-Phase 0（implementation-guide §4）と U0（足場）は完了（2026-10-18）。次は、U1（データ層）→ U2（依頼文の生成器。受け入れ基準: `-12` §1 との突き合わせ）。
+Phase 0（implementation-guide §4）、U0（足場）、U1（データ層）は完了（2026-10-18）。次は、U2（依頼文の生成器。受け入れ基準: `-12` §1 との突き合わせ）。
 
 ## モデルについて
 

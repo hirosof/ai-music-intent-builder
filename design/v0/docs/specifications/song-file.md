@@ -334,7 +334,7 @@ GitHub Pages 版とローカル版は、オリジンが違うため共有され�
 
 §6-2 の 4（不明な項目 id・語 id は拒否）は、既存の S1（未知の項目）・S4（語彙にない値）が担う。**S6**（新規。L-01。宿題38）: `vocalMode` で無効になる `axes` 項目（`vocal` のとき `structure`、`instrumental` のとき `lyricsTheme`・`lyricsLanguage`・`lyricsStructure`）に①指定があるのはエラー。ファイルに1件でもエラーがあれば、ファイル全体が不適合になる（§11 の #8）。指摘には、プロファイル名と依頼 id の接頭辞が付く。
 
-**実装**: `tools/check-fields/check_fields.py`（`--song` が形を自動判別する）。負例のテストは `tools/check-fields/test_check_fields.py`（208ケース（199ケース＋F13 の9ケース。2026-10-18 追加。同日、利用者の環境で208件が期待どおり通過・失敗0・スキップ0を確認）。正例（`song.example.json`・`song-export.example.json`・`factory-profiles.json`）、F0〜F13、依頼ごとの S・R・O 系（S6 を含む）、ツールプロファイルの P0〜P11）。`jsonschema` がなければ、F1 と、スキーマを使うケースをスキップする。ツールプロファイル側の検査（P0〜P11、F7、F9、長さの S4）は、出力を1つずつ消して、テストが失敗することを確かめた（`tool-profile.md` §10-2）。検査を 10 種類の変異で壊して、テストが検出することを確かめた（教訓 4-8）。派生元（F3・F10・F11 と、`song.schema.json` の `derivedFrom`）は、2026-09-24 に、出力を消す変異と、エラーを警告に降格する変異を含む31種で確かめた（教訓 4-13・4-17）。
+**実装**: `tools/check-fields/check_fields.py`（`--song` が形を自動判別する）。負例のテストは `tools/check-fields/test_check_fields.py`（212ケース（199ケース＋F13 の9ケース＋R の4ケース。F13 は2026-10-18 追加。同日、利用者の環境で208件が期待どおり通過・失敗0・スキップ0を確認。R の4ケース〔用途の詳細の②扱い・様式の寄せ方が出ない・主ジャンルの除外・楽器の除外の補い〕は、同日、アプリへの移植の照合で、どのテストも通らない分岐として見つかり追加した）。正例（`song.example.json`・`song-export.example.json`・`factory-profiles.json`）、F0〜F13、依頼ごとの S・R・O 系（S6 を含む）、ツールプロファイルの P0〜P11）。`jsonschema` がなければ、F1 と、スキーマを使うケースをスキップする。ツールプロファイル側の検査（P0〜P11、F7、F9、長さの S4）は、出力を1つずつ消して、テストが失敗することを確かめた（`tool-profile.md` §10-2）。検査を 10 種類の変異で壊して、テストが検出することを確かめた（教訓 4-8）。派生元（F3・F10・F11 と、`song.schema.json` の `derivedFrom`）は、2026-09-24 に、出力を消す変異と、エラーを警告に降格する変異を含む31種で確かめた（教訓 4-13・4-17）。
 
 ---
 

@@ -313,6 +313,19 @@ case("S5: 指定なのに値が空", song(lambda x: req(x)["axes"].update(purpos
 case("R: 楽器の除外の連動（警告）", song(lambda x: req(x)["axes"].update(leadInstruments={
     "state": "specified", "choices": {"shakuhachi": "use", "guitar": "use"}})),
      rc=0, has=["R instrument-exclusion-linked"])
+# 項目をまたぐ規則の残りの分岐（2026-10-18 追加。アプリへの移植の照合で、どのテストも通らない分岐として見つかった）
+case("R: 楽器の除外が他の項目に反映されていない（警告。連動で補う）", song(lambda x: req(x)["axes"].update(
+    accompanimentInstruments={"state": "specified", "choices": {"taiko": "use"}})),
+     rc=0, has=["R instrument-exclusion-linked: guitar は他の項目で除外されているが、accompanimentInstruments に反映されていない"])
+case("R: 用途が②お任せのとき、用途の詳細の①指定は②として扱う（警告）", song(lambda x: req(x)["axes"].update(
+    purpose={"state": "delegated"}, purposeDetail={"state": "specified", "value": "ラスボス戦"})),
+     rc=0, has=["R purposeDetail-follows-purpose"])
+case("R: 地域・文化の様式に「使用する」がないとき、様式の寄せ方は出ない（情報）", song(lambda x: req(x)["axes"].update(
+    regionStyles={"state": "delegated"})),
+     rc=0, counts=(0, 0), has=["R styleLean-needs-region"])
+case("R: 主ジャンルを副ジャンルで「使用しない」にしている（警告）", song(lambda x: req(x)["axes"].update(
+    subGenres={"state": "specified", "choices": {"orchestral": "exclude"}})),
+     rc=0, has=["R mainGenre-not-excluded"])
 case("O2: 出力項目の値が不正", song(lambda x: req(x)["output"].update(variantCount="three")), has=["O2 数値でない"])
 
 

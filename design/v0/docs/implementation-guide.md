@@ -113,6 +113,7 @@ ai-music-intent-builder/
 - 読む（目安 約200KB）: `docs/specifications/input-items.md`（27KB）、`fields.json`（19KB）、`fields.schema.json`（11KB）、`presets.md`（25KB）と `presets/index.json`・数ファイル、`tool-profile.md`（30KB）と `tool-profiles/suno.json`、`song-file.md`（41KB）と `song.schema.json`（7KB）・`song.example.json`、`tools/check-fields/check_fields.py`（54KB。必要な検査から）
 - 受け入れ基準: `song.example.json`・`song-export.example.json`・`factory-profiles.json` が、`check_fields.py` と同じ結果（エラー0・警告0）になる。負例（`test_check_fields.py` の主要なもの）で、同じ種類の指摘が出る
 - 分けてよい: U1a（項目・語彙・ツールプロファイル）／U1b（楽曲データの型と検証）
+- **結果（2026-10-18 完了）**: 決定は、移植は保存データの検証（F・S・R・O。派生生成の F3・F9〜F11 を含む）だけで、定義の検証（D・P）は移植しない、F1 は Ajv で仕様のスキーマをそのまま使う（`date-time` の書式は、参照実装と同じく検査しない。pattern が同じ制約を持つ）、型は手書き、指摘の文言は参照実装と同じ。照合は `tools/check-fields/export_parity_cases.py` が書き出す正解データ（保存データのケース141件）で行い、文書化された差（F1 の文言・件数、Python の例外の文言、参照実装の副作用1件）以外は一致した。照合の途中で、項目をまたぐ規則（R）の4分岐がどのテストも通らないことが分かり、`test_check_fields.py` に4件を足した（208 → 212件）。変異テスト11種（出力を消す・エラーを警告に降格する・文言を変える・版で止めない・F1 を出さない・R の各分岐を消す）をすべて検出した
 
 ### U2 依頼文の生成器（中核。最優先で丁寧に）
 
