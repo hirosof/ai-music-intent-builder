@@ -5,7 +5,7 @@
 ## 現在地（2026-10-18）
 
 - 設計フェーズが完了し、実装フェーズに移る段階（移行判断は利用者承認済み。`design/v0/docs/implementation-readiness.md`）
-- 実装のコードはまだない。最初に **Phase 0（最初の確認）** を行い、続けて U0（足場）から進める
+- Phase 0（最初の確認）と U0（足場）は完了（2026-10-18）。次は U1（データ層）
 - **詳細はすべて `design/v0/docs/implementation-guide.md`**。最初に読むのは、これと本書だけ
 
 ## リポジトリの構成
@@ -19,7 +19,10 @@ design/v0/   設計（生きた仕様。実装中も直接更新する。「正�
 ```
 
 - 大幅な変更（メジャーバージョンアップ相当）が生じるときは、`design/v1/` のようにフォルダを分ける（利用者の判断）
-- アプリのコードの置き場所: **リポジトリ直下の `app/`**（利用者の承認済み。まだない）。`.gitattributes` で改行コードは LF に統一
+- アプリのコードの置き場所: **リポジトリ直下の `app/`**（利用者の承認済み。create-vue の構成を利用者が作成）。`.gitattributes` で改行コードは LF に統一
+- 仕様の JSON は `app/` に写さない。エイリアス `@spec`（→ `design/v0/docs/specifications`。`vite.config.ts` と `tsconfig.app.json`）で直接読み、ビルドに組み込む
+- `base: './'`（相対）とハッシュ方式のルーターで、GitHub Pages とローカル IIS のどちらのサブパスにも同じビルドで置ける
+- GitHub Pages への公開は `.github/workflows/deploy.yml`（手動実行。利用者が行う）
 
 ## 読む順序
 
@@ -55,16 +58,30 @@ python -m venv .venv
 .venv/Scripts/python tools/build-presets/build_presets.py --check   # 生成物が最新か（終了コード0）。語彙を変えたら最後に必ず行う
 ```
 
+## アプリのコマンド（`app/` で実行）
+
+```
+npm run dev          # 開発サーバ（http://localhost:5173/）
+npm run build        # 型検査（vue-tsc）＋ビルド
+npx vitest run       # 単体テスト（npm run test:unit は監視モード）
+npx oxlint .         # lint（npm run lint は --fix でファイルを書き換える）
+npx eslint .
+npx oxfmt --check src/
+```
+
+- テストは `src/**/__tests__/` に置く（tsconfig.vitest の決まり）
+- Pinia・Playwright（e2e）は入っているが、使っていない（U0 の決定。使うかは U3・U4 で決める。e2e はブラウザ本体が未導入）
+
 ## 実行環境（2026-10-18 に確認）
 
 - OS: Windows 11。Node v24.21.0、npm 11.19.0（pnpm はなし。yarn 1.3.2 は古いため使わない）。Python 3.14.8、Git 2.56.0
-- パッケージマネージャ: npm（提案。U0 で確定する）
+- パッケージマネージャ: npm（確定）。主な依存: Vue 3.5.44、Nuxt UI 4.12.0、Tailwind CSS 4.3.3、VueUse 15.0.0、vue-router 5.4.0、Vite 8.3.4、Vitest 4.1.11、TypeScript 6.0.3（`app/package-lock.json` で固定）
 - `jsonschema` は、グローバルの Python ではなく、プロジェクトの venv に入れる（`tools/requirements.txt`。設計スレッドの推奨を利用者が共有、2026-10-18）。未導入だと 208 件中 47 件がスキップになる
 - `test_check_fields.py` は `jsonschema` ありで2分以上かかる（バックグラウンドで実行する）
 
 ## 最初にやること
 
-Phase 0（implementation-guide §4）は完了（2026-10-18。`build_presets.py` の `section-vocal` の登録漏れを直した。判断ポイント213）。次は、U0（足場）→ U1（データ層）→ U2（依頼文の生成器。受け入れ基準: `-12` §1 との突き合わせ）。
+Phase 0（implementation-guide §4）と U0（足場）は完了（2026-10-18）。次は、U1（データ層）→ U2（依頼文の生成器。受け入れ基準: `-12` §1 との突き合わせ）。
 
 ## モデルについて
 

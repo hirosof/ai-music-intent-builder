@@ -40,3 +40,7 @@ __screenshots__/
 
 test-results/
 playwright-report/
+
+# Nuxt UI（unplugin）が dev・build のたびに生成する型宣言
+auto-imports.d.ts
+components.d.ts

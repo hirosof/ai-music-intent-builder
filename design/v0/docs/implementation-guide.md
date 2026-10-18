@@ -36,7 +36,7 @@ ai-music-intent-builder/
     └── validations/      検証ログ（prompt-test/results/…。6モデルの生ログ）
 ```
 
-- 実装のコードの置き場所: **リポジトリ直下の `app/`**（利用者の承認済み、2026-10-18。`app/` はまだない。`package.json`・`src/` もない）
+- 実装のコードの置き場所: **リポジトリ直下の `app/`**（利用者の承認済み、2026-10-18。create-vue の構成を利用者が作成し、U0 で Nuxt UI などを組み込んだ）
 - `design/v0/` は**生きた仕様**。実装中に仕様の曖昧さ・矛盾に当たったら、判断ポイントとして記録し、ここを直接更新する（「正」は1か所）。メジャーバージョンアップ相当の大幅な変更が生じるときは、`design/v1/` のようにフォルダを分ける（利用者の判断、2026-10-18）
 
 ---
@@ -105,6 +105,7 @@ ai-music-intent-builder/
 - 内容: Vite＋Vue＋TypeScript＋Nuxt UI（Tailwind CSS 4）＋VueUse＋Vitest。配置先（**`app/`**。利用者の承認済み）、パッケージマネージャ、`base`（サブパス配信。R-09）、仕様の JSON（`design/v0/docs/specifications/`）の読み込み方（**二重に持たない**。Vite のエイリアスなどで直接参照する案）
 - 読む: `docs/decisions/scope.md` の R-06・R-07・R-09、`docs/decisions/presets.md` §4-1（フレームワーク）、`docs/decisions/ui-and-nonfunctional.md` §6（配置）、`think/tree-select-prototype/README.md` と `package.json`
 - 受け入れ基準: ビルドとテストが通る。開発サーバが起動する。`design/v0/` の仕様 JSON をアプリから読める
+- **結果（2026-10-18 完了）**: 決定は、仕様の読み込み＝エイリアス `@spec` で静的に import（二重に持たない）、`base: './'`、ルーターはハッシュ方式、Pinia・Playwright は入れたまま使わない（U3・U4 で判断）、lint は oxlint＋ESLint、整形は oxfmt（利用者が導入）。型検査・ビルド・単体テスト4件・lint が通り、開発サーバと、ビルド結果をサブパス（`/ai-music-intent-builder/`）に置いた表示を確かめた。生成される `auto-imports.d.ts`・`components.d.ts` は Git の管理外（なくても型検査が通る）
 
 ### U1 データ層
 
