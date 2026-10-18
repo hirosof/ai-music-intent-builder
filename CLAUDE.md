@@ -5,7 +5,7 @@
 ## 現在地（2026-10-18）
 
 - 設計フェーズが完了し、実装フェーズに移る段階（移行判断は利用者承認済み。`design/v0/docs/implementation-readiness.md`）
-- Phase 0（最初の確認）、U0（足場）、U1（データ層）は完了（2026-10-18）。次は U2（依頼文の生成器）
+- Phase 0（最初の確認）、U0（足場）、U1（データ層）、U2a（依頼文の生成器と -12 の照合）は完了（2026-10-18）。次は U2b（追加の例の照合）
 - **詳細はすべて `design/v0/docs/implementation-guide.md`**。最初に読むのは、これと本書だけ
 
 ## リポジトリの構成
@@ -71,7 +71,8 @@ npx oxfmt --check src/
 ```
 
 - テストは `src/**/__tests__/` に置く（tsconfig.vitest の決まり）
-- 構成: `src/domain/`（型と、画面に依存しない純関数。検証は `domain/validation/`）、`src/data/`（仕様の JSON の読み込み）
+- 依頼文の生成器の正解は、レンダリング例の md（`@examples` = `design/v0/docs/examples`）から直接読む。入力は `examples/inputs/`。例との差は、出典つきの当て布（`Patch`）でだけ認める（文書化された差）
+- 構成: `src/domain/`（型と、画面に依存しない純関数。検証は `domain/validation/`、依頼文の生成器は `domain/request/`）、`src/data/`（仕様の JSON の読み込み）
 - 保存データの検証（`domain/validation/check-saved.ts`）は `check_fields.py` の移植で、文言も同じ。照合の正解データ（`src/domain/__tests__/fixtures/check-fields-cases.json`）は生成物で、`design/v0/tools/check-fields/export_parity_cases.py` が書き出す（手で編集しない）
 - Pinia・Playwright（e2e）は入っているが、使っていない（U0 の決定。使うかは U3・U4 で決める。e2e はブラウザ本体が未導入）
 
@@ -84,7 +85,7 @@ npx oxfmt --check src/
 
 ## 最初にやること
 
-Phase 0（implementation-guide §4）、U0（足場）、U1（データ層）は完了（2026-10-18）。次は、U2（依頼文の生成器。受け入れ基準: `-12` §1 との突き合わせ）。
+Phase 0（implementation-guide §4）、U0（足場）、U1（データ層）、U2a は完了（2026-10-18）。次は、U2b（`-11`・`-07`〜`-10`・`-v4`・`-03`・`-05` の照合）→ U3 →（設計スレッドで未定義の文面〔`request-blocks.md` §12-5〕が決まったら反映）。U2（依頼文の生成器。受け入れ基準: `-12` §1 との突き合わせ）。
 
 ## モデルについて
 

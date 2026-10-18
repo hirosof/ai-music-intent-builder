@@ -10,7 +10,9 @@
     "paths": {
       "@/*": ["./src/*"],
       // 仕様の JSON（design/v0/ が正。vite.config.ts の @spec と同じ）
-      "@spec/*": ["../design/v0/docs/specifications/*"]
+      "@spec/*": ["../design/v0/docs/specifications/*"],
+      // レンダリング例（vite.config.ts の @examples と同じ。テストだけが読む）
+      "@examples/*": ["../design/v0/docs/examples/*"]
     },
 
     // `vue-tsc --build` produces a .tsbuildinfo file for incremental type-checking.
