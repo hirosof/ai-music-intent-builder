@@ -140,6 +140,8 @@ ai-music-intent-builder/
 - 読む: `docs/decisions/ui-and-nonfunctional.md`（35KB）、`docs/discussions/2026-09/17_ui-spec.md`（分類A〜Dの決定の経緯）、`docs/decisions/presets.md` §4 以降（選択 UI）、`think/tree-select-prototype/`（Nuxt UI 版と `src/shared/`）、UI の下図 `think/UI案.drawio`（と `UI案.drawio.png`）
 - 分類E（vue-router の要否、サブパス配信のルーター設定、実ブラウザの性能・スマホ幅）は、ここで確認する（宿題4）
 - 目視が必要な範囲は、前もって明示する（教訓4-9）
+- **進め方（2026-10-19。利用者の承認）**: U4a 骨組み → U4b 入力（単純な部品）→ U4c 入力（階層テーブル）→ U4d 保存の画面 → U4e 残り（警告・辞典設定・カラーモード・分類E）。実装前の持ち帰り H1〜H5 は判断ポイント48〜52 で決着。実装の決定 J1〜J8: Pinia は使わずモジュールに1つの composable（`useSongEditor`）、ルーターは主画面と辞典設定の2つ、Nuxt UI のダッシュボード部品、自動保存は変更から 500ms 後、一時保持は画面側、依頼文は常に計算し直す、768px 未満は Drawer、Playwright は使わない
+- **結果（U4a。2026-10-19）**: 画面の枠（サイドメニュー・ヘッダー）、編集中の状態（`app/src/composables/useSongEditor.ts`。自動保存・復元と通知・置き換え・依頼文）、カード（`app/src/domain/editor/` の純関数〔構成・表示・未完成・初期状態〕と `components/editor/SongCard.vue`）、依頼文の表示とコピー（`useClipboard`、`legacy: true`）、「新規」と確認ダイアログ（判断ポイント52）。依頼文の範囲で依頼文に出ない項目の見せ方は、判断ポイント53 として記録した。**見つかった不具合**: `structuredClone` は Vue のリアクティブなオブジェクト（Proxy）を複製できず、画面が出なかった（jsdom の単体テストは素のオブジェクトを渡すため、通っていた）。保存データの複製を JSON を通す形（`domain/clone.ts`）に替えた。ブラウザで目視したもの: 7枚・8枚のカード、淡い表示とカードの注記、未完成の赤字、スマホ幅（375px）、新規の確認ダイアログ、依頼文の位置への移動。テストは 12ファイル・269件 → 14ファイル・302件。変異テスト27種をすべて検出。ビルドで、500kB を超えるチャンクの警告が出る（仕様の JSON・語彙を組み込むため。動作には影響しない）
 
 ### U5 仕上げ
 

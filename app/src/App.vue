@@ -1,20 +1,44 @@
 <script setup lang="ts">
-// U0 の仮の画面。仕様の JSON を読めることを確かめるだけで、U4 で置き換える
-import { specSummary } from '@/data/spec'
+// 画面の枠（U4 の決定 J3）。サイドメニュー（辞典設定・カラーモードは U4e）と、主画面。
+// 起動時に自動保存を読み込み、読めなかったとき・警告があるときは知らせる（判断ポイント43、song-file.md 補完・仮定7）
+import { onMounted } from 'vue'
+import { useToast } from '@nuxt/ui/composables'
+import { useSongEditor } from '@/composables/useSongEditor'
+
+const editor = useSongEditor()
+const toast = useToast()
+
+onMounted(() => {
+  editor.start()
+  const r = editor.restored.value
+  if (r?.status === 'discarded') {
+    toast.add({
+      title: '前回の編集内容を読み込めませんでした',
+      description: '保存の形が合わないため、初期状態で始めます。',
+      color: 'warning',
+    })
+  } else if (r?.status === 'ok' && r.warnings.length > 0) {
+    toast.add({
+      title: '前回の編集内容を読み込みました（注意があります）',
+      description: r.warnings.join('\n'),
+      color: 'warning',
+    })
+  }
+})
+
+const navItems = [{ label: '依頼文の組み立て', to: '/' }]
 </script>
 
 <template>
   <UApp>
-    <main class="p-6 space-y-4">
-      <h1 class="text-2xl font-bold">AI Music Intent Builder</h1>
-      <p>読み込んだ仕様（design/v0/docs/specifications/）</p>
-      <ul class="list-disc pl-6" data-testid="spec-summary">
-        <li data-testid="song-fields">楽曲の項目: {{ specSummary.songFields }}</li>
-        <li data-testid="output-fields">出力の項目: {{ specSummary.outputFields }}</li>
-        <li data-testid="vocabularies">語彙: {{ specSummary.vocabularies }}</li>
-        <li data-testid="tool-profiles">ツールプロファイル: {{ specSummary.toolProfiles }}</li>
-      </ul>
-      <UButton label="Nuxt UI の動作確認" />
-    </main>
+    <UDashboardGroup>
+      <UDashboardSidebar collapsible :ui="{ footer: 'border-t border-default' }">
+        <template #header>
+          <span class="truncate font-semibold">AI Music Intent Builder</span>
+        </template>
+        <UNavigationMenu :items="navItems" orientation="vertical" />
+      </UDashboardSidebar>
+      <RouterView />
+    </UDashboardGroup>
   </UApp>
 </template>

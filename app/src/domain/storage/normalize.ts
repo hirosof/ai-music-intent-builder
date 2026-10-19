@@ -4,6 +4,7 @@
 //   (2) 今の vocalMode で無効な項目（S6）は省略する
 //   (3) インストのとき requestScope は combined、lyricsAuthor は null
 // output のその他の値は触らない。画面上の一時保持（判断ポイント30）は保存データに入れない
+import { cloneJson } from '../clone'
 import type { SongData, SongRequest } from '../types/song'
 import { INSTRUMENTAL_ONLY_FIELDS, VOCAL_ONLY_FIELDS } from '../validation/check-saved'
 
@@ -13,10 +14,10 @@ function normalizeRequest(req: SongRequest): SongRequest {
   const axes: SongRequest['axes'] = {}
   for (const [fid, a] of Object.entries(req.axes)) {
     if (invalid.has(fid)) continue
-    axes[fid] = a.state === 'specified' ? structuredClone(a) : { state: a.state }
+    axes[fid] = a.state === 'specified' ? cloneJson(a) : { state: a.state }
   }
-  const output = structuredClone(req.output)
-  const out: SongRequest = { ...structuredClone(req), axes, output }
+  const output = cloneJson(req.output)
+  const out: SongRequest = { ...cloneJson(req), axes, output }
   if (req.vocalMode === 'instrumental') {
     out.lyricsAuthor = null
     if (Object.prototype.hasOwnProperty.call(output, 'requestScope'))

@@ -1,10 +1,11 @@
 // ユーザープロファイルのストアの操作と、ファイルの取り込み・書き出し（song-file.md §4、ui-and-nonfunctional.md §4-2・§4-3）。
 // すべて純関数で、引数を書き換えず、新しいストアを返す。プロファイルの data は複製して持つ（呼び出し側との共有を避ける）
+import { cloneJson } from '../clone'
 import type { ExportFile, Profile, ProfileStore, SongData } from '../types/song'
 import { SUPPORTED_SCHEMA_VERSION } from '../validation/check-saved'
 import { formatTimestamp } from './timestamp'
 
-const clone = <T>(x: T): T => structuredClone(x)
+const clone = cloneJson
 
 export function emptyStore(): ProfileStore {
   return { schemaVersion: SUPPORTED_SCHEMA_VERSION, profiles: [] }
