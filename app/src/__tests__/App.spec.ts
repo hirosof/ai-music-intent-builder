@@ -8,7 +8,7 @@ import ui from '@nuxt/ui/vue-plugin'
 
 import App from '../App.vue'
 import EditorView from '@/views/EditorView.vue'
-import { resetSongEditor } from '@/composables/useSongEditor'
+import { resetSongEditor, useSongEditor } from '@/composables/useSongEditor'
 import { STORAGE_KEYS } from '@/data/storage'
 import { spec } from '@/data/spec'
 import { createInitialSong } from '@/domain/editor/initial'
@@ -114,5 +114,47 @@ describe('新規（判断ポイント52）', () => {
     await flushPromises()
     expect(cardIds(w)).toHaveLength(7)
     expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.song)!)).toEqual(createInitialSong(spec))
+  })
+})
+
+describe('依頼文の下の注意書き（U5。§3-2・§3-3）', () => {
+  const order = () =>
+    [...document.querySelectorAll('[data-testid="request-area"] [data-testid]')]
+      .map((e) => e.getAttribute('data-testid'))
+      .filter((t) => t === 'request-text' || t === 'notice-length' || t === 'notice-chip')
+
+  it('インスト（初期状態）は文字数の注意書きだけ', async () => {
+    await mountApp()
+    expect(order()).toEqual(['request-text', 'notice-length'])
+    expect(document.querySelector('[data-testid="notice-length"]')!.textContent).toContain(
+      'Suno のスタイル欄は1000文字までです。',
+    )
+  })
+
+  it('歌あり・作詞AIへの指示・combined は、文字数の注意書きを先に、チップ化の案内をその下に', async () => {
+    const s = structuredClone(vocalSong)
+    s.requests[0]!.lyricsAuthor = 'chat-ai-instruction'
+    s.requests[0]!.output.requestScope = 'combined'
+    localStorage.setItem(STORAGE_KEYS.song, JSON.stringify(s))
+    await mountApp()
+    expect(order()).toEqual(['request-text', 'notice-length', 'notice-chip'])
+    expect(document.querySelector('[data-testid="chip-phrase"]')!.textContent).toBe(
+      '添付のテーマ・指示に従い歌詞を作成してください',
+    )
+    expect(document.querySelector('[data-testid="copy-chip-phrase"]')).not.toBeNull()
+    // 閉じるボタンは付けない
+    expect(document.querySelector('[data-testid="notice-chip"] button[aria-label]')).toBeNull()
+  })
+
+  it('歌詞のみ（lyrics）はチップ化の案内だけ。依頼文を作れないときはどちらも出さない', async () => {
+    const s = structuredClone(vocalSong)
+    s.requests[0]!.lyricsAuthor = 'chat-ai-instruction'
+    s.requests[0]!.output.requestScope = 'lyrics'
+    localStorage.setItem(STORAGE_KEYS.song, JSON.stringify(s))
+    await mountApp()
+    expect(order()).toEqual(['request-text', 'notice-chip'])
+    useSongEditor().song.value.requests[0]!.axes.purpose = { state: 'specified' }
+    await flushPromises()
+    expect(order()).toEqual([])
   })
 })

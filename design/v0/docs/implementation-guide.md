@@ -151,6 +151,7 @@ ai-music-intent-builder/
 ### U5 仕上げ
 
 - 内容: 作詞AIへの指示のチップ化の案内（`ui-and-nonfunctional.md` §3-2、判断ポイント41）、サブパス配信での確認、全体の検証
+- **結果（2026-10-20）**: 依頼文の下の注意書き2つ（`domain/editor/notices.ts` と `components/editor/RequestTextArea.vue`）。文字数超過（§3-3。判断ポイント42。条件は Suno・依頼文の範囲が combined／style。上限はツールプロファイルのスタイル欄の `limit.value`。粒度に基本が含まれるときだけ「基本プロンプトを使えます」）を先に、チップ化の案内（§3-2。判断ポイント41。条件は Suno・歌あり・`chat-ai-instruction`・combined／lyrics。一言は専用のコピーボタン付き）をその下に。どちらも情報色の `UAlert`、閉じるボタンなし、文面は UI の定数。依頼文を作れないとき（未完成など）は出さない。**全体の検証**: アプリのテスト 22ファイル・422件、型検査・lint（oxlint・ESLint）・整形・ビルドが通過。設計側は、`check_fields.py`（定義とファクトリー: エラー0・警告0）、`test_check_fields.py`（212件が期待どおり・失敗0・スキップ0）、`export_parity_cases.py --check`（最新）、`build_presets.py --check`（最新）が通過。サブパス配信は U4e で確認済み。変異テスト9種をすべて検出（Suno 以外のツール・インストの経路のテストを足した）
 
 ### モデルの使い分け（提案）
 

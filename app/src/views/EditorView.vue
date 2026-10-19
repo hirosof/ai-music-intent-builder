@@ -135,7 +135,10 @@ function showRequest() {
           @click="showRequest"
         />
         <div ref="requestArea" class="scroll-mt-4">
-          <RequestTextArea :generated="editor.generated.value" />
+          <RequestTextArea
+            :generated="editor.generated.value"
+            :request="editor.savedSong.value.requests[0]!"
+          />
         </div>
       </div>
     </template>
