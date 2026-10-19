@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // 一覧のカード（ui-and-nonfunctional.md §1・§1-2）。②お任せも省略せずに出し、①指定以外は淡く表示する。
 // 依頼文の範囲で依頼文に出ない項目は、淡く表示して「依頼文に出ません」を添える（判断ポイント48・53）。
-// 「変更」（ポップアップ）は U4b
+// 「変更」でポップアップを開く（CardEditor。U4b）
 import { computed } from 'vue'
 import { spec } from '@/data/spec'
 import {
@@ -23,6 +23,7 @@ import { UNFINISHED_MESSAGES, type Incomplete } from '@/domain/editor/incomplete
 import type { SongRequest } from '@/domain/types/song'
 
 const props = defineProps<{ card: CardDef; request: SongRequest; incomplete: Incomplete }>()
+const emit = defineEmits<{ edit: [] }>()
 
 interface Row {
   id: string
@@ -121,7 +122,16 @@ const allOutOfScope = computed(() => {
     <template #header>
       <div class="flex items-center justify-between gap-2">
         <h2 class="font-semibold">{{ card.label }}</h2>
-        <span v-if="counts" class="text-sm text-muted" data-testid="counts">{{ counts }}</span>
+        <div class="flex items-center gap-3">
+          <span v-if="counts" class="text-sm text-muted" data-testid="counts">{{ counts }}</span>
+          <UButton
+            label="変更"
+            size="sm"
+            variant="outline"
+            :data-testid="`edit-${card.id}`"
+            @click="emit('edit')"
+          />
+        </div>
       </div>
     </template>
     <p v-if="allOutOfScope" class="mb-2 text-sm text-muted" data-testid="scope-note">

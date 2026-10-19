@@ -1,4 +1,5 @@
 // 編集中の楽曲の状態（U4 の決定 J1: Pinia は使わず、モジュールに1つだけ持つ）。
+// 一時保持（判断ポイント30）は、編集中のデータに値を残したまま状態だけを変える形で持つ（U4b の決定 K8）。保存時の正規化で落ちる。
 // 自動保存（変更から 500ms 後。J4）、復元（判断ポイント43）、初期状態への置き換え（判断ポイント52）、依頼文（J6）を持つ
 import { computed, effectScope, ref, shallowRef, type Ref } from 'vue'
 import { watchDebounced } from '@vueuse/core'
@@ -11,7 +12,7 @@ import { GenerationError } from '@/domain/request/errors'
 import { generateRequestText } from '@/domain/request/generate'
 import type { AutosaveLoad } from '@/domain/storage/autosave'
 import { normalizeForSave } from '@/domain/storage/normalize'
-import type { AxisValue, SongData, SongRequest } from '@/domain/types/song'
+import type { SongData, SongRequest } from '@/domain/types/song'
 
 /** 自動保存の遅延（J4） */
 export const AUTOSAVE_DELAY_MS = 500
@@ -30,13 +31,11 @@ export interface SongEditor {
   savedSong: Readonly<Ref<SongData>>
   incomplete: Readonly<Ref<Incomplete>>
   generated: Readonly<Ref<GeneratedText>>
-  /** 画面上の一時保持（判断ポイント30。①のときの最後の値。保存しない） */
-  held: Ref<Map<string, AxisValue>>
   /** 起動時の自動保存の読み込み結果（通知に使う） */
   restored: Readonly<Ref<AutosaveLoad | null>>
   /** 起動時に1回呼ぶ。自動保存を読み込み、以後の変更を自動保存する */
   start(): void
-  /** 編集中の内容を置き換える（新規・プロファイルの読み込み）。一時保持も消し、すぐに自動保存する */
+  /** 編集中の内容を置き換える（新規・プロファイルの読み込み）。一時保持（編集中のデータに残った値）も消え、すぐに自動保存する */
   replaceSong(data: SongData): void
   /** 初期状態に置き換える（判断ポイント52） */
   resetToInitial(): void
@@ -46,7 +45,6 @@ export interface SongEditor {
 
 export function createSongEditor(): SongEditor {
   const song = ref<SongData>(createInitialSong(spec))
-  const held = ref(new Map<string, AxisValue>())
   const restored = shallowRef<AutosaveLoad | null>(null)
   let started = false
   const scope = effectScope(true)
@@ -66,7 +64,6 @@ export function createSongEditor(): SongEditor {
 
   function replaceSong(data: SongData) {
     song.value = cloneJson(data)
-    held.value = new Map()
     saveAutosave(song.value)
   }
 
@@ -76,7 +73,6 @@ export function createSongEditor(): SongEditor {
     savedSong,
     incomplete,
     generated,
-    held,
     restored,
     start() {
       if (started) return

@@ -82,12 +82,12 @@ describe('自動保存（J4）', () => {
 })
 
 describe('置き換え（判断ポイント52）', () => {
-  it('置き換えると、一時保持を消し、すぐに自動保存する（複製を持つ）', () => {
+  it('置き換えると、一時保持（①以外に残った値）も消え、すぐに自動保存する（複製を持つ）', () => {
     editor.start()
-    editor.held.value.set('purpose', { state: 'specified', value: 'x' })
+    editor.song.value.requests[0]!.axes.purpose = { state: 'delegated', value: 'x' }
     const data = structuredClone(factory)
     editor.replaceSong(data)
-    expect(editor.held.value.size).toBe(0)
+    expect(editor.song.value.requests[0]!.axes.purpose).toEqual(factory.requests[0]!.axes.purpose)
     expect(stored()).toEqual(factory)
     data.requests[0]!.toolVersion = 'changed'
     expect(editor.request.value.toolVersion).toBe('v6')
