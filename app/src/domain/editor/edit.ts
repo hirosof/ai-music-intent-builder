@@ -50,9 +50,17 @@ export interface SelectOption {
 
 /**
  * 単一選択の選択肢。語は既定で表示の語だけ。ただし、今の値が非表示の語なら、それも出す（presets.md §11-3 の 4）。
- * 語ごとの表示の切り替え（UI 設定）は U4e で反映する
+ * 語ごとの表示の切り替え（UI 設定）は isVisible で反映する（U4e の決定 N4）
  */
-export function selectOptions(spec: Spec, field: FieldDef, current?: string): SelectOption[] {
+export function selectOptions(
+  spec: Spec,
+  field: FieldDef,
+  current?: string,
+  /** 語の表示の有無（UI 設定を反映したもの。省略は語彙の既定値） */
+  isVisible: (id: string) => boolean = (id) =>
+    spec.vocabularyById.get(field.vocabulary ?? '')?.items.find((i) => i.id === id)
+      ?.defaultVisible !== false,
+): SelectOption[] {
   const out: SelectOption[] = []
   if (field.states.delegated)
     out.push({ value: SELECT_DELEGATED, label: stateLabel(spec, 'delegated'), pseudo: true })
@@ -68,7 +76,7 @@ export function selectOptions(spec: Spec, field: FieldDef, current?: string): Se
   const ids = field.options
     ? field.options.map((o) => o.id)
     : (spec.vocabularyById.get(field.vocabulary!)?.items ?? [])
-        .filter((i) => i.defaultVisible !== false)
+        .filter((i) => isVisible(i.id))
         .map((i) => i.id)
   for (const id of ids) out.push({ value: id, label: termLabel(spec, field, id), pseudo: false })
   if (current && !current.startsWith('__') && !ids.includes(current))

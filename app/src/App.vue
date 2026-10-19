@@ -1,8 +1,9 @@
 <script setup lang="ts">
-// 画面の枠（U4 の決定 J3）。サイドメニュー（辞典設定・カラーモードは U4e）と、主画面。
+// 画面の枠（U4 の決定 J3）。サイドメニュー（主画面・辞典設定、カラーモード）と、画面。
 // 起動時に自動保存を読み込み、読めなかったとき・警告があるときは知らせる（判断ポイント43、song-file.md 補完・仮定7）
 import { onMounted } from 'vue'
 import { useToast } from '@nuxt/ui/composables'
+import { ja } from '@nuxt/ui/locale'
 import { useSongEditor } from '@/composables/useSongEditor'
 
 const editor = useSongEditor()
@@ -26,17 +27,25 @@ onMounted(() => {
   }
 })
 
-const navItems = [{ label: '依頼文の組み立て', to: '/' }]
+const navItems = [
+  { label: '依頼文の組み立て', to: '/' },
+  { label: '辞典設定', to: '/dictionary' },
+]
 </script>
 
 <template>
-  <UApp>
+  <!-- Nuxt UI の部品の文言（閉じる・カラーモードの選択肢など）を日本語にする -->
+  <UApp :locale="ja">
     <UDashboardGroup>
       <UDashboardSidebar collapsible :ui="{ footer: 'border-t border-default' }">
         <template #header>
           <span class="truncate font-semibold">AI Music Intent Builder</span>
         </template>
-        <UNavigationMenu :items="navItems" orientation="vertical" />
+        <UNavigationMenu :items="navItems" orientation="vertical" data-testid="side-nav" />
+        <template #footer>
+          <!-- カラーモード（判断ポイント32）。保存キーは VueUse の既定のまま（判断ポイント47 の例外。U4e の決定 N1） -->
+          <UColorModeSelect class="w-full" data-testid="color-mode" />
+        </template>
       </UDashboardSidebar>
       <RouterView />
     </UDashboardGroup>

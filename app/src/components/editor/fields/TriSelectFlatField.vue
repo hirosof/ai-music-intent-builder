@@ -3,6 +3,7 @@
 // 状態の切り替え（A1）と、語ごとの「使用する／使用しない／—」、自由記述（判断ポイント49: 「使用する」側の追記）
 import { computed } from 'vue'
 import { spec } from '@/data/spec'
+import { useUiSettings } from '@/composables/useUiSettings'
 import { currentState, setChoice, setFreeText, setState, stateOptions } from '@/domain/editor/edit'
 import { termLabel } from '@/domain/editor/display'
 import type { FieldDef } from '@/domain/types/fields'
@@ -11,6 +12,7 @@ import StateToggle from './StateToggle.vue'
 
 const props = defineProps<{ field: FieldDef; request: SongRequest }>()
 
+const { isVisible } = useUiSettings()
 const state = computed(() => currentState(props.request, props.field))
 const specified = computed(() => state.value === 'specified')
 const a = computed(() => props.request.axes[props.field.id])
@@ -19,11 +21,11 @@ const terms = computed(() => {
   const chosen = a.value?.choices ?? {}
   // 既定で表示の語と、非表示でも指定中の語（presets.md §11-3 の 4）
   return (vocab?.items ?? [])
-    .filter((i) => i.defaultVisible !== false || chosen[i.id])
+    .filter((i) => isVisible(props.field.vocabulary!, i.id) || chosen[i.id])
     .map((i) => ({
       id: i.id,
       label: termLabel(spec, props.field, i.id),
-      hidden: i.defaultVisible === false,
+      hidden: !isVisible(props.field.vocabulary!, i.id),
     }))
 })
 const CHOICES: { value: Choice | null; label: string }[] = [

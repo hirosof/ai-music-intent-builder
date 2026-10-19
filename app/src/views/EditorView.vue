@@ -124,6 +124,7 @@ function showRequest() {
           :card="card"
           :request="editor.savedSong.value.requests[0]!"
           :incomplete="editor.incomplete.value"
+          :warnings="editor.warnings.value"
           @edit="editing = card"
         />
         <UButton

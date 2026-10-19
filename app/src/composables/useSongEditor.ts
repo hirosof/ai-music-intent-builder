@@ -8,6 +8,7 @@ import { cloneJson } from '@/domain/clone'
 import { loadAutosaveFromStorage, saveAutosave } from '@/data/storage'
 import { createInitialSong } from '@/domain/editor/initial'
 import { findIncomplete, isIncomplete, type Incomplete } from '@/domain/editor/incomplete'
+import { findWarnings, type FieldWarning } from '@/domain/editor/warnings'
 import { GenerationError } from '@/domain/request/errors'
 import { generateRequestText } from '@/domain/request/generate'
 import type { AutosaveLoad } from '@/domain/storage/autosave'
@@ -30,6 +31,8 @@ export interface SongEditor {
   /** 保存する形（判断ポイント45） */
   savedSong: Readonly<Ref<SongData>>
   incomplete: Readonly<Ref<Incomplete>>
+  /** 矛盾の警告（判断ポイント51。生成は止めない） */
+  warnings: Readonly<Ref<FieldWarning[]>>
   generated: Readonly<Ref<GeneratedText>>
   /**
    * 編集中の内容に対応するユーザープロファイルの名前（読み込んだ、または最後に保存した名前。U4d の決定 M2）。
@@ -58,6 +61,7 @@ export function createSongEditor(): SongEditor {
   const request = computed(() => song.value.requests[0]!)
   const savedSong = computed(() => normalizeForSave(song.value))
   const incomplete = computed(() => findIncomplete(spec, savedSong.value.requests[0]!))
+  const warnings = computed(() => findWarnings(spec, savedSong.value.requests[0]!))
   const generated = computed<GeneratedText>(() => {
     if (isIncomplete(incomplete.value)) return { ok: false, reason: 'incomplete' }
     try {
@@ -79,6 +83,7 @@ export function createSongEditor(): SongEditor {
     request,
     savedSong,
     incomplete,
+    warnings,
     generated,
     restored,
     currentProfileName,

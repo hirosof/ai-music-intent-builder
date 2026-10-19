@@ -3,15 +3,19 @@
 // 自由記述を持つ項目は、下に入力欄を置く。①指定のときだけ入力できる（A1。自由記述だけで指定するときは「（一覧から選ばない）」）
 import { computed } from 'vue'
 import { spec } from '@/data/spec'
+import { useUiSettings } from '@/composables/useUiSettings'
 import { selectOptions, selectValue, setFreeText, setSelect } from '@/domain/editor/edit'
 import type { FieldDef } from '@/domain/types/fields'
 import type { SongRequest } from '@/domain/types/song'
 
 const props = defineProps<{ field: FieldDef; request: SongRequest }>()
 
+const { isVisible } = useUiSettings()
 const value = computed(() => selectValue(props.request, props.field))
 const items = computed(() =>
-  selectOptions(spec, props.field, value.value).map((o) => ({
+  selectOptions(spec, props.field, value.value, (id) =>
+    props.field.vocabulary ? isVisible(props.field.vocabulary, id) : true,
+  ).map((o) => ({
     label: o.label,
     value: o.value,
     class: o.highlight ? 'font-semibold text-primary' : o.pseudo ? 'text-muted' : undefined,

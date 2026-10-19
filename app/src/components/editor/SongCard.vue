@@ -20,9 +20,16 @@ import {
   VOCAL_MODE_LABELS,
 } from '@/domain/editor/display'
 import { UNFINISHED_MESSAGES, type Incomplete } from '@/domain/editor/incomplete'
+import type { FieldWarning } from '@/domain/editor/warnings'
 import type { SongRequest } from '@/domain/types/song'
 
-const props = defineProps<{ card: CardDef; request: SongRequest; incomplete: Incomplete }>()
+const props = defineProps<{
+  card: CardDef
+  request: SongRequest
+  incomplete: Incomplete
+  /** 矛盾の警告（判断ポイント51）。行の値の下に出す */
+  warnings: FieldWarning[]
+}>()
 const emit = defineEmits<{ edit: [] }>()
 
 interface Row {
@@ -32,6 +39,7 @@ interface Row {
   muted: boolean
   outOfScope: boolean
   problem?: string
+  warnings?: FieldWarning[]
 }
 interface Section {
   label?: string
@@ -96,6 +104,7 @@ const sections = computed<Section[]>(() => {
         problem: props.incomplete.emptyFields.includes(id)
           ? UNFINISHED_MESSAGES.emptyField
           : undefined,
+        warnings: props.warnings.filter((w) => w.fieldId === id),
       }
     }),
   }))
@@ -165,6 +174,14 @@ const allOutOfScope = computed(() => {
               class="block text-xs text-error"
               :data-testid="`problem-${row.id}`"
               >{{ row.problem }}</span
+            >
+            <span
+              v-for="(w, i) in row.warnings ?? []"
+              :key="i"
+              :class="['block text-xs', w.severity === 'warning' ? 'text-warning' : 'text-muted']"
+              :data-testid="`warning-${row.id}`"
+              :data-severity="w.severity"
+              >{{ w.message }}</span
             >
           </dd>
         </template>
