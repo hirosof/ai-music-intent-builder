@@ -9,6 +9,7 @@ import EditorView from '@/views/EditorView.vue'
 import { resetSongEditor, useSongEditor } from '@/composables/useSongEditor'
 import { STORAGE_KEYS } from '@/data/storage'
 import { spec } from '@/data/spec'
+import { factoryProfiles } from '@/data/factory'
 import { createInitialSong } from '@/domain/editor/initial'
 import type { SongData, SongRequest } from '@/domain/types/song'
 
@@ -281,5 +282,40 @@ describe('出力設定', () => {
     await flushPromises()
     expect(req().output.granularity).toEqual([])
     expect($('request-error')?.textContent).toContain('出力する粒度が空')
+  })
+})
+
+describe('利用者の目視で見つかった不具合（U4 の手直し）', () => {
+  it('ファクトリー（出力の項目が省略されている）を読み込んだ直後でも、曲名案と推奨値を操作できる', async () => {
+    await mountApp(factoryProfiles[0]!.data)
+    expect(req().output).not.toHaveProperty('titleSuggestions')
+    await click('edit-output')
+    $('input-titleSuggestions')!.click()
+    await flushPromises()
+    expect(req().output.titleSuggestions).toBe(true)
+    expect($('input-titleSuggestions')!.getAttribute('aria-checked')).toBe('true')
+    expect($<HTMLInputElement>('input-titleCount')!.disabled).toBe(false)
+    $('recommend-weirdness')!.click()
+    await flushPromises()
+    expect(req().output.recommendParams).toEqual({ weirdness: true })
+    expect($('recommend-weirdness')!.getAttribute('aria-checked')).toBe('true')
+  })
+
+  it('チェックの文字をクリックすると、その項目のチェックが変わる（同じ id にならない）', async () => {
+    await mountApp()
+    await click('edit-output')
+    for (const group of ['input-recommendParams', 'input-granularity']) {
+      const ids = [...$(group)!.querySelectorAll('button[role="checkbox"]')].map((b) => b.id)
+      expect(new Set(ids).size).toBe(ids.length)
+      for (const label of $(group)!.querySelectorAll('label')) {
+        expect(ids).toContain(label.getAttribute('for'))
+      }
+    }
+    const label = [...$('input-recommendParams')!.querySelectorAll('label')].find((l) =>
+      l.textContent?.includes('奇抜さ'),
+    )!
+    label.click()
+    await flushPromises()
+    expect(req().output.recommendParams).toEqual({ weirdness: true })
   })
 })

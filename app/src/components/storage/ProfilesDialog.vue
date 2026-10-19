@@ -131,20 +131,21 @@ const confirmText = computed(() => {
           :description="prepared.errors.join('\n')"
           data-testid="profiles-overwrite-errors"
         />
-        <div class="flex justify-end gap-2">
-          <UButton
-            label="いいえ"
-            color="neutral"
-            variant="outline"
-            data-testid="profiles-confirm-no"
-            @click="pending = null"
-          />
+        <!-- 実行するボタンを左、やめるボタンを右（利用者の判断 (a)） -->
+        <div class="flex justify-end gap-2" data-testid="dialog-buttons">
           <UButton
             label="はい"
             :color="pending.kind === 'delete' ? 'error' : 'primary'"
             :disabled="pending.kind === 'overwrite' && prepared.errors.length > 0"
             data-testid="profiles-confirm-yes"
             @click="confirm"
+          />
+          <UButton
+            label="いいえ"
+            color="neutral"
+            variant="outline"
+            data-testid="profiles-confirm-no"
+            @click="pending = null"
           />
         </div>
       </div>

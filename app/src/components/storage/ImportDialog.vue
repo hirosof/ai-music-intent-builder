@@ -179,14 +179,14 @@ function replace() {
       </div>
     </template>
     <template #footer>
-      <div class="flex w-full flex-wrap justify-end gap-2">
+      <!-- 実行するボタンを左、やめるボタンを右（利用者の判断 (a)） -->
+      <div class="flex w-full flex-wrap justify-end gap-2" data-testid="dialog-buttons">
         <template v-if="step === 'conflict'">
           <UButton
-            label="取り込まない"
-            color="neutral"
-            variant="outline"
-            data-testid="import-skip"
-            @click="decide('skip')"
+            label="上書き"
+            color="warning"
+            data-testid="import-overwrite"
+            @click="decide('overwrite')"
           />
           <UButton
             label="別名で追加"
@@ -196,22 +196,38 @@ function replace() {
             @click="decide('rename')"
           />
           <UButton
-            label="上書き"
-            color="warning"
-            data-testid="import-overwrite"
-            @click="decide('overwrite')"
+            label="取り込まない"
+            color="neutral"
+            variant="outline"
+            data-testid="import-skip"
+            @click="decide('skip')"
           />
         </template>
         <template v-else-if="step === 'confirmReplace'">
-          <UButton label="戻る" color="neutral" variant="outline" @click="step = 'choose'" />
           <UButton
             label="置き換える"
             color="error"
             data-testid="import-replace-ok"
             @click="replace"
           />
+          <UButton
+            label="戻る"
+            color="neutral"
+            variant="outline"
+            data-testid="import-back"
+            @click="step = 'choose'"
+          />
         </template>
         <template v-else>
+          <template v-if="file && !rejectedStore">
+            <UButton label="追加" data-testid="import-add" @click="add" />
+            <UButton
+              label="置換"
+              color="neutral"
+              data-testid="import-replace"
+              @click="step = 'confirmReplace'"
+            />
+          </template>
           <UButton
             label="閉じる"
             color="neutral"
@@ -219,15 +235,6 @@ function replace() {
             data-testid="import-cancel"
             @click="open = false"
           />
-          <template v-if="file && !rejectedStore">
-            <UButton
-              label="置換"
-              color="neutral"
-              data-testid="import-replace"
-              @click="step = 'confirmReplace'"
-            />
-            <UButton label="追加" data-testid="import-add" @click="add" />
-          </template>
         </template>
       </div>
     </template>

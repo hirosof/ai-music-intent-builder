@@ -9,10 +9,10 @@ import type { SongRequest } from '@/domain/types/song'
 
 const props = defineProps<{ request: SongRequest; scopeRequest: SongRequest }>()
 
-const out = (id: string) => {
-  const has = Object.prototype.hasOwnProperty.call(props.request.output, id)
-  return has ? props.request.output[id] : spec.outputById.get(id)?.default
-}
+// 省略された項目は既定値。`in` で調べる: Vue は hasOwnProperty による確認を追わないため、
+// 省略されていた項目（ファクトリーの曲名案・推奨値など）をあとで足しても、画面が更新されなかった（利用者の目視で判明）
+const out = (id: string) =>
+  id in props.request.output ? props.request.output[id] : spec.outputById.get(id)?.default
 function set(id: string, v: unknown) {
   // eslint-disable-next-line vue/no-mutating-props -- 編集中の依頼（リアクティブ）を直接書き換える
   props.request.output[id] = v
@@ -106,6 +106,7 @@ const scopeNote = '（依頼文の範囲により、依頼文に出ません）'
           :key="o.value"
           :label="o.label"
           :model-value="granularity.includes(o.value)"
+          :id="`granularity-${o.value}`"
           :data-testid="`granularity-${o.value}`"
           @update:model-value="(v: unknown) => toggleGranularity(o.value, v === true)"
         />
@@ -172,6 +173,7 @@ const scopeNote = '（依頼文の範囲により、依頼文に出ません）'
           :key="p.id"
           :label="p.label"
           :model-value="recommendOn(p.id)"
+          :id="`recommend-${p.id}`"
           :data-testid="`recommend-${p.id}`"
           @update:model-value="(v: unknown) => setRecommend(p.id, v === true)"
         />

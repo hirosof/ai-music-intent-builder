@@ -127,20 +127,21 @@ function submit() {
       </div>
     </template>
     <template #footer>
-      <div class="flex w-full justify-end gap-2">
-        <UButton
-          label="キャンセル"
-          color="neutral"
-          variant="outline"
-          data-testid="save-cancel"
-          @click="confirmOverwrite ? (confirmOverwrite = false) : (open = false)"
-        />
+      <!-- 実行するボタンを左、やめるボタンを右（利用者の判断 (a)） -->
+      <div class="flex w-full justify-end gap-2" data-testid="dialog-buttons">
         <UButton
           :label="confirmOverwrite ? '上書きする' : mode === 'save' ? '保存' : '書き出す'"
           :color="confirmOverwrite ? 'warning' : 'primary'"
           :disabled="!canSubmit"
           data-testid="save-submit"
           @click="submit"
+        />
+        <UButton
+          label="キャンセル"
+          color="neutral"
+          variant="outline"
+          data-testid="save-cancel"
+          @click="confirmOverwrite ? (confirmOverwrite = false) : (open = false)"
         />
       </div>
     </template>

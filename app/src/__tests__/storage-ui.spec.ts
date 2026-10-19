@@ -373,3 +373,39 @@ describe('ファイルの取り込み（M5）', () => {
     expect(stored()!.profiles.map((p) => p.name)).toEqual(['A'])
   })
 })
+
+describe('ボタンの並び（利用者の判断 (a): 実行するボタンを左、やめるボタンを右）', () => {
+  const order = () =>
+    [...document.querySelectorAll('[data-testid="dialog-buttons"] button')].map((b) =>
+      b.getAttribute('data-testid'),
+    )
+
+  it('新規・保存・プロファイルの確認・取り込み', async () => {
+    putStore(saveProfile(emptyStore(), 'A', f1.data, NOW))
+    const w = await mountApp()
+    await click('new-song')
+    expect(order()).toEqual(['confirm-ok', 'confirm-cancel'])
+    await click('confirm-cancel')
+
+    await click('save-song')
+    expect(order()).toEqual(['save-submit', 'save-cancel'])
+    await click('save-cancel')
+
+    await click('open-profiles')
+    await click('profile-load', $('profile-A'))
+    expect(order()).toEqual(['profiles-confirm-yes', 'profiles-confirm-no'])
+    await click('profiles-confirm-no')
+    document
+      .querySelector<HTMLElement>('[data-testid="profiles-dialog"] button[aria-label]')
+      ?.click()
+    await flushPromises()
+
+    await receive(w, 'a.json', toJsonText(buildExportFile([{ ...f2, name: 'A' }], NOW)))
+    expect(order()).toEqual(['import-add', 'import-replace', 'import-cancel'])
+    await click('import-replace')
+    expect(order()).toEqual(['import-replace-ok', 'import-back'])
+    await click('import-back')
+    await click('import-add')
+    expect(order()).toEqual(['import-overwrite', 'import-rename-ok', 'import-skip'])
+  })
+})

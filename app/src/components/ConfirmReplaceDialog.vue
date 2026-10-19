@@ -18,7 +18,9 @@ function confirm() {
     description="編集中の内容は破棄されます。残したいときは、先に保存または書き出してください。"
   >
     <template #footer>
-      <div class="flex w-full justify-end gap-2">
+      <!-- 実行するボタンを左、やめるボタンを右（全ダイアログでそろえる。利用者の判断 (a)） -->
+      <div class="flex w-full justify-end gap-2" data-testid="dialog-buttons">
+        <UButton :label="confirmLabel" color="error" data-testid="confirm-ok" @click="confirm" />
         <UButton
           label="キャンセル"
           color="neutral"
@@ -26,7 +28,6 @@ function confirm() {
           data-testid="confirm-cancel"
           @click="open = false"
         />
-        <UButton :label="confirmLabel" color="error" data-testid="confirm-ok" @click="confirm" />
       </div>
     </template>
   </UModal>
