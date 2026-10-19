@@ -210,3 +210,94 @@ export function parseCount(input: string): Parsed<number> {
     return { ok: false, message: `${COUNT_RANGE.min}〜${COUNT_RANGE.max}の範囲で入力してください` }
   return { ok: true, value: n }
 }
+
+// ---------------------------------------------------------------------------
+// 楽器の統合テーブル（判断ポイント31・D1、U4c の決定 L2）。3項目は crossFieldRules の linked-exclusion が持つ
+// ---------------------------------------------------------------------------
+
+/** 除外が連動する楽器の3項目（主旋律・伴奏・リズム） */
+export function linkedInstrumentFields(spec: Spec): string[] {
+  const r = spec.fieldsDef.crossFieldRules.find((x) => x.type === 'linked-exclusion')
+  return r && r.type === 'linked-exclusion' ? r.fields : []
+}
+
+const specifiedRoles = (spec: Spec, req: SongRequest) =>
+  linkedInstrumentFields(spec).filter((id) => req.axes[id]?.state === 'specified')
+
+/** 語が除外されているか（①の役割のどれかで「使用しない」） */
+export function isInstrumentExcluded(spec: Spec, req: SongRequest, termId: string): boolean {
+  return specifiedRoles(spec, req).some((id) => req.axes[id]?.choices?.[termId] === 'exclude')
+}
+
+/** 役割で使うか（その役割が①で「使用する」） */
+export function isRoleUsed(req: SongRequest, roleId: string, termId: string): boolean {
+  const a = req.axes[roleId]
+  return a?.state === 'specified' && a.choices?.[termId] === 'use'
+}
+
+/** 役割のチェック。その役割が①のときだけ（呼び出し側で押せなくする） */
+export function setRoleUse(req: SongRequest, role: FieldDef, termId: string, on: boolean): void {
+  setChoice(req, role, termId, on ? 'use' : null)
+}
+
+/** 除外。①の役割すべてに「使用しない」を書く（②の役割には書かない）。外すと、すべての役割から「使用しない」を消す */
+export function setInstrumentExcluded(
+  spec: Spec,
+  req: SongRequest,
+  termId: string,
+  on: boolean,
+): void {
+  if (on) {
+    for (const id of specifiedRoles(spec, req))
+      setChoice(req, spec.fieldById.get(id)!, termId, 'exclude')
+    return
+  }
+  for (const id of linkedInstrumentFields(spec)) {
+    const a = req.axes[id]
+    if (a?.choices?.[termId] === 'exclude') {
+      const choices = { ...a.choices }
+      delete choices[termId]
+      a.choices = choices
+    }
+  }
+}
+
+/** 役割の状態。①にしたら、ほかの①の役割の除外を写す（連動。R の「連動で補う」を出さない） */
+export function setRoleState(spec: Spec, req: SongRequest, role: FieldDef, state: StateId): void {
+  if (state === 'specified') {
+    const excluded = new Set<string>()
+    for (const id of specifiedRoles(spec, req)) {
+      if (id === role.id) continue
+      for (const [t, c] of Object.entries(req.axes[id]?.choices ?? {}))
+        if (c === 'exclude') excluded.add(t)
+    }
+    setState(req, role, 'specified')
+    if (excluded.size) {
+      const a = axisOf(req, role)
+      a.choices = {
+        ...a.choices,
+        ...Object.fromEntries([...excluded].map((t) => [t, 'exclude' as Choice])),
+      }
+    }
+    return
+  }
+  setState(req, role, state)
+}
+
+// ---------------------------------------------------------------------------
+// 自由記述への転記（判断ポイント49。軸が違う語・保留の語）。末尾に「, 」区切りで追記し、同じ語があれば足さない
+// ---------------------------------------------------------------------------
+
+export function appendFreeText(current: string, text: string): string {
+  const parts = current
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s !== '')
+  if (parts.includes(text)) return current
+  return current.trim() === '' ? text : `${current.replace(/[\s,]+$/, '')}, ${text}`
+}
+
+/** 転記して①指定にする */
+export function transferToFreeText(req: SongRequest, field: FieldDef, text: string): void {
+  setFreeText(req, field, appendFreeText(req.axes[field.id]?.freeText ?? '', text))
+}

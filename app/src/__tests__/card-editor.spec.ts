@@ -78,13 +78,13 @@ describe('ポップアップを開く', () => {
     expect($('editor-card-structure')).toBeNull()
   })
 
-  it('階層のある語彙の項目は、次の段階（U4c）の案内を出す', async () => {
+  it('階層のある語彙の項目は階層テーブル、ほかは U4b の部品', async () => {
     await mountApp()
     await click('edit-basic')
-    expect($('editor-mainGenre')?.querySelector('[data-testid="pending-u4c"]')).not.toBeNull()
-    expect($('editor-subGenres')?.querySelector('[data-testid="pending-u4c"]')).not.toBeNull()
-    expect($('editor-regionStyles')?.querySelector('[data-testid="pending-u4c"]')).toBeNull()
-    expect($('editor-purpose')?.querySelector('[data-testid="pending-u4c"]')).toBeNull()
+    expect($('editor-mainGenre')?.querySelector('[data-testid="tree-mainGenre"]')).not.toBeNull()
+    expect($('editor-subGenres')?.querySelector('[data-testid="tree-subGenres"]')).not.toBeNull()
+    expect($('editor-regionStyles')?.querySelector('[data-testid^="tree-"]')).toBeNull()
+    expect($('select-purpose')).not.toBeNull()
   })
 })
 
