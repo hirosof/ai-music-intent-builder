@@ -13,3 +13,10 @@ export function formatTimestamp(date: Date, offsetMinutes = -date.getTimezoneOff
     `${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`
   )
 }
+
+/** 画面に出す日時（端末のタイムゾーンで「2026/10/19 10:23」。U4d の補完3） */
+export function formatDisplayTimestamp(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}

@@ -79,26 +79,26 @@ export interface ImportSummary {
 
 /**
  * 取り込みの「追加」（§4-3）。ファイルのプロファイルを、ファイルの順にストアへ加える。
- * 名前が衝突するたびに resolve を呼ぶ（「残りすべてに適用」は、呼び出し側が resolve の中で覚える）。
+ * 名前が衝突するたびに resolve を呼び、答えを待つ（画面の衝突ダイアログ。「残りすべてに適用」は、呼び出し側が resolve の中で覚える）。
  * 取り込むプロファイルは、ファイルの値のまま（updatedAt も。U3 の決定 I7）
  */
-export function importAdd(
+export async function importAdd(
   store: ProfileStore,
   file: ExportFile,
-  resolve: (conflict: NameConflict) => ConflictResolution,
-): ImportSummary {
+  resolve: (conflict: NameConflict) => ConflictResolution | Promise<ConflictResolution>,
+): Promise<ImportSummary> {
   const profiles = [...store.profiles]
   const summary = { added: [] as string[], overwritten: [] as string[], skipped: [] as string[] }
-  file.profiles.forEach((incoming, i) => {
+  for (const [i, incoming] of file.profiles.entries()) {
     const existingIndex = profiles.findIndex((p) => p.name === incoming.name)
     if (existingIndex < 0) {
       profiles.push(clone(incoming))
       summary.added.push(incoming.name)
-      return
+      continue
     }
     const later = file.profiles.slice(i + 1).map((p) => p.name)
     const taken = new Set([...profiles.map((p) => p.name), ...later])
-    const r = resolve({
+    const r = await resolve({
       incoming,
       existing: profiles[existingIndex]!,
       suggestedName: suggestName(incoming.name, taken),
@@ -115,7 +115,7 @@ export function importAdd(
       profiles.push({ ...clone(incoming), name: r.name })
       summary.added.push(r.name)
     }
-  })
+  }
   return { store: { ...store, profiles }, ...summary }
 }
 

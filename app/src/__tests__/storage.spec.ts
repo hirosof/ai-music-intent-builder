@@ -196,7 +196,7 @@ describe('プロファイルのストア（判断ポイント44）', () => {
     expect(openProfileStore()).toEqual({ status: 'ok', store: emptyStore(), warnings: [] })
   })
 
-  it('拒否したストアには、保存・削除・取り込み（追加・置換）のどれでも書き込まない（中身を保つ）', () => {
+  it('拒否したストアには、保存・削除・取り込み（追加・置換）のどれでも書き込まない（中身を保つ）', async () => {
     const base = saveProfile(emptyStore(), 'a', instSong, NOW)
     const original = JSON.stringify({ ...base, schemaVersion: 2 })
     localStorage.setItem(STORAGE_KEYS.profiles, original)
@@ -207,7 +207,7 @@ describe('プロファイルのストア（判断ポイント44）', () => {
     const attempts = {
       保存: saveProfile(base, 'c', instSong, NOW),
       削除: deleteProfile(base, 'a'),
-      取り込みの追加: importAdd(base, file, () => ({ action: 'overwrite' })).store,
+      取り込みの追加: (await importAdd(base, file, () => ({ action: 'overwrite' }))).store,
       取り込みの置換: importReplace(file),
     }
     for (const next of Object.values(attempts)) {

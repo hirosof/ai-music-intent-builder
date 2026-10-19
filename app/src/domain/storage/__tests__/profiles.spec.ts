@@ -65,8 +65,8 @@ describe('候補名', () => {
 })
 
 describe('取り込みの「追加」', () => {
-  it('衝突がなければ、ファイルの順に末尾へ加え、resolve を呼ばない', () => {
-    const r = importAdd(storeOf(['x', f1]), fileOf(f2, f3), () => {
+  it('衝突がなければ、ファイルの順に末尾へ加え、resolve を呼ばない', async () => {
+    const r = await importAdd(storeOf(['x', f1]), fileOf(f2, f3), () => {
       throw new Error('呼ばれない')
     })
     expect(r.store.profiles.map((p) => p.name)).toEqual(['x', f2.name, f3.name])
@@ -75,7 +75,7 @@ describe('取り込みの「追加」', () => {
     expect(r.store.profiles[1]).toEqual(f2)
   })
 
-  it('上書き・別名・取り込まない、の3つの操作', () => {
+  it('上書き・別名・取り込まない、の3つの操作（答えを待つ）', async () => {
     const store = storeOf([f1.name, f3], [f2.name, f3], [f3.name, f1])
     const decisions: Record<string, ConflictResolution> = {
       [f1.name]: { action: 'overwrite' },
@@ -83,8 +83,9 @@ describe('取り込みの「追加」', () => {
       [f3.name]: { action: 'skip' },
     }
     const seen: NameConflict[] = []
-    const r = importAdd(store, fileOf(f1, f2, f3), (c) => {
+    const r = await importAdd(store, fileOf(f1, f2, f3), async (c) => {
       seen.push(c)
+      await Promise.resolve()
       return decisions[c.incoming.name]!
     })
     expect(seen.map((c) => c.incoming.name)).toEqual([f1.name, f2.name, f3.name])
@@ -98,24 +99,24 @@ describe('取り込みの「追加」', () => {
     expect(store.profiles[0]!.data).toEqual(f3.data)
   })
 
-  it('候補名は、ストアにも、まだ取り込んでいないファイルの名前にもない', () => {
+  it('候補名は、ストアにも、まだ取り込んでいないファイルの名前にもない', async () => {
     const incoming = [f1, { ...f2, name: `${f1.name}（2）` }]
     let suggested = ''
-    importAdd(storeOf([f1.name, f1]), fileOf(...incoming), (c) => {
+    await importAdd(storeOf([f1.name, f1]), fileOf(...incoming), (c) => {
       if (c.incoming.name === f1.name) suggested = c.suggestedName
       return { action: 'skip' }
     })
     expect(suggested).toBe(`${f1.name}（3）`)
   })
 
-  it('別名がストアの名前と重なる・空のときは失敗する', () => {
+  it('別名がストアの名前と重なる・空のときは失敗する', async () => {
     const store = storeOf([f1.name, f1], ['使用中', f2])
-    expect(() =>
+    await expect(
       importAdd(store, fileOf(f1), () => ({ action: 'rename', name: '使用中' })),
-    ).toThrow('別名がストアの名前と重複している')
-    expect(() => importAdd(store, fileOf(f1), () => ({ action: 'rename', name: '' }))).toThrow(
-      'プロファイルの名前が空',
-    )
+    ).rejects.toThrow('別名がストアの名前と重複している')
+    await expect(
+      importAdd(store, fileOf(f1), () => ({ action: 'rename', name: '' })),
+    ).rejects.toThrow('プロファイルの名前が空')
   })
 })
 
