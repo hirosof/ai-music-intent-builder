@@ -141,42 +141,51 @@ export function setText(req: SongRequest, field: FieldDef, text: string): void {
 }
 
 // ---------------------------------------------------------------------------
-// 長さ・BPM（K4・K5）。正しい値だけを書き込む（誤りは画面に出し、データには入れない）
+// 長さ（判断ポイント57）。よく使う長さのチップと、「分」「秒」の2つの数値入力。保存は秒の整数（データの形は変えない）
 // ---------------------------------------------------------------------------
 
-export type Parsed<T> = { ok: true; value: T } | { ok: false; message: string }
-
-/** 「180」または「3:00」。範囲内の整数（秒） */
-export function parseLength(input: string, range: { min: number; max: number }): Parsed<number> {
-  const s = input.trim()
-  let sec: number
-  const mss = /^(\d+):([0-5]\d)$/.exec(s)
-  if (mss) sec = Number(mss[1]) * 60 + Number(mss[2])
-  else if (/^\d+$/.test(s)) sec = Number(s)
-  else return { ok: false, message: '「180」（秒）または「3:00」の形で入力してください' }
-  if (sec < range.min || sec > range.max)
-    return { ok: false, message: `${range.min}〜${range.max}秒の範囲で入力してください` }
-  return { ok: true, value: sec }
-}
+/** よく使う長さ（秒）。1:00〜5:00 */
+export const LENGTH_CHIPS = [60, 120, 180, 240, 300] as const
 
 export const formatLength = (sec: number) =>
   `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`
 
-/** BPM の数値（正の数） */
-export function parseBpm(input: string): Parsed<number> {
-  const s = input.trim()
-  if (!/^\d+(\.\d+)?$/.test(s) || Number(s) <= 0)
-    return { ok: false, message: '正の数を入力してください' }
-  return { ok: true, value: Number(s) }
+export interface LengthRange {
+  min: number
+  max: number
 }
 
-export function parseBpmRange(min: string, max: string): Parsed<{ min: number; max: number }> {
-  const a = parseBpm(min)
-  const b = parseBpm(max)
-  if (!a.ok) return { ok: false, message: `下限: ${a.message}` }
-  if (!b.ok) return { ok: false, message: `上限: ${b.message}` }
-  if (a.value > b.value) return { ok: false, message: '下限は上限以下にしてください' }
-  return { ok: true, value: { min: a.value, max: b.value } }
+/** 秒を分・秒に分ける */
+export const lengthParts = (sec: number) => ({ minutes: Math.floor(sec / 60), seconds: sec % 60 })
+
+/** 分の範囲（0〜6。範囲の上限から） */
+export const minuteBounds = (range: LengthRange) => ({
+  min: Math.floor(range.min / 60),
+  max: Math.floor(range.max / 60),
+})
+
+/** その分での秒の範囲（0分のとき最小は10、6分のとき最大は0） */
+export function secondBounds(minutes: number, range: LengthRange) {
+  const base = minutes * 60
+  return { min: Math.max(0, range.min - base), max: Math.min(59, range.max - base) }
+}
+
+/** 分・秒を秒にして、範囲（0:10〜6:00）に収める */
+export function clampLength(minutes: number, seconds: number, range: LengthRange): number {
+  const total = Math.round(minutes) * 60 + Math.round(seconds)
+  return Math.min(range.max, Math.max(range.min, total))
+}
+
+// ---------------------------------------------------------------------------
+// BPM（判断ポイント56。数値は UInputNumber。範囲は最小 ≤ 最大）
+// ---------------------------------------------------------------------------
+
+export type Checked<T> = { ok: true; value: T } | { ok: false; message: string }
+
+/** BPM の範囲の検査（最小 ≤ 最大） */
+export function checkBpmRange(min: number, max: number): Checked<{ min: number; max: number }> {
+  if (min > max) return { ok: false, message: '下限は上限以下にしてください' }
+  return { ok: true, value: { min, max } }
 }
 
 /** 正しい値を①指定で書き込む（長さ・BPM・構成） */
@@ -204,20 +213,11 @@ export function removeSection(list: readonly string[], index: number): string[] 
 }
 
 // ---------------------------------------------------------------------------
-// 出力の数値（案の数・曲名案の数。K7）
+// 出力の数値（案の数・曲名案の数。K7。入力は UInputNumber。判断ポイント56）
 // ---------------------------------------------------------------------------
 
 /** 案の数・曲名案の数の範囲（fields.json は上限未定。後で直しやすい定数。K7） */
 export const COUNT_RANGE = { min: 1, max: 10 } as const
-
-export function parseCount(input: string): Parsed<number> {
-  const s = input.trim()
-  if (!/^\d+$/.test(s)) return { ok: false, message: '整数を入力してください' }
-  const n = Number(s)
-  if (n < COUNT_RANGE.min || n > COUNT_RANGE.max)
-    return { ok: false, message: `${COUNT_RANGE.min}〜${COUNT_RANGE.max}の範囲で入力してください` }
-  return { ok: true, value: n }
-}
 
 // ---------------------------------------------------------------------------
 // 楽器の統合テーブル（判断ポイント31・D1、U4c の決定 L2）。3項目は crossFieldRules の linked-exclusion が持つ

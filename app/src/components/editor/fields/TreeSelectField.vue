@@ -1,7 +1,10 @@
 <script setup lang="ts">
 // 階層のある単一選択（主ジャンル。U4c の決定 L1）: テーブルの上に「お任せ／（一覧から選ばない）」、各語の行に「選ぶ」。
-// 今の選択はテーブルの上に1行で示す。自由記述はテーブルの下（①指定のときだけ入力できる）
+// 今の選択はテーブルの上に1行で示す。自由記述はテーブルの下。
+// 畳み方（判断ポイント54）: ①指定のときだけ開く。表で値を選ぶことが指定なので、「一覧を開く」ボタンが入口になる。
+// 開いて選んだら①指定になり、開いたまま。開いても選ばずに畳んだら、状態は変わらない。自由記述は、書くと①指定になる
 import { computed } from 'vue'
+import { useFold } from '@/composables/useFold'
 import { spec } from '@/data/spec'
 import { termLabel } from '@/domain/editor/display'
 import {
@@ -20,6 +23,7 @@ const props = defineProps<{ field: FieldDef; request: SongRequest }>()
 
 const value = computed(() => selectValue(props.request, props.field))
 const specified = computed(() => props.request.axes[props.field.id]?.state === 'specified')
+const fold = useFold(() => specified.value)
 const keep = computed(() => new Set(value.value.startsWith('__') ? [] : [value.value]))
 const current = computed(() => {
   if (value.value === SELECT_DELEGATED) return 'お任せ'
@@ -49,35 +53,44 @@ const pseudo = [
       <span class="text-sm"
         >今の選択: <b :data-testid="`current-${field.id}`">{{ current }}</b></span
       >
+      <UButton
+        size="sm"
+        color="neutral"
+        variant="outline"
+        :label="fold.label()"
+        :data-testid="`fold-${field.id}`"
+        @click="fold.toggle()"
+      />
     </div>
-    <TreeTable
-      :vocabulary-id="field.vocabulary!"
-      :keep="keep"
-      :action-columns="[{ id: 'pick', header: '選ぶ' }]"
-      :testid="`tree-${field.id}`"
-      @transfer="(t) => transferToFreeText(request, field, t)"
-    >
-      <template #cell-pick="{ item }">
-        <UButton
-          size="xs"
-          :label="value === item.id ? '選択中' : '選ぶ'"
-          :color="value === item.id ? 'primary' : 'neutral'"
-          :variant="value === item.id ? 'solid' : 'outline'"
-          :data-testid="`pick-${field.id}-${item.id}`"
-          @click="setSelect(request, field, item.id)"
-        />
-      </template>
-    </TreeTable>
-    <UTextarea
-      v-if="field.freeText"
-      :model-value="request.axes[field.id]?.freeText ?? ''"
-      :disabled="!specified"
-      :rows="2"
-      autoresize
-      class="w-full"
-      placeholder="自由記述（一覧にないものや、補足）"
-      :data-testid="`free-${field.id}`"
-      @update:model-value="(v: string) => setFreeText(request, field, v)"
-    />
+    <template v-if="fold.open.value">
+      <TreeTable
+        :vocabulary-id="field.vocabulary!"
+        :keep="keep"
+        :action-columns="[{ id: 'pick', header: '選ぶ' }]"
+        :testid="`tree-${field.id}`"
+        @transfer="(t) => transferToFreeText(request, field, t)"
+      >
+        <template #cell-pick="{ item }">
+          <UButton
+            size="xs"
+            :label="value === item.id ? '選択中' : '選ぶ'"
+            :color="value === item.id ? 'primary' : 'neutral'"
+            :variant="value === item.id ? 'solid' : 'outline'"
+            :data-testid="`pick-${field.id}-${item.id}`"
+            @click="setSelect(request, field, item.id)"
+          />
+        </template>
+      </TreeTable>
+      <UTextarea
+        v-if="field.freeText"
+        :model-value="request.axes[field.id]?.freeText ?? ''"
+        :rows="2"
+        autoresize
+        class="w-full"
+        placeholder="自由記述（一覧にないものや、補足）"
+        :data-testid="`free-${field.id}`"
+        @update:model-value="(v: string) => setFreeText(request, field, v)"
+      />
+    </template>
   </div>
 </template>

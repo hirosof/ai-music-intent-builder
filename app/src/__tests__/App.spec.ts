@@ -158,3 +158,45 @@ describe('依頼文の下の注意書き（U5。§3-2・§3-3）', () => {
     expect(order()).toEqual([])
   })
 })
+
+describe('依頼文のカード（判断ポイント55）', () => {
+  it('表示のボタンはなく、依頼文は他と同じ形のカード（見出し行に「依頼文」と「コピー」）で、少し広く空ける', async () => {
+    await mountApp()
+    expect(document.querySelector('[data-testid="show-request"]')).toBeNull()
+    expect(document.body.textContent).not.toContain('以上の設定を元に')
+    const card = document.querySelector('[data-testid="request-area"]')!
+    const header = card.querySelector('[data-slot="header"]')!
+    expect(header.textContent).toContain('依頼文')
+    expect(header.querySelector('[data-testid="copy-request"]')).not.toBeNull()
+    expect(card.querySelector('[data-testid="request-text"]')).not.toBeNull()
+    expect(document.querySelector('[data-testid="request-gap"]')!.className).toContain('pt-4')
+  })
+
+  it('未完成のときは、カードの中に項目ごとの理由を出し、コピーを無効にする', async () => {
+    const s = structuredClone(vocalSong)
+    s.requests[0]!.lyricsAuthor = null
+    s.requests[0]!.axes.purposeDetail = { state: 'specified' }
+    localStorage.setItem(STORAGE_KEYS.song, JSON.stringify(s))
+    await mountApp()
+    const reasons = [...document.querySelectorAll('[data-testid="request-incomplete-reason"]')].map(
+      (e) => e.textContent,
+    )
+    expect(reasons).toEqual([
+      '用途の詳細: 指定されていますが値が空です',
+      '歌ありで作詞の主体が未選択です',
+    ])
+    expect(
+      document.querySelector('[data-testid="request-area"] [data-testid="request-incomplete"]'),
+    ).not.toBeNull()
+    expect(document.querySelector('[data-testid="copy-request"]')!.hasAttribute('disabled')).toBe(
+      true,
+    )
+  })
+
+  it('注意書きは依頼文のカードの中', async () => {
+    await mountApp()
+    expect(
+      document.querySelector('[data-testid="request-area"] [data-testid="notice-length"]'),
+    ).not.toBeNull()
+  })
+})

@@ -57,6 +57,8 @@ describe('主ジャンル（L1）', () => {
   it('カテゴリ16行で始まり、クリックで開閉する', async () => {
     await mountApp()
     await click('edit-basic')
+    await click('fold-mainGenre')
+    await click('fold-subGenres')
     expect($$('tree-mainGenre-cat-')).toHaveLength(16)
     expect($$('tree-mainGenre-row-')).toHaveLength(0)
     await click(`tree-mainGenre-cat-${firstCat.id}`)
@@ -68,6 +70,8 @@ describe('主ジャンル（L1）', () => {
   it('「選ぶ」で①指定になり、今の選択とカードに出る。「お任せ」で戻る（値は残る）', async () => {
     await mountApp()
     await click('edit-basic')
+    await click('fold-mainGenre')
+    await click('fold-subGenres')
     expect($('current-mainGenre')!.textContent).toBe('お任せ')
     await click(`tree-mainGenre-cat-${firstCat.id}`)
     const id = firstCat.itemOrder[0]!
@@ -85,6 +89,8 @@ describe('主ジャンル（L1）', () => {
   it('検索で開き、消すと検索前の開閉に戻る', async () => {
     await mountApp()
     await click('edit-basic')
+    await click('fold-mainGenre')
+    await click('fold-subGenres')
     await type('tree-mainGenre-search', 'してぃぽっぷ')
     expect(
       $$('tree-mainGenre-row-').some((e) => e.getAttribute('data-testid')!.endsWith('/city-pop')),
@@ -98,6 +104,8 @@ describe('主ジャンル（L1）', () => {
   it('カテゴリ名で検索すると、配下の語がすべて残る', async () => {
     await mountApp()
     await click('edit-basic')
+    await click('fold-mainGenre')
+    await click('fold-subGenres')
     await type('tree-mainGenre-search', firstCat.label)
     const shown = $$('tree-mainGenre-row-').filter((e) =>
       e.getAttribute('data-testid')!.startsWith(`tree-mainGenre-row-${firstCat.id}/`),
@@ -111,6 +119,8 @@ describe('主ジャンル（L1）', () => {
   it('非表示の語も表示すると、印と理由が出る。選べない語は自由記述へ転記する', async () => {
     await mountApp()
     await click('edit-basic')
+    await click('fold-mainGenre')
+    await click('fold-subGenres')
     await type('tree-mainGenre-search', ' ')
     const before = $$('tree-mainGenre-row-').length
     await type('tree-mainGenre-search', '')
@@ -131,13 +141,14 @@ describe('主ジャンル（L1）', () => {
 })
 
 describe('副ジャンル', () => {
-  it('②のあいだは押せない。①で使用する・使用しないを選び、一覧に出る', async () => {
+  it('開いた一覧で選ぶと①指定になる。①で使用する・使用しないを選び、一覧に出る', async () => {
     await mountApp()
     await click('edit-basic')
+    await click('fold-mainGenre')
+    await click('fold-subGenres')
     await click(`tree-subGenres-cat-${firstCat.id}`)
     const [a, b] = firstCat.itemOrder
-    expect($<HTMLButtonElement>(`choice-subGenres-${a}-use`)!.disabled).toBe(true)
-    await click('state-subGenres-specified')
+    expect(req().axes.subGenres).toBeUndefined()
     await click(`choice-subGenres-${a}-use`)
     await click(`choice-subGenres-${b}-exclude`)
     expect(req().axes.subGenres).toEqual({
@@ -161,9 +172,11 @@ describe('楽器の統合テーブル（L2）', () => {
     expect($('editor-voiceTreatment')).not.toBeNull()
   })
 
-  it('役割が②のあいだはチェックできず、①の役割がなければ除外できない', async () => {
+  it('すべて②のあいだは畳む。開くと、②の役割はチェックできず、①の役割がなければ除外できない', async () => {
     await mountApp()
     await click('edit-sound')
+    expect($('tree-instruments')).toBeNull()
+    await click('fold-instruments')
     ;($$('tree-instruments-cat-')[0] as HTMLElement).click()
     await flushPromises()
     const id = $$('exclude-')[0]!.getAttribute('data-testid')!.slice('exclude-'.length)
@@ -218,6 +231,8 @@ describe('UI 設定の反映（L3）', () => {
     )
     await mountApp()
     await click('edit-basic')
+    await click('fold-mainGenre')
+    await click('fold-subGenres')
     await click(`tree-mainGenre-cat-${firstCat.id}`)
     expect($(`pick-mainGenre-${id}`)).toBeNull()
     expect($(`pick-mainGenre-${firstCat.itemOrder[1]}`)).not.toBeNull()

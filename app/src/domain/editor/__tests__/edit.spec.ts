@@ -1,4 +1,4 @@
-// 入力の操作（U4b）: 状態の切り替えと一時保持（K8）、単一選択の疑似選択肢（K1・K2）、3値、長さ・BPM・数の検査、構成の並び
+// 入力の操作（U4b）: 状態の切り替えと一時保持（K8）、単一選択の疑似選択肢（K1・K2）、3値、長さ（判断ポイント57）・BPM・数（判断ポイント56）、構成の並び
 import { describe, it, expect } from 'vitest'
 
 import { spec } from '@/data/spec'
@@ -6,10 +6,13 @@ import { checkSaved } from '@/data/validation'
 import {
   formatLength,
   moveSection,
-  parseBpm,
-  parseBpmRange,
-  parseCount,
-  parseLength,
+  checkBpmRange,
+  clampLength,
+  COUNT_RANGE,
+  LENGTH_CHIPS,
+  lengthParts,
+  minuteBounds,
+  secondBounds,
   removeSection,
   selectOptions,
   selectValue,
@@ -152,44 +155,48 @@ describe('3値・自由記述', () => {
   })
 })
 
-describe('長さ・BPM・数（K4・K5・K7）', () => {
+describe('長さ（判断ポイント57）', () => {
   const range = { min: 10, max: 360 }
-  it.each([
-    ['180', 180],
-    ['3:00', 180],
-    [' 2:05 ', 125],
-    ['10', 10],
-    ['6:00', 360],
-  ])('長さ %s → %d 秒', (input, sec) => {
-    expect(parseLength(input, range)).toEqual({ ok: true, value: sec })
+
+  it('チップは 1:00〜5:00', () => {
+    expect(LENGTH_CHIPS.map(formatLength)).toEqual(['1:00', '2:00', '3:00', '4:00', '5:00'])
   })
-  it.each(['', 'abc', '3:5', '3:60', '9', '361', '6:01', '-5', '1.5'])(
-    '長さの誤り: %s',
-    (input) => {
-      expect(parseLength(input, range).ok).toBe(false)
-    },
-  )
-  it('長さの表示は m:ss', () => {
+
+  it('分・秒と秒の換算、表示は m:ss', () => {
+    expect(lengthParts(125)).toEqual({ minutes: 2, seconds: 5 })
+    expect(lengthParts(360)).toEqual({ minutes: 6, seconds: 0 })
     expect(formatLength(125)).toBe('2:05')
+    expect(clampLength(2, 5, range)).toBe(125)
+    expect(clampLength(3, 0, range)).toBe(180)
   })
 
-  it('BPM は正の数。範囲は下限 ≤ 上限', () => {
-    expect(parseBpm('120')).toEqual({ ok: true, value: 120 })
-    expect(parseBpm('92.5')).toEqual({ ok: true, value: 92.5 })
-    for (const bad of ['', '0', '-1', 'x', '1e2']) expect(parseBpm(bad).ok).toBe(false)
-    expect(parseBpmRange('90', '100')).toEqual({ ok: true, value: { min: 90, max: 100 } })
-    expect(parseBpmRange('100', '100').ok).toBe(true)
-    expect(parseBpmRange('101', '100')).toEqual({
-      ok: false,
-      message: '下限は上限以下にしてください',
-    })
-    expect(parseBpmRange('', '100').ok).toBe(false)
+  it('範囲は 0:10〜6:00 に収める（境界）', () => {
+    expect(clampLength(0, 10, range)).toBe(10)
+    expect(clampLength(0, 9, range)).toBe(10)
+    expect(clampLength(0, 0, range)).toBe(10)
+    expect(clampLength(6, 0, range)).toBe(360)
+    expect(clampLength(6, 1, range)).toBe(360)
+    expect(clampLength(5, 59, range)).toBe(359)
+    expect(clampLength(9, 0, range)).toBe(360)
   })
 
-  it('数は 1〜10 の整数', () => {
-    expect(parseCount('1')).toEqual({ ok: true, value: 1 })
-    expect(parseCount('10')).toEqual({ ok: true, value: 10 })
-    for (const bad of ['0', '11', '2.5', '', 'a']) expect(parseCount(bad).ok).toBe(false)
+  it('分の範囲は 0〜6。秒の範囲は 0分のとき 10〜59、6分のとき 0〜0、ほかは 0〜59', () => {
+    expect(minuteBounds(range)).toEqual({ min: 0, max: 6 })
+    expect(secondBounds(0, range)).toEqual({ min: 10, max: 59 })
+    expect(secondBounds(3, range)).toEqual({ min: 0, max: 59 })
+    expect(secondBounds(6, range)).toEqual({ min: 0, max: 0 })
+  })
+})
+
+describe('BPM・数（判断ポイント56）', () => {
+  it('BPM の範囲は下限 ≤ 上限', () => {
+    expect(checkBpmRange(90, 100)).toEqual({ ok: true, value: { min: 90, max: 100 } })
+    expect(checkBpmRange(100, 100).ok).toBe(true)
+    expect(checkBpmRange(101, 100)).toEqual({ ok: false, message: '下限は上限以下にしてください' })
+  })
+
+  it('案の数・曲名案の数の範囲は 1〜10', () => {
+    expect(COUNT_RANGE).toEqual({ min: 1, max: 10 })
   })
 
   it('正しい値は①指定で書く。保存データとして正しい', () => {

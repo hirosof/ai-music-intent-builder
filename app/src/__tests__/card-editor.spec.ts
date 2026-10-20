@@ -54,6 +54,16 @@ async function type(testid: string, value: string) {
   el.dispatchEvent(new Event('input', { bubbles: true }))
   await flushPromises()
 }
+/** UInputNumber に値を入れて確定する（入力 → change → 入力欄を離れる。jsdom では change/blur で確定する） */
+async function setNumber(testid: string, value: string) {
+  const el = $<HTMLInputElement>(testid)
+  if (!el) throw new Error(`入力欄が見つからない: ${testid}`)
+  el.value = value
+  el.dispatchEvent(new Event('input', { bubbles: true }))
+  el.dispatchEvent(new Event('change', { bubbles: true }))
+  el.dispatchEvent(new FocusEvent('blur'))
+  await flushPromises()
+}
 const rowText = (id: string) => $(`row-${id}`)?.textContent ?? ''
 const songWith = (mutate: (r: SongRequest) => void): SongData => {
   const s = createInitialSong(spec)
@@ -79,9 +89,15 @@ describe('ポップアップを開く', () => {
     expect($('editor-card-structure')).toBeNull()
   })
 
-  it('階層のある語彙の項目は階層テーブル、ほかは U4b の部品', async () => {
+  it('階層のある語彙の項目は階層テーブル、ほかは U4b の部品（大きい入力はお任せのあいだ畳む）', async () => {
     await mountApp()
     await click('edit-basic')
+    // 畳んでいる（判断ポイント54）
+    expect($('tree-mainGenre')).toBeNull()
+    expect($('tree-subGenres')).toBeNull()
+    expect($('fold-mainGenre')!.textContent).toBe('一覧を開く')
+    await click('fold-mainGenre')
+    await click('fold-subGenres')
     expect($('editor-mainGenre')?.querySelector('[data-testid="tree-mainGenre"]')).not.toBeNull()
     expect($('editor-subGenres')?.querySelector('[data-testid="tree-subGenres"]')).not.toBeNull()
     expect($('editor-regionStyles')?.querySelector('[data-testid^="tree-"]')).toBeNull()
@@ -89,20 +105,99 @@ describe('ポップアップを開く', () => {
   })
 })
 
-describe('長さ（K4）と、①指定の仮置き', () => {
-  it('「指定」を押しただけではデータを変えず、正しい値が入ったら①指定で書く。誤りはデータに入れない', async () => {
+describe('大きい入力の畳み方（判断ポイント54）', () => {
+  it('3値: お任せでは畳み、「指定」で開く。お任せに戻すと畳む（値は残り、指定に戻すと戻る）', async () => {
+    await mountApp()
+    await click('edit-expression')
+    expect($('term-mood-tense')).toBeNull()
+    expect($('free-mood')).toBeNull()
+    await click('state-mood-specified')
+    expect($('term-mood-tense')).not.toBeNull()
+    await click('choice-mood-tense-use')
+    await click('state-mood-delegated')
+    expect($('term-mood-tense')).toBeNull()
+    expect(req().axes.mood).toEqual({ state: 'delegated', choices: { tense: 'use' } })
+    await click('state-mood-specified')
+    expect($<HTMLElement>('choice-mood-tense-use')!.getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('「一覧を開く」は状態とは独立に開閉する。開いて選ぶと①指定になり、開いたまま', async () => {
+    await mountApp()
+    await click('edit-expression')
+    await click('fold-mood')
+    expect($('term-mood-tense')).not.toBeNull()
+    expect(req().axes.mood).toBeUndefined()
+    await click('fold-mood')
+    expect($('term-mood-tense')).toBeNull()
+    expect(req().axes.mood).toBeUndefined()
+    await click('fold-mood')
+    await click('choice-mood-tense-use')
+    expect(req().axes.mood).toEqual({ state: 'specified', choices: { tense: 'use' } })
+    expect($('term-mood-tense')).not.toBeNull()
+  })
+
+  it('値が空の①（未完成）も開く。保存されている①は開いた状態で始まる', async () => {
+    await mountApp(songWith((r) => (r.axes.regionStyles = { state: 'specified' })))
+    await click('edit-basic')
+    expect($('free-regionStyles')).not.toBeNull()
+    expect($('fold-regionStyles')!.textContent).toBe('一覧を閉じる')
+  })
+
+  it('小さい入力（ボタン群・1行の入力）は、従来どおり無効化する（畳まない）', async () => {
+    await mountApp()
+    await click('edit-exclusionNotes')
+    expect($<HTMLTextAreaElement>('text-notes')!.disabled).toBe(true)
+    expect($('fold-notes')).toBeNull()
+  })
+})
+
+describe('長さ（判断ポイント57）と、①指定の仮置き', () => {
+  const pressed = () =>
+    [...document.querySelectorAll('[data-testid^="length-chip-"]')]
+      .filter((b) => b.getAttribute('aria-pressed') === 'true')
+      .map((b) => b.textContent)
+
+  it('「指定」を押しただけではデータを変えない。チップで1タップ、分・秒で入力（秒に換算）', async () => {
     await mountApp()
     await click('edit-structure')
+    expect($<HTMLInputElement>('length-minutes-length')!.disabled).toBe(true)
+    expect($<HTMLButtonElement>('length-chip-180')!.disabled).toBe(true)
     await click('state-length-specified')
     expect(req().axes.length).toBeUndefined()
-    expect($<HTMLInputElement>('length-length')!.disabled).toBe(false)
-    await type('length-length', '999')
-    expect($('error-length')?.textContent).toContain('10〜360秒')
-    expect(req().axes.length).toBeUndefined()
-    await type('length-length', '2:30')
-    expect($('error-length')).toBeNull()
-    expect(req().axes.length).toEqual({ state: 'specified', value: 150 })
-    expect(rowText('length')).toBe('2:30')
+    expect($('length-current-length')!.textContent).toBe('今の値: —')
+    await click('length-chip-180')
+    expect(req().axes.length).toEqual({ state: 'specified', value: 180 })
+    expect(pressed()).toEqual(['3:00'])
+    expect($<HTMLInputElement>('length-minutes-length')!.value).toBe('3')
+    expect($<HTMLInputElement>('length-seconds-length')!.value).toBe('0')
+    await setNumber('length-seconds-length', '30')
+    expect(req().axes.length!.value).toBe(210)
+    expect(pressed()).toEqual([])
+    expect($('length-current-length')!.textContent).toBe('今の値: 3:30')
+    expect(rowText('length')).toBe('3:30')
+  })
+
+  it('範囲に収める（0分は10秒から、6分は0秒まで）', async () => {
+    await mountApp(songWith((r) => (r.axes.length = { state: 'specified', value: 150 })))
+    await click('edit-structure')
+    await setNumber('length-minutes-length', '0')
+    expect(req().axes.length!.value).toBe(30)
+    await setNumber('length-seconds-length', '5')
+    expect(req().axes.length!.value).toBe(10)
+    expect($<HTMLInputElement>('length-seconds-length')!.value).toBe('10')
+    await setNumber('length-minutes-length', '6')
+    expect(req().axes.length!.value).toBe(360)
+    expect($<HTMLInputElement>('length-seconds-length')!.value).toBe('0')
+    await setNumber('length-minutes-length', '9')
+    expect(req().axes.length!.value).toBe(360)
+  })
+
+  it('空にしたら書き込まず、入力欄を離れたら最後の有効な値に戻す', async () => {
+    await mountApp(songWith((r) => (r.axes.length = { state: 'specified', value: 200 })))
+    await click('edit-structure')
+    await setNumber('length-minutes-length', '')
+    expect(req().axes.length!.value).toBe(200)
+    expect($<HTMLInputElement>('length-minutes-length')!.value).toBe('3')
   })
 
   it('値が残っていれば、「指定」に戻すとすぐに①指定になる（一時保持）', async () => {
@@ -117,23 +212,33 @@ describe('長さ（K4）と、①指定の仮置き', () => {
   })
 })
 
-describe('BPM（K5）', () => {
+describe('BPM（K5・判断ポイント56）', () => {
   it('単一の値。範囲は下限 ≤ 上限', async () => {
     await mountApp()
     await click('edit-structure')
     await click('state-bpm-specified')
-    await type('bpm-bpm', '120')
+    await setNumber('bpm-bpm', '120')
     expect(req().axes.bpm).toEqual({ state: 'specified', value: 120 })
     const range = $('bpm-mode-bpm')!.querySelectorAll<HTMLElement>('button[role="radio"]')[1]
     range!.click()
     await flushPromises()
-    await type('bpm-min-bpm', '130')
-    await type('bpm-max-bpm', '110')
+    await setNumber('bpm-min-bpm', '130')
+    await setNumber('bpm-max-bpm', '110')
     expect($('error-bpm')?.textContent).toContain('下限は上限以下')
     expect(req().axes.bpm).toEqual({ state: 'specified', value: 120 })
-    await type('bpm-max-bpm', '140')
+    await setNumber('bpm-max-bpm', '140')
     expect(req().axes.bpm).toEqual({ state: 'specified', value: { min: 130, max: 140 } })
     expect(rowText('bpm')).toBe('130〜140')
+  })
+
+  it('最小は1。空にしたら書き込まず、入力欄を離れたら最後の有効な値に戻す', async () => {
+    await mountApp(songWith((r) => (r.axes.bpm = { state: 'specified', value: 90 })))
+    await click('edit-structure')
+    await setNumber('bpm-bpm', '0')
+    expect(req().axes.bpm!.value).toBe(1)
+    await setNumber('bpm-bpm', '')
+    expect(req().axes.bpm!.value).toBe(1)
+    expect($<HTMLInputElement>('bpm-bpm')!.value).toBe('1')
   })
 })
 
@@ -162,10 +267,10 @@ describe('構成（K6）', () => {
 })
 
 describe('3値選択（K3）と一時保持', () => {
-  it('①にして語を選ぶ。②にすると一覧は押せず、①に戻すと選択が戻る', async () => {
+  it('①にして語を選ぶ。②にすると畳み、①に戻すと選択が戻る', async () => {
     await mountApp()
     await click('edit-expression')
-    expect($<HTMLButtonElement>('choice-mood-tense-use')!.disabled).toBe(true)
+    expect($('choice-mood-tense-use')).toBeNull()
     await click('state-mood-specified')
     await click('choice-mood-tense-use')
     await click('choice-mood-nostalgic-exclude')
@@ -193,6 +298,7 @@ describe('3値選択（K3）と一時保持', () => {
   it('自由記述には「使用する」側の一言を添える（判断ポイント49）', async () => {
     await mountApp()
     await click('edit-basic')
+    await click('fold-regionStyles')
     expect($('editor-regionStyles')!.textContent).toContain('「使用する」ものとして追加されます')
   })
 })
@@ -243,15 +349,29 @@ describe('曲の種類（判断ポイント48）', () => {
 })
 
 describe('出力設定', () => {
-  it('案の数は 1〜10。誤りはデータに入れない', async () => {
+  it('案の数は 1〜10 に収める。空にしたら書き込まず、入力欄を離れたら最後の有効な値に戻す（判断ポイント56）', async () => {
     await mountApp()
     await click('edit-output')
-    await type('input-variantCount', '11')
-    expect(req().output.variantCount).toBe(3)
-    expect(document.body.textContent).toContain('1〜10の範囲で入力してください')
-    await type('input-variantCount', '5')
+    await setNumber('input-variantCount', '11')
+    expect(req().output.variantCount).toBe(10)
+    await setNumber('input-variantCount', '0')
+    expect(req().output.variantCount).toBe(1)
+    await setNumber('input-variantCount', '5')
     expect(req().output.variantCount).toBe(5)
     expect(rowText('variantCount')).toBe('5')
+    await setNumber('input-variantCount', '')
+    expect(req().output.variantCount).toBe(5)
+    expect($<HTMLInputElement>('input-variantCount')!.value).toBe('5')
+  })
+
+  it('曲名案の数も同じ（1〜10、空は戻す）', async () => {
+    await mountApp(songWith((r) => (r.output.titleSuggestions = true)))
+    await click('edit-output')
+    await setNumber('input-titleCount', '20')
+    expect(req().output.titleCount).toBe(10)
+    await setNumber('input-titleCount', '')
+    expect(req().output.titleCount).toBe(10)
+    expect($<HTMLInputElement>('input-titleCount')!.value).toBe('10')
   })
 
   it('粒度・曲名案・推奨値', async () => {

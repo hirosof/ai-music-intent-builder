@@ -1,9 +1,9 @@
 <script setup lang="ts">
-// 主画面: カード一覧＋依頼文（ui-and-nonfunctional.md §1・§3）。カードの「変更」でポップアップ（U4b）。
+// 主画面: カード一覧＋依頼文のカード（ui-and-nonfunctional.md §1・§3・§3-1。表示のボタンは廃止。判断ポイント55）。カードの「変更」でポップアップ（U4b）。
 // ヘッダー: ［新規］［保存］［書き出す］［読込］［プロファイル］（U4d の決定 M1）。スマホ幅では「…」のメニューにまとめる
 import type { DropdownMenuItem } from '@nuxt/ui'
 import { useFileDialog } from '@vueuse/core'
-import { computed, ref, useTemplateRef } from 'vue'
+import { computed, ref } from 'vue'
 import ConfirmReplaceDialog from '@/components/ConfirmReplaceDialog.vue'
 import CardEditor from '@/components/editor/CardEditor.vue'
 import RequestTextArea from '@/components/editor/RequestTextArea.vue'
@@ -75,12 +75,6 @@ const editorOpen = computed({
     if (!v) editing.value = null
   },
 })
-
-const requestArea = useTemplateRef<HTMLElement>('requestArea')
-// 依頼文は常に最新のため、ボタンは「依頼文の位置へ移る」（§3）
-function showRequest() {
-  requestArea.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
 </script>
 
 <template>
@@ -127,17 +121,12 @@ function showRequest() {
           :warnings="editor.warnings.value"
           @edit="editing = card"
         />
-        <UButton
-          block
-          size="lg"
-          label="以上の設定を元にチャット系AIに渡す依頼文を表示する"
-          data-testid="show-request"
-          @click="showRequest"
-        />
-        <div ref="requestArea" class="scroll-mt-4">
+        <!-- 依頼文のカード（判断ポイント55）。最後のカードとの間は、他のカード間より少し広く空ける -->
+        <div class="pt-4" data-testid="request-gap">
           <RequestTextArea
             :generated="editor.generated.value"
             :request="editor.savedSong.value.requests[0]!"
+            :incomplete="editor.incomplete.value"
           />
         </div>
       </div>

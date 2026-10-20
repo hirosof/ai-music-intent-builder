@@ -1,10 +1,10 @@
 <script setup lang="ts">
 // 出力設定（input-items.md §3）。依頼文の範囲は曲の種類カード、曲名案の言語は出さない（判断ポイント48・50）。
 // 数は 1〜10（K7）。推奨値は、ツールプロファイルで requestRole が recommend で、この依頼のモードにあるパラメータ
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { spec } from '@/data/spec'
 import { isOutOfScope } from '@/domain/editor/cards'
-import { COUNT_RANGE, parseCount } from '@/domain/editor/edit'
+import { COUNT_RANGE } from '@/domain/editor/edit'
 import type { SongRequest } from '@/domain/types/song'
 
 const props = defineProps<{ request: SongRequest; scopeRequest: SongRequest }>()
@@ -55,17 +55,19 @@ function toggleGranularity(id: string, on: boolean) {
   )
 }
 
-// 数の入力（誤りは欄の下に出し、データには入れない）
-const countInputs = ref<Record<string, string>>({
-  variantCount: String(out('variantCount')),
-  titleCount: String(out('titleCount')),
+// 数の入力（判断ポイント56）: UInputNumber。範囲外は部品が範囲内に収める。
+// 空にしたとき（null）は書き込まず、入力欄を離れたときに最後の有効な値へ戻す（必須の整数のため）。
+// 戻すのは nextTick で: UInputNumber は blur で入力欄の文字（空）を値に当て直すので、その後に戻す
+const countDraft = ref<Record<string, number | null>>({
+  variantCount: out('variantCount') as number,
+  titleCount: out('titleCount') as number,
 })
-const countErrors = ref<Record<string, string>>({})
-function onCount(id: string, v: string) {
-  countInputs.value[id] = v
-  const r = parseCount(v)
-  countErrors.value[id] = r.ok ? '' : r.message
-  if (r.ok) set(id, r.value)
+function onCount(id: string, v: number | null) {
+  countDraft.value[id] = v
+  if (typeof v === 'number') set(id, v)
+}
+function onCountBlur(id: string) {
+  if (countDraft.value[id] == null) countDraft.value[id] = out(id) as number
 }
 const fieldLabel = (id: string) => spec.outputById.get(id)?.label ?? id
 const scopeNote = '（依頼文の範囲により、依頼文に出ません）'
@@ -76,14 +78,17 @@ const scopeNote = '（依頼文の範囲により、依頼文に出ません）'
     <UFormField
       :label="fieldLabel('variantCount')"
       :hint="hidden('variantCount') ? scopeNote : undefined"
-      :error="countErrors.variantCount || undefined"
     >
-      <UInput
-        :model-value="countInputs.variantCount"
-        inputmode="numeric"
-        class="w-24"
+      <UInputNumber
+        :model-value="countDraft.variantCount"
+        :min="COUNT_RANGE.min"
+        :max="COUNT_RANGE.max"
+        :step="1"
+        disable-wheel-change
+        class="w-32"
         data-testid="input-variantCount"
-        @update:model-value="(v: unknown) => onCount('variantCount', String(v))"
+        @update:model-value="(v: number | null) => onCount('variantCount', v)"
+        @blur="nextTick(() => onCountBlur('variantCount'))"
       />
       <span class="ml-2 text-sm text-muted">{{ COUNT_RANGE.min }}〜{{ COUNT_RANGE.max }}</span>
     </UFormField>
@@ -147,18 +152,18 @@ const scopeNote = '（依頼文の範囲により、依頼文に出ません）'
           data-testid="input-titleSuggestions"
           @update:model-value="(v: boolean) => set('titleSuggestions', v)"
         />
-        <UFormField
-          :label="fieldLabel('titleCount')"
-          orientation="horizontal"
-          :error="countErrors.titleCount || undefined"
-        >
-          <UInput
-            :model-value="countInputs.titleCount"
+        <UFormField :label="fieldLabel('titleCount')" orientation="horizontal">
+          <UInputNumber
+            :model-value="countDraft.titleCount"
             :disabled="out('titleSuggestions') !== true"
-            inputmode="numeric"
-            class="w-20"
+            :min="COUNT_RANGE.min"
+            :max="COUNT_RANGE.max"
+            :step="1"
+            disable-wheel-change
+            class="w-32"
             data-testid="input-titleCount"
-            @update:model-value="(v: unknown) => onCount('titleCount', String(v))"
+            @update:model-value="(v: number | null) => onCount('titleCount', v)"
+            @blur="nextTick(() => onCountBlur('titleCount'))"
           />
         </UFormField>
       </div>

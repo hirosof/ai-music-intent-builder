@@ -124,6 +124,7 @@ describe('UI 設定の反映（N4）', () => {
     )
     await mountApp()
     await click('edit-basic')
+    await click('fold-regionStyles')
     expect($(`term-regionStyles-${region.id}`)).toBeNull()
     expect(document.querySelectorAll('[data-testid^="term-regionStyles-"]').length).toBe(
       spec.vocabularyById.get('region-style')!.items.length - 1,
