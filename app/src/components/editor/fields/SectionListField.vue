@@ -16,7 +16,7 @@ const list = computed<string[]>(() => {
   const v = props.request.axes[props.field.id]?.value
   return Array.isArray(v) ? v : []
 })
-const { shownState, selectState, settle } = usePendingSpecified(
+const { shownState, isPending, selectState, settle } = usePendingSpecified(
   () => props.request,
   () => props.field,
   () => list.value.length > 0,
@@ -95,5 +95,8 @@ function add(id: string) {
       :data-testid="`add-${field.id}`"
       @update:model-value="(v: string) => add(v)"
     />
+    <p v-if="isPending" class="text-xs text-muted" :data-testid="`pending-hint-${field.id}`">
+      値を入力すると指定になります
+    </p>
   </div>
 </template>

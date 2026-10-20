@@ -36,7 +36,7 @@ const stored = computed(() => {
   const v = props.request.axes[props.field.id]?.value
   return typeof v === 'number' ? v : undefined
 })
-const { shownState, selectState, settle } = usePendingSpecified(
+const { shownState, isPending, selectState, settle } = usePendingSpecified(
   () => props.request,
   () => props.field,
   () => stored.value !== undefined,
@@ -143,5 +143,8 @@ function restore() {
       >
     </div>
     <p class="text-xs text-muted">{{ formatLength(range.min) }}〜{{ formatLength(range.max) }}</p>
+    <p v-if="isPending" class="text-xs text-muted" :data-testid="`pending-hint-${field.id}`">
+      値を入力すると指定になります
+    </p>
   </div>
 </template>

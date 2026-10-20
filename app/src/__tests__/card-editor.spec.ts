@@ -439,3 +439,27 @@ describe('利用者の目視で見つかった不具合（U4 の手直し）', (
     expect(req().output.recommendParams).toEqual({ weirdness: true })
   })
 })
+
+describe('①指定の仮置き（判断ポイント58）', () => {
+  it('値がまだないあいだは一言を添え、カードと依頼文は元の状態のまま。値が入ると消える', async () => {
+    await mountApp()
+    const before = useSongEditor().generated.value
+    await click('edit-structure')
+    for (const id of ['length', 'bpm', 'structure']) {
+      expect($(`pending-hint-${id}`)).toBeNull()
+      await click(`state-${id}-specified`)
+      expect($(`pending-hint-${id}`)!.textContent).toContain('値を入力すると指定になります')
+    }
+    expect(req().axes.length).toBeUndefined()
+    expect(req().axes.bpm).toBeUndefined()
+    expect(req().axes.structure).toBeUndefined()
+    expect(rowText('length')).toBe('ツール任せ')
+    expect(rowText('bpm')).toBe('お任せ（追加しない）')
+    expect(useSongEditor().generated.value).toEqual(before)
+    await click('length-chip-120')
+    await setNumber('bpm-bpm', '100')
+    expect($('pending-hint-length')).toBeNull()
+    expect($('pending-hint-bpm')).toBeNull()
+    expect($('pending-hint-structure')).not.toBeNull()
+  })
+})

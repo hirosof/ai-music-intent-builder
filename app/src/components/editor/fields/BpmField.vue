@@ -17,7 +17,7 @@ const props = defineProps<{ field: FieldDef; request: SongRequest }>()
 const stored = computed(() => props.request.axes[props.field.id]?.value)
 const isRange = (v: unknown): v is { min: number; max: number } =>
   typeof v === 'object' && v !== null && !Array.isArray(v)
-const { shownState, selectState, settle } = usePendingSpecified(
+const { shownState, isPending, selectState, settle } = usePendingSpecified(
   () => props.request,
   () => props.field,
   () => typeof stored.value === 'number' || isRange(stored.value),
@@ -114,6 +114,9 @@ const numberProps = { min: 1, step: 1, disableWheelChange: true, class: 'w-32' }
     </div>
     <p v-if="error && !disabled" class="text-xs text-error" :data-testid="`error-${field.id}`">
       {{ error }}
+    </p>
+    <p v-if="isPending" class="text-xs text-muted" :data-testid="`pending-hint-${field.id}`">
+      値を入力すると指定になります
     </p>
   </div>
 </template>
