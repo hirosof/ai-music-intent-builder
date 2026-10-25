@@ -202,6 +202,12 @@ ai-music-intent-builder/
 - アプリ（`app/` で実行）: `npx vitest run`、`npm run build`（型検査＋ビルド）、`npx oxlint .`、`npx eslint .`、`npx oxfmt --check src/`
 - 文書を変えたときは、少なくとも `check_docs.py` を流す。`check_docs.py` の検査や許可リストを変えたときは、`tools/check-docs/test_check_docs.py` も流す
 
+**定期の整合性の調査（2026-10-26）**: 機械検査で拾えない食い違い（同じ事実の写しの古さ、片側だけで決めた設計など）を見るため、次の節目に、Claude Code が整合性の調査を行う。依頼文の雛形は `tools/check-docs/audit-request.md`、報告は `think/audit-YYYY-MM-DD.md`（前回は `think/audit-2026-10-25.md`）。
+
+- 実装の単位の完了時
+- 設計スレッドを移すとき
+- 利用者が求めたとき
+
 ---
 
 ## 8. 判断ポイントの番号と、記録の場所
