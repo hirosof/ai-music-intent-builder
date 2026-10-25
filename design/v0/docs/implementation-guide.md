@@ -2,7 +2,8 @@
 
 - 作成日: 2026-10-18
 - 位置づけ: 設計（`design/v0/`）から実装へ移るための、読む順序・最初の確認・単位ごとの読むファイルと受け入れ基準をまとめたもの。入口は、リポジトリ直下の `CLAUDE.md`
-- 状態: **初版（利用者の承認待ち）**。実装を進めて分かったことで直す
+- 状態: **承認済み（2026-10-18）**。U0〜U5 と初版の実装後の手直しは、本書に沿って進め、結果を §6 に追記している。実装を進めて分かったことで直す（〔旧記述〕初版〔利用者の承認待ち〕。2026-10-25 に整合性の調査 R-10 で直した）
+- 最終更新: 2026-10-25（整合性の調査〔`../think/audit-2026-10-25.md`〕による修正: 状態、§2 の構成、§3-3 の大きさ、§4 の結果、§7 の設計スレッドとの往復、§8 の次の番号、§10 の教訓、§11 の件数）
 - 関連: `implementation-readiness.md`（移行判断。基準・宿題の棚卸し）、`handoff-next-thread.md`（設計スレッドの引き継ぎ。**全文は読まない**。§6 の宿題と §4 の教訓だけ）
 - 基準のパス: 本書の `docs/`・`tools/` は `design/v0/` 基準。リポジトリのルートは `ai-music-intent-builder/`
 
@@ -20,14 +21,17 @@
 
 ---
 
-## 2. リポジトリの現状（2026-10-18）
+## 2. リポジトリの現状（2026-10-18。2026-10-25 に `app/`・`.github/`・`CLAUDE.md` を足した）
 
 ```
 ai-music-intent-builder/
 ├── .gitignore            Node 系のテンプレート
 ├── .gitattributes        改行コードを LF に統一（2026-10-18 作成）
+├── .github/workflows/    deploy.yml（GitHub Pages への公開。手動実行。利用者が行う）
+├── CLAUDE.md             Claude Code の入口（現在地・コマンド・実行環境）
 ├── LICENSE
-├── README.md             1行のみ
+├── README.md             3行（題名と一言）
+├── app/                  アプリ本体（Vite＋Vue＋TypeScript＋Nuxt UI。U0 で作成。構成は CLAUDE.md）
 └── design/v0/            設計（生きた仕様。実装中も直接更新する）
     ├── docs/             仕様・決定・検証例・調査・議論ログ
     ├── tools/            check-fields / build-presets（Python）、suno-audio-compare
@@ -63,7 +67,7 @@ ai-music-intent-builder/
 
 ### 3-3. 読まないもの（既定）
 
-- `docs/examples/`（549KB）、`docs/discussions/`、`docs/research/`、`pre-research/`、`validations/`、`handoff-next-thread.md`（91KB。大半は追記の履歴）は、**必要になるまで読まない**
+- `docs/examples/`（549KB）、`docs/discussions/`、`docs/research/`、`pre-research/`、`validations/`、`handoff-next-thread.md`（約130KB〔2026-10-25、第42版〕。大半は追記の履歴）は、**必要になるまで読まない**
 - カテゴリ別の語彙（`docs/decisions/vocabulary/genres/` など）は読まない。実装が使うのは、生成物の `docs/specifications/presets/*.json` だけ（語彙の md が正で、JSON は生成物。手で編集しない）
 
 ---
@@ -74,8 +78,8 @@ ai-music-intent-builder/
 
 | # | 確認 | 内容・コマンド（`design/v0/` で実行） | 期待・結果次第 |
 |---|---|---|---|
-| 1 | 既存テストのベースライン | `python tools/check-fields/check_fields.py`、`python tools/check-fields/check_fields.py --song docs/specifications/song.example.json`、`python tools/check-fields/test_check_fields.py`、`python tools/build-presets/build_presets.py --check`（生成物が最新か。期待: 終了コード0。2026-10-18 の Phase 0 で、`section-vocal` が生成器に未登録のため再生成で差分が出ると判明した。修正後に 0 になる）。`jsonschema`（4.18 以降）を入れて実行する | エラー0・警告0、**208ケース通過**（利用者の環境で2026-10-18 に確認済み）。差があれば、実装の前に原因を調べる（教訓4-32） |
-| 2 | 既定値の関係（宿題25） | `docs/specifications/fields.json` の `default`、`docs/specifications/tool-profiles/suno.json` の `params[].default`、`docs/specifications/tool-profile.md` §13 を突き合わせる。UI の初期値と、依頼文の 5-2 に出る値のどちらが何を使うか | 食い違いがあれば、UI の初期値の決め方を1行決めて判断ポイントに記録する（未確認） |
+| 1 | 既存テストのベースライン | `python tools/check-fields/check_fields.py`、`python tools/check-fields/check_fields.py --song docs/specifications/song.example.json`、`python tools/check-fields/test_check_fields.py`、`python tools/build-presets/build_presets.py --check`（生成物が最新か。期待: 終了コード0。2026-10-18 の Phase 0 で、`section-vocal` が生成器に未登録のため再生成で差分が出ると判明した。修正後に 0 になる）。`jsonschema`（4.18 以降）を入れて実行する | エラー0・警告0、**208ケース通過**（利用者の環境で2026-10-18 に確認済み）。差があれば、実装の前に原因を調べる（教訓4-32）。**結果**: Phase 0 で 208 件通過。U1 で R の4ケースを足して **212 ケース**（以後の期待値） |
+| 2 | 既定値の関係（宿題25） | `docs/specifications/fields.json` の `default`、`docs/specifications/tool-profiles/suno.json` の `params[].default`、`docs/specifications/tool-profile.md` §13 を突き合わせる。UI の初期値と、依頼文の 5-2 に出る値のどちらが何を使うか | 食い違いがあれば、UI の初期値の決め方を1行決めて判断ポイントに記録する（未確認）。**結果（2026-10-18、Phase 0）**: 食い違いなし（重複は `variation` だけで、どちらも `standard`）。判断ポイントの記録は不要（`handoff-next-thread.md` 追記23。本表への書き漏れを 2026-10-25 に整合性の調査 R-12 で補った） |
 | 3 | 試作の所在 | **確認済み**: `think/tree-select-prototype/`（`nuxtui`・`element`・`vuetify` の3実装）。Element Plus・Vuetify の実装は、実装に入る前に削除してよい（`docs/handoff-next-thread.md` §2）。階層選択のロジックは `src/shared/`（ライブラリ非依存） | U4 で、Nuxt UI 版と `shared/` を出発点にする |
 | 4 | Git の設定 | `.gitattributes` を作成済み（2026-10-18。`* text=auto eol=lf` ほか。利用者承認済み）。docs・コードは **LF・UTF-8**。Windows の Git の CRLF 変換で差分・生成物が変わらないように、既にコミット済みのファイルが CRLF のときは、`git add --renormalize .` が要る（利用者に確認してから） | `build_presets.py` の生成物（`docs/specifications/presets/`）が、再生成で差分を出さないことを確認 |
 | 5 | 実行環境 | Node・パッケージマネージャ・Python の版を確認し、版を決めて、`CLAUDE.md` に書く | — |
@@ -178,19 +182,27 @@ ai-music-intent-builder/
 - 生成器の出力が、手描画の文面と、**文書化されていない差**を持つとき（文面が正。実装を直す）
 - 文面の変更が必要になったとき（レンダリング例を作り、6モデルで再検証する。教訓4-30。検証は利用者作業）
 
+**設計スレッドとの往復（2026-10-25 に書き起こした。それまでは利用者の貼り付け文と運用だけにあった。整合性の調査 HJ-02）**:
+
+1. Claude Code は、仕様や文面の判断が要る点を決めずに、推奨案つきの貼り付け用の文面（コードブロック）にまとめて利用者に渡す。画面の細部で仕様にないものは、議論点（推奨つき）として利用者に出し、承認を得てから実装する
+2. 利用者が claude.ai の設計スレッドに持ち込む。設計スレッドは判断ポイントとして記録し（番号は §8。追記の前に実ファイルの表の末尾で確かめる。教訓4-51）、`design/v0/docs/` に**未コミットで**反映する。Claude Code への依頼文はコードブロックで返す
+3. 戻ってきたら、Claude Code は `git status`・`git diff` で実ファイルを確かめてから使う
+4. コミットは利用者の指示を受けてから行う。「設計スレッドの変更」と「Claude Code の変更」は、別のコミットにする（設計スレッドの変更は、Claude Code は内容を変えずにコミットする。メッセージは「設計:」で始める）。push と GitHub Pages への公開は利用者が行う
+5. 設計スレッドは主に `handoff-next-thread.md` を、Claude Code は主に `CLAUDE.md` と本書を読む。片方にだけ書いた事実は、もう片方に伝わらないことがある（2026-10-25 の整合性の調査で多数見つかった）。設計側の未決・保留の一覧は `handoff-next-thread.md` §6 が正
+
 ---
 
 ## 8. 判断ポイントの番号と、記録の場所
 
-番号は5系統（通し番号ではない）。**着手時に、実ファイルで次の番号を確かめる**（教訓4-47。下は 2026-10-18 時点）。
+番号は5系統（通し番号ではない）。**追記する前に、実ファイルの表の末尾で次の番号を確かめる**（教訓4-47・4-51。設計スレッドも同じ表に追記する）。下は 2026-10-25 時点（整合性の調査の修正のときに、実ファイルで確かめた。〔旧記述〕2026-10-18 時点で UI 43・文面 42〔補完・仮定 25〕）。
 
 | 系統 | 場所 | 次の番号 |
 |---|---|---|
 | 語彙 | `docs/decisions/presets.md` §6 と `docs/decisions/vocabulary/README.md` §5（通し番号） | 214 |
 | 入力項目 | `docs/decisions/input-items.md` §4 | 29 |
-| UI・非機能・保存 | `docs/decisions/ui-and-nonfunctional.md` §7（`docs/specifications/song-file.md` §10 にも同じ番号の表） | 43 |
+| UI・非機能・保存 | `docs/decisions/ui-and-nonfunctional.md` §7（`docs/specifications/song-file.md` §10 に、保存に関わる番号だけの要約の表） | 62 |
 | ツールプロファイル | `docs/specifications/tool-profile.md` §11 | 10 |
-| 依頼文の文面 | `docs/decisions/request-text.md` §5（補完・仮定は §6 で次は 25） | 42 |
+| 依頼文の文面 | `docs/decisions/request-text.md` §5（補完・仮定は §6 で次は 35） | 49 |
 
 仕様を変えたら、決定（`docs/decisions/`）と仕様（`docs/specifications/`）の両方、必要なら `docs/README.md`・`docs/decisions/README.md` を更新する。新しいファイルを作ったら、その場で `docs/README.md` に登録する。
 
@@ -226,6 +238,17 @@ ai-music-intent-builder/
 - 1回の作業は完結する単位に分け、区切りごとに要約を出す（4-11）
 - **語彙（md）や生成物（`presets/`）を変えたら、`build_presets.py` を実行し、`--check` が 0 であることと、`git diff` が意図した差だけであることを確かめる。新しい語彙を足したら、生成器のマニフェスト（`VOCABULARIES` など。`tools/build-presets/README.md` に書いてある）への登録を忘れない。** 2026-10-18、L-01 の `section-vocal` で登録を漏らし、Claude Code の Phase 0 で初めて判明した（教訓4-50）
 - Windows 環境の注意: `\` と `/` の違い、改行コード（§4 の4）、パスの空白・括弧
+- **判断ポイントの「次の番号」は、追記する前に実ファイルで確かめる**（4-51。設計スレッドが 2026-10-20 に追加。設計スレッドと Claude Code が同じ日に同じ番号〔53〕を使い、片方を 54 に振り直した）
+
+**実装で得た教訓（U0〜U5・手直し。§6 の各「結果」から集めた。2026-10-25）**:
+
+- Vue のリアクティブなオブジェクト（Proxy）は `structuredClone` できない。保存データの複製は JSON を通す（`domain/clone.ts`）。jsdom の単体テストは素のオブジェクトを渡すため、気づけなかった（U4a）
+- リアクティブなオブジェクトの「キーがあるか」は `in` で調べる（`hasOwnProperty` は Vue が追わない。U4 の手直し）
+- 1つの `UFormField` に複数の入力を入れるときは、入力ごとに id を付ける（id を共有すると、文字のクリックが先頭の入力に効く。U4 の手直し）
+- `UInputNumber` は、空を `null` ではなく `undefined` で出す（`== null` で調べる）。blur で部品自身が入力欄の文字を値に当て直すので、空を戻す処理は `nextTick` の後にする（判断ポイント56 の実装）
+- テストの初期データが全キーを持っていると、省略されたキーの経路が試されない。ファクトリープロファイルのような省略のあるデータでも試す（U4 の手直し）
+- vitest の結果は「Tests」の行だけでなく「Test Files」の行も見る。全体を並列で流すと重いテストが5秒を超えることがある（必要なテストだけ時間を延ばす。U4c）
+- 改行やバッククォート（テンプレート文字列）を含む置換は、シェルの `node -e`・heredoc を使わず Edit ツールで行うか、書き込んだあとに読み戻して確かめる
 
 ---
 
@@ -242,6 +265,6 @@ ai-music-intent-builder/
 
 **暗黙の前提**
 
-- 利用者の環境は Windows。Python と Node が使える。`jsonschema` は入っている（208ケースが通過した）
+- 利用者の環境は Windows。Python と Node が使える。`jsonschema` は入っている（2026-10-18 は 208 ケース、U1 以後は 212 ケースが通過した）
 - 検証（6モデルへの貼り付け）は利用者作業で、Claude Code は行えない
 - 文面（`request-text.md`）の変更は、レンダリング例と検証を伴うため、実装の途中での変更は避ける

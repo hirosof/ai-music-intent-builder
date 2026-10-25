@@ -2,7 +2,7 @@
 
 本プロジェクト（音楽生成AI用プロンプト作成依頼文ビルダー）のドキュメント一式。
 
-- 最終更新: 2026-10-18
+- 最終更新: 2026-10-25（整合性の調査〔`../think/audit-2026-10-25.md`〕による修正: 登録漏れ〔`lyrics.md`・`factory-profiles.json`・`rendered-06-input-songs/`・`suno-test-02-results/`〕、`tools/` の位置、§6 の進捗）。〔経緯〕2026-10-18
 - 作業用フォルダ: リポジトリ `ai-music-intent-builder`（`E:\Developments\ClaudeCode\ai-music-intent-builder\`）の **`design/v0/`**（2026-10-18 に移動。旧: `E:\AI_Works\Claude\ai-music-prompt-request-support\`。旧フォルダは移した時点の写しで、以後はリポジトリ側を正とする）。**本書中の `docs/`・`tools/` のパスやコマンドは、`design/v0/` 基準**。リポジトリ直下の `CLAUDE.md` が実装（Claude Code）の入口
 - 想定: 要件・仕様の議論をチャット側で行い、実装は自前開発または Claude Code 側で行う
 - 利用者: 本人のみ（認証・マルチユーザー対応は不要）
@@ -37,9 +37,12 @@ docs/
 │       ├── usage.md         用途（軸A）の語彙
 │       ├── temporal-structure.md 時間的な構造（軸E）の語彙
 │       ├── production-quality.md 制作・質感（軸F）の語彙
-│       └── small-choices.md     少数の択一項目7つ（軸A〜D）の語彙
+│       ├── small-choices.md     少数の択一項目7つ（軸A〜D）の語彙
+│       └── lyrics.md        歌詞の構成セクション（軸G。`section-vocal`。L-01、2026-10-16）の語彙
 ├── examples/                 依頼文のレンダリング例、検証観点、検証結果
-│   └── inputs/               レンダリング例の入力（楽曲データ JSON）。アプリの生成器の照合に使う（2026-10-18〜）。`*.generated.txt` は生成器の出力（例の元。生成物）
+│   ├── inputs/               レンダリング例の入力（楽曲データ JSON）。アプリの生成器の照合に使う（2026-10-18〜）。`*.generated.txt` は生成器の出力（例の元。生成物）
+│   ├── rendered-06-input-songs/  `-04` の入力と `-06` の A〜D の楽曲データ JSON（5件。`-06` §8-2 の確認の再現用。宿題39）
+│   ├── suno-test-02-results/  `suno-test-02` の解析結果（`../tools/suno-audio-compare` の出力。metrics.csv・report.md・results.json）
 │   ├── rendered-01-new-instrumental.md     第1回（初版）
 │   ├── rendered-01-new-instrumental-v2.md  第2回
 │   ├── rendered-01-new-instrumental-v3.md  第3回
@@ -68,6 +71,7 @@ docs/
 │   ├── presets.md            語彙のデータ仕様（＋ presets.schema.json、presets-index.schema.json）
 │   ├── presets/              語彙の生成物（tools/build-presets/ で生成。手で編集しない）
 │   ├── song-file.md          保存データの仕様（＋ song.schema.json、song-export.schema.json、ui-settings.schema.json、song.example.json、song-export.example.json）
+│   ├── factory-profiles.json ファクトリープロファイル6件（エクスポートファイルの形。判断ポイント39〜40。`song-file.md` §4-4）
 │   ├── input-items.md        入力項目の仕様（＋ fields.json、fields.schema.json）
 │   ├── tool-profile.md       ツールプロファイルの仕様（＋ tool-profile.schema.json、tool-profiles/suno.json）
 │   └── request-blocks.md     依頼文ブロックの出力条件とデータの出所（文面の正は decisions/request-text.md）
@@ -93,7 +97,7 @@ docs/
         └── 18_factory-profiles.md
 ```
 
-リポジトリ直下には `tools/` もある（`tools/suno-audio-compare/`: 生成曲を2グループに分けて音を比べる Python スクリプト。PC 内で完結する）。
+`design/v0/` の直下には `tools/` もある（リポジトリ直下ではない。リポジトリ直下には `app/`〔アプリ本体〕と `CLAUDE.md` がある。`tools/suno-audio-compare/`: 生成曲を2グループに分けて音を比べる Python スクリプト。PC 内で完結する）。
 `tools/build-presets/` は、`decisions/vocabulary/` の json ブロックを統合・検証して `specifications/presets/`（語彙ごとの JSON）を生成する Python スクリプト（`specifications/presets.md`）。
 `tools/check-fields/` は、入力項目の定義（`specifications/fields.json`）と語彙の整合、保存データ（楽曲データ・エクスポートファイル・ストア）の検証と、その負例テストを行う Python スクリプト（`specifications/input-items.md`、`specifications/song-file.md`）。`export_parity_cases.py` は、アプリ（`app/`）の検証との照合用の正解データを書き出す。
 `tools/measure-logs/` は、6モデルの検証ログ（`validations/prompt-test/results/`）の機械測定を行う Python スクリプト（2026-10-19〜。教訓4-40）。`measure_logs.py` は1つの例の回答から、スタイル欄・除外欄のコードブロックを取り出し、日本語の混入・文字数・否定の形・「自由記述」の位置・除外欄の語を測る。`length_summary.py` は、例をまたいで詳細プロンプトの文字数を集計する（目標・上限の超過。宿題50）。欄の見出しがない回答は、どの案もコードブロックが3つのときだけ並び順で取り出し、それ以外は取り出さずに一覧に出す。
@@ -237,7 +241,7 @@ E:\AI_Works\Claude\ai-music-prompt-request-support\docs\
 |---|---|
 | 1. スコープ確定 | 完了 |
 | 2. 依頼文の上位原則 | 完了 |
-| 3. 入力項目の洗い出し | 完了（骨格。選択肢の語彙は未作成） |
+| 3. 入力項目の洗い出し | 完了（骨格。選択肢の語彙は未作成 → 語彙は全軸完了。9 を参照） |
 | 4. 出力形式 | 完了（骨格） |
 | 5. UI 構成と非機能 | 完了 |
 | 6. 依頼文の実際の文面 | 完了（`decisions/request-text.md`。実用水準） |
@@ -246,5 +250,5 @@ E:\AI_Works\Claude\ai-music-prompt-request-support\docs\
 | 9. **選択肢の語彙の作成** | **完了（全軸A〜F。ジャンル16カテゴリ、楽器12カテゴリ、地域・情緒・用途・時間構造・制作質感。ジャンルの段階4b（数による非表示）のみ選択 UI の試作後に残す。`handoff-next-thread.md`）** |
 | 10. 派生生成ブロックの作成 | 完了（2026-09-23。B-DF・B-03d・B-01 の分岐。検証は `-02`・`-04`・`-06`）。**初版には含めない**（2026-10-18。F6 維持。派生生成は第2段階。`handoff-next-thread.md` 宿題48） |
 | 11. L-01（作詞）の本議論 | 決定・仕様・依頼文ブロックへの反映は完了（2026-09-28〜2026-10-17。`decisions/scope.md` §20、`input-items.md` 判断ポイント20〜27、`request-text.md` 判断ポイント19〜31）。レンダリング例 `-07`・`-08` を作成し、6モデルで検証済み（2026-10-17。両経路とも意図どおりに機能）。修正候補 R-1〜R-4 は利用者の判断で 2026-10-17 に `request-text.md`・`request-blocks.md` へ反映済み（R-2 は案a。**反映後は未再検証**）。2026-10-18 に候補7「依頼文の範囲（`output.requestScope` = `combined`／`style`／`lyrics`。スタイルと歌詞を別のチャットAIに依頼する使い方）」を設計・承認し、仕様・データ・チェッカー（F13）・文面（`request-text.md` 判断ポイント32〜35、`request-blocks.md` §3-4）へ反映。チェッカー・テストは実行済み（208/208通過。宿題44完了）。レンダリング例 `-09`・`-10` を作成し、6モデルで検証済み（2026-10-18。両範囲とも意図どおりに機能。R-1・R-4 の再検証も良好）。補完・仮定23（Q-09-1・Q-10-1）は利用者の承認で解決し、判断ポイント36として文面を条件化済み（条件化後の文面は未再検証。`handoff-next-thread.md` 宿題45）。R-2 反映後の再検証用に `-11` を作成し、6モデルで検証済み（2026-10-18。`-08` と同一入力。R-2・R-3・判断ポイント36① とも意図どおり。新規の論点 R-5〔歌詞の構成②のときの B-LY-B の文言〕は 2026-10-18 に適用済み（`request-text.md` 判断ポイント38。反映後は未再検証）。宿題41・46 完了）。T-02（判断ポイント39）と R-5 の反映後・Auto 経路の検証用に `-12` を作成し、6モデルで検証済み（2026-10-18。いずれも意図どおり。新規の論点 R-6〔除外欄の「使用しない」の列の値の漏れ〕は、案(b)（除外の合算行）を 2026-10-18 に適用済み（`request-text.md` 判断ポイント40。反映後は未再検証。宿題47 完了）） |
-| 12. `specifications/` への落とし込み | **一部完了**（語彙: `specifications/presets.md`、入力項目: `specifications/input-items.md`、保存データ: `specifications/song-file.md`、ツールプロファイル: `specifications/tool-profile.md`、依頼文ブロック: `specifications/request-blocks.md`（新規生成・派生生成は完成。歌ありは反映済み・6モデル検証済み）。ファクトリープロファイルの中身は完了。残り: UI の仕様（分類E。`decisions/README.md` 次のステップ） |
-| 13. 実装（自前または Claude Code） | 未着手。**移行判断は 2026-10-18 に利用者が承認**（`implementation-readiness.md`。結論: 移行してよい。条件は Phase 0 の確認5件と、Claude Code 向けの引き継ぎの用意。**利用者が承認済み**） |
+| 12. `specifications/` への落とし込み | **完了**（残っていた UI の仕様〔分類E〕は 2026-10-20 に U4e で確認。以下は 2026-10-18 までの記録）。**一部完了**（語彙: `specifications/presets.md`、入力項目: `specifications/input-items.md`、保存データ: `specifications/song-file.md`、ツールプロファイル: `specifications/tool-profile.md`、依頼文ブロック: `specifications/request-blocks.md`（新規生成・派生生成は完成。歌ありは反映済み・6モデル検証済み）。ファクトリープロファイルの中身は完了。残り: UI の仕様（分類E。`decisions/README.md` 次のステップ） |
+| 13. 実装（自前または Claude Code） | **初版は完了**（2026-10-20。U0〜U5。リポジトリ直下の `app/`。GitHub Pages で動作）。以後は使ってみての手直し（UI 判断ポイント54〜58。2026-10-21 に実装）。経過は `implementation-guide.md` §6。以下は着手前の記録: 未着手。**移行判断は 2026-10-18 に利用者が承認**（`implementation-readiness.md`。結論: 移行してよい。条件は Phase 0 の確認5件と、Claude Code 向けの引き継ぎの用意。**利用者が承認済み**） |

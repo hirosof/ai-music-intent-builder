@@ -2,9 +2,10 @@
 
 チャット系AI（ChatGPT・Claude・Gemini など）に、音楽生成AI（初版は Suno v6）用のプロンプトを作らせるための「依頼文」を組み立てる Web ツール。利用者本人のみが使う。応答は**日本語**。
 
-## 現在地（2026-10-19）
+## 現在地（2026-10-25）
 
-- 設計フェーズが完了し、実装フェーズに移る段階（移行判断は利用者承認済み。`design/v0/docs/implementation-readiness.md`）
+- 初版の実装は完了し、使ってみての手直しの段階（移行判断は利用者承認済み。`design/v0/docs/implementation-readiness.md`）
+- 2026-10-25: 設計書とリポジトリ全体の整合性を調べて直した（`design/v0/think/audit-2026-10-25.md`。UI 判断ポイント59〜61 を設計スレッドが記録）
 - Phase 0、U0（足場）、U1（データ層）、U2（依頼文の生成器）は完了（2026-10-19）。U2 は、レンダリング例 `-12`・`-13` と既存の例8本（`-11`・`-08`・`-07`・`-09`・`-10`・`-v4`・`-05`・`-03`）を、文書化された差（当て布）を除いて1文字単位で照合済み。持ち帰りもすべて決着（判断ポイント41〜48、補完・仮定32〜34）。U3（保存のデータ層。`app/src/domain/storage/`・`app/src/data/storage.ts`）も完了（2026-10-19。持ち帰り G1〜G5 は判断ポイント43〜47〔`ui-and-nonfunctional.md` の系統〕で決着）。U4（UI。U4a〜U4e と手直し）も完了（2026-10-20。持ち帰り H1〜H5 は判断ポイント48〜52、U4 で決めた表示の細部は53）。U5（仕上げ: チップ化の案内〔判断ポイント41〕・文字数超過の注意書き〔42〕・全体の検証）も完了（2026-10-20）。初版の実装は一通りそろった（公開は利用者が `.github/workflows/deploy.yml` を手動実行）。使ってみての手直し（判断ポイント54〜58: 大きい入力の畳み方・依頼文のカード・数値入力・長さの入力・①で値なしを作らない）も済んだ（2026-10-21）
 - **詳細はすべて `design/v0/docs/implementation-guide.md`**。最初に読むのは、これと本書だけ
 
@@ -30,7 +31,7 @@ design/v0/   設計（生きた仕様。実装中も直接更新する。「正�
 2. `design/v0/docs/implementation-guide.md`（Phase 0、単位ごとの読むファイルと受け入れ基準、作業の約束、教訓）
 3. 着手する単位に必要なファイルだけ（implementation-guide §6 の「読む」）
 
-**読まない（必要になるまで）**: `design/v0/docs/examples/`、`docs/discussions/`、`docs/research/`、`validations/`、`docs/handoff-next-thread.md`（設計スレッドの履歴。91KB）。設計書は大きい（実装で読む「正」だけで約320KB）ため、全部を読まない。
+**読まない（必要になるまで）**: `design/v0/docs/examples/`、`docs/discussions/`、`docs/research/`、`validations/`、`docs/handoff-next-thread.md`（設計スレッドの履歴。約130KB）。設計書は大きい（実装で読む「正」だけで約320KB）ため、全部を読まない。
 
 ## 作業の約束（要点）
 
@@ -75,7 +76,7 @@ npx oxfmt --check src/
 - 依頼文の生成器の正解は、レンダリング例の md（`@examples` = `design/v0/docs/examples`）から直接読む。入力は `examples/inputs/`。例との差は、出典つきの当て布（`Patch`）でだけ認める（文書化された差）
 - 構成: `src/domain/`（型と、画面に依存しない純関数。検証は `domain/validation/`、依頼文の生成器は `domain/request/`）、`src/data/`（仕様の JSON の読み込み）
 - 保存データの検証（`domain/validation/check-saved.ts`）は `check_fields.py` の移植で、文言も同じ。照合の正解データ（`src/domain/__tests__/fixtures/check-fields-cases.json`）は生成物で、`design/v0/tools/check-fields/export_parity_cases.py` が書き出す（手で編集しない）
-- Pinia・Playwright（e2e）は入っているが、使っていない（U0 の決定。使うかは U3・U4 で決める。e2e はブラウザ本体が未導入）
+- Pinia・Playwright（e2e）は入っているが、使わない（U0 で保留し、U3・U4 で使わないと決めた〔U3 の決定、U4 の J1・J8〕。e2e はブラウザ本体が未導入）
 
 ## 実行環境（2026-10-18 に確認）
 
@@ -86,7 +87,9 @@ npx oxfmt --check src/
 
 ## 最初にやること
 
-Phase 0（implementation-guide §4）、U0（足場）、U1（データ層）、U2a は完了（2026-10-18）。次は、U2b（`-11`・`-07`〜`-10`・`-v4`・`-03`・`-05` の照合）→ U3 →（設計スレッドで未定義の文面〔`request-blocks.md` §12-5〕が決まったら反映）。U2（依頼文の生成器。受け入れ基準: `-12` §1 との突き合わせ）。
+Phase 0、U0〜U5、初版の実装後の手直しは完了（2026-10-21）。新しいスレッドでは、`git status` で作業ツリーを確かめ、本書と implementation-guide（§6 の結果、§7 の設計スレッドとの往復、§8 の次の番号、§10 の教訓）を読んでから、利用者の指示を待つ（使ってみての気づきの手直しなど）。設計側の未決・保留は `docs/handoff-next-thread.md` §6 が正。
+
+〔2026-10-18 時点の記述〕Phase 0（implementation-guide §4）、U0（足場）、U1（データ層）、U2a は完了（2026-10-18）。次は、U2b → U3 →（設計スレッドで未定義の文面〔`request-blocks.md` §12-5〕が決まったら反映）。
 
 ## モデルについて
 
