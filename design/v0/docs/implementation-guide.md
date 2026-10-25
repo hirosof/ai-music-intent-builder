@@ -189,6 +189,12 @@ ai-music-intent-builder/
 3. 戻ってきたら、Claude Code は `git status`・`git diff` で実ファイルを確かめてから使う
 4. コミットは利用者の指示を受けてから行う。「設計スレッドの変更」と「Claude Code の変更」は、別のコミットにする（設計スレッドの変更は、Claude Code は内容を変えずにコミットする。メッセージは「設計:」で始める）。push と GitHub Pages への公開は利用者が行う
 5. 設計スレッドは主に `handoff-next-thread.md` を、Claude Code は主に `CLAUDE.md` と本書を読む。片方にだけ書いた事実は、もう片方に伝わらないことがある（2026-10-25 の整合性の調査で多数見つかった）。設計側の未決・保留の一覧は `handoff-next-thread.md` §6 が正
+6. **同じ事実の置き場所は1つにする**（2026-10-26。設計スレッドの提案、利用者の承認。2026-10-25 の整合性の調査で、同じ事実を複数の場所に書いて片方だけ更新された食い違いが多かったため）。ほかの文書は参照だけにする
+   - 実装の事実（実装の単位の完了、テストの件数、コミット、検証の結果）: 本書 §6 が正。`handoff-next-thread.md` は参照だけ
+   - 設計の未決・保留・宿題: `handoff-next-thread.md` §6 が正。本書・`CLAUDE.md` は参照だけ
+   - 判断ポイントの中身: 各系統の表（§8）が正。ほかの文書は番号で参照する
+   - 判断ポイントの次の番号: 文書に書かない。`tools/check-docs/check_docs.py --next` で確かめる（教訓4-51）
+   - 引き継ぎ書の追記（日付つきの履歴）は当時の記録で、あとから書き換えない。追記の中の値は消さない
 
 **機械検査の一覧（2026-10-26）**: 作業の区切り・コミットの前に、一通り回す。コマンドは `CLAUDE.md` の「コマンド」と「アプリのコマンド」。
 
@@ -200,15 +206,17 @@ ai-music-intent-builder/
 
 ## 8. 判断ポイントの番号と、記録の場所
 
-番号は5系統（通し番号ではない）。**追記する前に、実ファイルの表の末尾で次の番号を確かめる**（教訓4-47・4-51。設計スレッドも同じ表に追記する）。下は 2026-10-25 時点（整合性の調査の修正のときに、実ファイルで確かめた。〔旧記述〕2026-10-18 時点で UI 43・文面 42〔補完・仮定 25〕）。
+番号は5系統（通し番号ではない）。設計スレッドも同じ表に追記する。
 
-| 系統 | 場所 | 次の番号 |
-|---|---|---|
-| 語彙 | `docs/decisions/presets.md` §6 と `docs/decisions/vocabulary/README.md` §5（通し番号） | 214 |
-| 入力項目 | `docs/decisions/input-items.md` §4 | 29 |
-| UI・非機能・保存 | `docs/decisions/ui-and-nonfunctional.md` §7（`docs/specifications/song-file.md` §10 に、保存に関わる番号だけの要約の表） | 62 |
-| ツールプロファイル | `docs/specifications/tool-profile.md` §11 | 10 |
-| 依頼文の文面 | `docs/decisions/request-text.md` §5（補完・仮定は §6 で次は 35） | 49 |
+**次の番号は `python tools/check-docs/check_docs.py --next` で確かめる（教訓4-51）。** 値は文書に書かない（書くと、片方だけ更新されて食い違う。2026-10-25 の整合性の調査で、この記載が古いまま残っていた。2026-10-26 に値を消した）。依頼文の補完・仮定（`request-text.md` §6）の次の番号も `--next` で出る。
+
+| 系統 | 場所 |
+|---|---|
+| 語彙 | `docs/decisions/presets.md` §6 と `docs/decisions/vocabulary/README.md` §5（通し番号。一方のファイルに、もう一方を指す参照の行がある） |
+| 入力項目 | `docs/decisions/input-items.md` §4 |
+| UI・非機能・保存 | `docs/decisions/ui-and-nonfunctional.md` §7（`docs/specifications/song-file.md` §10 に、保存に関わる番号だけの要約の表） |
+| ツールプロファイル | `docs/specifications/tool-profile.md` §11 |
+| 依頼文の文面 | `docs/decisions/request-text.md` §5（補完・仮定は §6） |
 
 仕様を変えたら、決定（`docs/decisions/`）と仕様（`docs/specifications/`）の両方、必要なら `docs/README.md`・`docs/decisions/README.md` を更新する。新しいファイルを作ったら、その場で `docs/README.md` に登録する。
 
