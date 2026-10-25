@@ -1,0 +1,96 @@
+{
+  "_説明": "check_docs.py の許可リスト。意図した例・過去からある欠番などを、理由（reason）つきで入れる。理由のない項目は設定の誤りになる。使われなくなった項目は警告で知らせる。形は README.md の「許可リスト」",
+  "a1": [],
+  "a2": [],
+  "a3": [
+    {
+      "file": "design/v0/docs/handoff-next-thread.md",
+      "path": "./assets/suno-test-02/",
+      "reason": "追記22（2026-10-18）の履歴。旧い画像の場所を、直した経緯として書いている"
+    },
+    {
+      "file": "design/v0/docs/handoff-next-thread.md",
+      "path": "../input-items.md",
+      "reason": "§5 の「相対パスの深さに注意」で、decisions/vocabulary/ からの書き方を例として示している"
+    },
+    {
+      "file": "design/v0/docs/handoff-next-thread.md",
+      "path": "../../research/",
+      "reason": "§5 の「相対パスの深さに注意」で、decisions/vocabulary/ からの書き方を例として示している"
+    },
+    {
+      "file": "design/v0/docs/discussions/2026-09/06_presets-split-and-metal.md",
+      "path": "../research/",
+      "reason": "議論ログ（追記のみ）。直す前の誤ったパスを、修正の経緯として書いている"
+    },
+    {
+      "file": "design/v0/docs/discussions/2026-09/08_vocabulary-remaining-families-and-stage-4b.md",
+      "path": "../../../examples/",
+      "reason": "議論ログ（追記のみ）。genres/ からの書き方を、修正の経緯として書いている"
+    },
+    {
+      "file": "design/v0/docs/examples/suno-test-02-jp-traditional-vs-style.md",
+      "path": "./assets/suno-test-02/",
+      "reason": "「旧: ./assets/suno-test-02/」として、2026-10-18 に整理する前の画像の場所を書いている"
+    }
+  ],
+  "a4": [
+    {
+      "file": "design/v0/docs/handoff-next-thread.md",
+      "kind": "fwdigit",
+      "contains": "半角数字が全角「２３」になる",
+      "reason": "教訓4-27 で、全角数字に化けた例を引用している"
+    },
+    {
+      "file": "design/v0/docs/handoff-next-thread.md",
+      "kind": "uesc",
+      "contains": "`\\u9636`（阶）と `\\u968E`（階）",
+      "reason": "教訓4-35 で、\\uXXXX の打ち間違いの例を引用している"
+    },
+    {
+      "file": "design/v0/docs/handoff-next-thread.md",
+      "kind": "fffd",
+      "contains": "`head` オプションが日本語の文字を途中で割って",
+      "reason": "追記6 で、read_text_file の head が出す置換文字そのものを例として書いている（教訓4-48）"
+    },
+    {
+      "file": "design/v0/docs/handoff-next-thread.md",
+      "kind": "fffd",
+      "contains": "### 4-48. `read_text_file` の `head` オプション",
+      "reason": "教訓4-48 の見出しで、置換文字そのものを例として書いている"
+    },
+    {
+      "file": "design/v0/docs/handoff-next-thread.md",
+      "kind": "fffd",
+      "contains": "`head: 400` 付きで読んだ `rendered-08` に",
+      "reason": "教訓4-48 の本文で、置換文字そのものを例として書いている"
+    },
+    {
+      "file": "design/v0/docs/examples/suno-test-02-results/report.md",
+      "kind": "cr",
+      "reason": "保留（2026-10-26 の導入時に発見。設計スレッドの判断待ち）: 作業ツリーだけ CRLF で、Git の中身は LF（git ls-files --eol で i/lf w/crlf）"
+    },
+    {
+      "file": "design/v0/docs/research/genres/README.md",
+      "kind": "cr",
+      "reason": "保留（2026-10-26 の導入時に発見。設計スレッドの判断待ち）: 作業ツリーだけ CRLF で、Git の中身は LF"
+    },
+    {
+      "file": "design/v0/docs/research/instruments/README.md",
+      "kind": "cr",
+      "reason": "保留（2026-10-26 の導入時に発見。設計スレッドの判断待ち）: 作業ツリーだけ CRLF で、Git の中身は LF"
+    }
+  ],
+  "a5": [
+    {
+      "file": "design/v0/docs/handoff-next-thread.md",
+      "contains": "「次は54」と引き継ぎ書に書いたが",
+      "reason": "教訓4-51 で、番号が重複しかけた経緯を例として書いている"
+    },
+    {
+      "file": "design/v0/docs/handoff-next-thread.md",
+      "contains": "| ~~40~~ | ~~歌あり（L-01）の文面の修正候補",
+      "reason": "§6 の完了した宿題40 の経緯（当時の次の番号 28）"
+    }
+  ]
+}

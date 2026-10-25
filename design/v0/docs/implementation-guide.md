@@ -190,6 +190,12 @@ ai-music-intent-builder/
 4. コミットは利用者の指示を受けてから行う。「設計スレッドの変更」と「Claude Code の変更」は、別のコミットにする（設計スレッドの変更は、Claude Code は内容を変えずにコミットする。メッセージは「設計:」で始める）。push と GitHub Pages への公開は利用者が行う
 5. 設計スレッドは主に `handoff-next-thread.md` を、Claude Code は主に `CLAUDE.md` と本書を読む。片方にだけ書いた事実は、もう片方に伝わらないことがある（2026-10-25 の整合性の調査で多数見つかった）。設計側の未決・保留の一覧は `handoff-next-thread.md` §6 が正
 
+**機械検査の一覧（2026-10-26）**: 作業の区切り・コミットの前に、一通り回す。コマンドは `CLAUDE.md` の「コマンド」と「アプリのコマンド」。
+
+- 設計側（`design/v0/` で実行）: `tools/check-fields/check_fields.py`（`--song docs/specifications/song.example.json` も）、`tools/check-fields/test_check_fields.py`（212ケース。2分以上かかる）、`tools/build-presets/build_presets.py --check`、`tools/check-fields/export_parity_cases.py --check`、**`tools/check-docs/check_docs.py`（設計書の機械検査。エラー0。`tools/check-docs/README.md`）**
+- アプリ（`app/` で実行）: `npx vitest run`、`npm run build`（型検査＋ビルド）、`npx oxlint .`、`npx eslint .`、`npx oxfmt --check src/`
+- 文書を変えたときは、少なくとも `check_docs.py` を流す。`check_docs.py` の検査や許可リストを変えたときは、`tools/check-docs/test_check_docs.py` も流す
+
 ---
 
 ## 8. 判断ポイントの番号と、記録の場所
