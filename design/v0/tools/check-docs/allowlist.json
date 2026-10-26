@@ -64,21 +64,6 @@
       "kind": "fffd",
       "contains": "`head: 400` 付きで読んだ `rendered-08` に",
       "reason": "教訓4-48 の本文で、置換文字そのものを例として書いている"
-    },
-    {
-      "file": "design/v0/docs/examples/suno-test-02-results/report.md",
-      "kind": "cr",
-      "reason": "保留（2026-10-26 の導入時に発見。設計スレッドの判断待ち）: 作業ツリーだけ CRLF で、Git の中身は LF（git ls-files --eol で i/lf w/crlf）"
-    },
-    {
-      "file": "design/v0/docs/research/genres/README.md",
-      "kind": "cr",
-      "reason": "保留（2026-10-26 の導入時に発見。設計スレッドの判断待ち）: 作業ツリーだけ CRLF で、Git の中身は LF"
-    },
-    {
-      "file": "design/v0/docs/research/instruments/README.md",
-      "kind": "cr",
-      "reason": "保留（2026-10-26 の導入時に発見。設計スレッドの判断待ち）: 作業ツリーだけ CRLF で、Git の中身は LF"
     }
   ],
   "a5": [

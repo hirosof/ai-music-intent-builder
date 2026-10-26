@@ -2,12 +2,9 @@
 
 チャット系AI（ChatGPT・Claude・Gemini など）に、音楽生成AI（初版は Suno v6）用のプロンプトを作らせるための「依頼文」を組み立てる Web ツール。利用者本人のみが使う。応答は**日本語**。
 
-## 現在地（2026-10-25）
+## 現在地
 
-- 初版の実装は完了し、使ってみての手直しの段階（移行判断は利用者承認済み。`design/v0/docs/implementation-readiness.md`）
-- 2026-10-25: 設計書とリポジトリ全体の整合性を調べて直した（`design/v0/think/audit-2026-10-25.md`。UI 判断ポイント59〜61 を設計スレッドが記録）
-- Phase 0、U0（足場）、U1（データ層）、U2（依頼文の生成器）は完了（2026-10-19）。U2 は、レンダリング例 `-12`・`-13` と既存の例8本（`-11`・`-08`・`-07`・`-09`・`-10`・`-v4`・`-05`・`-03`）を、文書化された差（当て布）を除いて1文字単位で照合済み。持ち帰りもすべて決着（判断ポイント41〜48、補完・仮定32〜34）。U3（保存のデータ層。`app/src/domain/storage/`・`app/src/data/storage.ts`）も完了（2026-10-19。持ち帰り G1〜G5 は判断ポイント43〜47〔`ui-and-nonfunctional.md` の系統〕で決着）。U4（UI。U4a〜U4e と手直し）も完了（2026-10-20。持ち帰り H1〜H5 は判断ポイント48〜52、U4 で決めた表示の細部は53）。U5（仕上げ: チップ化の案内〔判断ポイント41〕・文字数超過の注意書き〔42〕・全体の検証）も完了（2026-10-20）。初版の実装は一通りそろった（公開は利用者が `.github/workflows/deploy.yml` を手動実行）。使ってみての手直し（判断ポイント54〜58: 大きい入力の畳み方・依頼文のカード・数値入力・長さの入力・①で値なしを作らない）も済んだ（2026-10-21）
-- **詳細はすべて `design/v0/docs/implementation-guide.md`**。最初に読むのは、これと本書だけ
+初版は完了し、使ってみての手直しの段階。実装の詳細（単位の完了・テストの件数・コミット・検証の結果）は `design/v0/docs/implementation-guide.md` §6、設計側の未決・保留は `design/v0/docs/handoff-next-thread.md` §6 が正（ここには写さない。同じ事実の置き場所の規則。implementation-guide §7 の6）。最初に読むのは、implementation-guide と本書だけ。
 
 ## リポジトリの構成
 
@@ -54,7 +51,7 @@ python -m venv .venv
 ```
 .venv/Scripts/python tools/check-fields/check_fields.py
 .venv/Scripts/python tools/check-fields/check_fields.py --song docs/specifications/song.example.json
-.venv/Scripts/python tools/check-fields/test_check_fields.py   # 期待: 212ケース通過・スキップ0（2分以上かかる）
+.venv/Scripts/python tools/check-fields/test_check_fields.py   # 期待: 全件が期待どおり（スキップ0）。2分以上かかる
 .venv/Scripts/python tools/check-fields/export_parity_cases.py # アプリの検証との照合用の正解データを書き出す（--check で最新か確認）。検査やテストを変えたら実行し、アプリのテストも流す
 .venv/Scripts/python tools/build-presets/build_presets.py      # 語彙（md）を変えたときに再生成
 .venv/Scripts/python tools/build-presets/build_presets.py --check   # 生成物が最新か（終了コード0）。語彙を変えたら最後に必ず行う
@@ -92,9 +89,7 @@ npx oxfmt --check src/
 
 ## 最初にやること
 
-Phase 0、U0〜U5、初版の実装後の手直しは完了（2026-10-21）。新しいスレッドでは、`git status` で作業ツリーを確かめ、本書と implementation-guide（§6 の結果、§7 の設計スレッドとの往復、§8 の次の番号、§10 の教訓）を読んでから、利用者の指示を待つ（使ってみての気づきの手直しなど）。設計側の未決・保留は `docs/handoff-next-thread.md` §6 が正。
-
-〔2026-10-18 時点の記述〕Phase 0（implementation-guide §4）、U0（足場）、U1（データ層）、U2a は完了（2026-10-18）。次は、U2b → U3 →（設計スレッドで未定義の文面〔`request-blocks.md` §12-5〕が決まったら反映）。
+新しいスレッドでは、`git status` で作業ツリーを確かめ、本書と implementation-guide（§6 の結果、§7 の設計スレッドとの往復と機械検査の一覧、§8 の判断ポイントの系統、§10 の教訓）を読んでから、利用者の指示を待つ（使ってみての気づきの手直しなど）。判断ポイントの次の番号は `check_docs.py --next` で確かめる。
 
 ## モデルについて
 
