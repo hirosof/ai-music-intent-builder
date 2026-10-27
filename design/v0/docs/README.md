@@ -59,7 +59,7 @@ docs/
 │   ├── rendered-11-new-vocal-lyrics-instruction-r2.md  新規生成・歌あり（作詞AIへの指示文）。R-2 反映後の再検証用（`-08` と同一入力。6モデルで検証済み）
 │   ├── rendered-12-new-vocal-lyrics-instruction-auto.md  新規生成・歌あり（作詞AIへの指示文）・長さ Auto。R-5・T-02・Auto 経路の検証用（`-11` と同一入力で長さだけ Auto。6モデルで検証済み）
 │   ├── rendered-13-new-instrumental-freetext-all-english.md  新規生成・インスト・出力言語＝すべて英語。自由記述・BPM 範囲・Max モード推奨・R-6 の確認用。入力 `inputs/rendered-13.json`、依頼文は生成器の出力。6モデルで検証済み
-│   ├── rendered-14-new-vocal-chat-ai-japanese-kanji.md  新規生成・歌あり（チャットAIが作詞）・歌詞の言語①日本語。日本語の歌詞の表記（判断ポイント49）の再検証用。入力 `inputs/rendered-14.json`、依頼文は生成器の出力。未検証
+│   ├── rendered-14-new-vocal-chat-ai-japanese-kanji.md  新規生成・歌あり（チャットAIが作詞）・歌詞の言語①日本語。日本語の歌詞の表記（判断ポイント49）の再検証用。入力 `inputs/rendered-14.json`、依頼文は生成器の出力。6モデルで検証済み（2026-10-28）
 │   ├── chat-test-01-jp-lyrics-kanji.md    チャットAIでのお試し（2026-10-27。日本語の歌詞の漢字・かな・振り仮名。7条件×6モデル）の記録と計測。判断ポイント49 の根拠
 │   ├── suno-test-01-granularity.md        Suno での検証（H-07）
 │   ├── suno-test-02-jp-traditional-vs-style.md  Suno での検証（H-09。判定不能）
