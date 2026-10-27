@@ -20,6 +20,7 @@ const STATE_LABEL: Record<StateId, string> = {
   toolManaged: 'ツール任せ',
 }
 const LEAVE_SUFFIX = '（足さない。触れないまま残す）'
+const JA_KANJI_SUFFIX = ' (漢字使用可能)'
 const LEAVE_TEXT = 'お任せ — 指定しないまま残す'
 
 // vocalMode によって無効になる項目（song-file.md §2-3。request-blocks.md §3-3）
@@ -179,6 +180,9 @@ function valueRow(ctx: RequirementsContext, f: FieldDef): Row {
     const bpm = f.kind === 'bpm' ? bpmText(v) : null
     if (f.kind === 'select' && (typeof v === 'string' || free)) {
       value = withFreeText(typeof v === 'string' ? valueLabel(ctx, f, v) : '', free)
+      // 判断ポイント49: 歌詞本文の言語が①日本語、かつ chat-ai のとき（半角の空白と半角の括弧。画面の表示名は変えない）
+      if (f.id === 'lyricsLanguage' && v === 'japanese' && ctx.req.lyricsAuthor === 'chat-ai')
+        value += JA_KANJI_SUFFIX
       specificity =
         typeof v === 'string' && f.leaveValues?.includes(v)
           ? '—'

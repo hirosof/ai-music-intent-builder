@@ -13,6 +13,7 @@ import {
   DEVELOPMENT_SHAPE_03,
   DP36_2,
   DP44_ALL_ENGLISH,
+  DP49_KANJI,
   Q02_ORDER,
   Q02_ORDER_OFF,
   R1,
@@ -85,7 +86,7 @@ const CASES: Record<string, ExampleCase> = {
   '-07（chat-ai・構成①・テーマ②）': {
     md: 'rendered-07-new-vocal-chat-ai.md',
     input: 'rendered-07.json',
-    patches: [Q02_ORDER, R2_52, T02, R1, RAP, R6_TEXT, R4_LY, R3, R4_OUT],
+    patches: [Q02_ORDER, R2_52, T02, R1, RAP, R6_TEXT, R4_LY, R3, R4_OUT, DP49_KANJI],
   },
   '-09（requestScope = style）': {
     md: 'rendered-09-new-vocal-style-only.md',
@@ -95,7 +96,7 @@ const CASES: Record<string, ExampleCase> = {
   '-10（requestScope = lyrics・曲名案）': {
     md: 'rendered-10-new-vocal-lyrics-only.md',
     input: 'rendered-10.json',
-    patches: [DP36_2],
+    patches: [DP36_2, DP49_KANJI],
   },
   '-01-v4（インスト・除外あり・長さ 3:00）': {
     md: 'rendered-01-new-instrumental-v4.md',

@@ -189,6 +189,65 @@ describe('依頼文の生成器: 2026-10-18 に決めた文面（request-text.md
   })
 })
 
+describe('依頼文の生成器: 日本語の歌詞の表記（request-text.md 判断ポイント49）', () => {
+  const NEW_KANJI =
+    '- 漢字には、意図した発音になるよう、すべての漢字の直後に、ひらがなで振り仮名を付けてください（例: 漢字（かんじ）、揺（ゆ）れる）。'
+  const jaRow = '| 歌詞本文の言語 | 指定 | 日本語 (漢字使用可能) |'
+  const withLang = (author: SongRequest['lyricsAuthor'], lang: SongRequest['axes'][string]) => {
+    const req = base()
+    req.lyricsAuthor = author
+    req.axes.lyricsLanguage = lang
+    return gen(req)
+  }
+
+  it('(1) ①日本語・chat-ai: 値は「日本語 (漢字使用可能)」（半角の空白と半角の括弧）', () => {
+    const t = withLang('chat-ai', { state: 'specified', value: 'japanese' })
+    expect(t).toContain(jaRow)
+    expect(t).not.toContain('日本語（漢字使用可能）')
+  })
+
+  it('(1) 依頼文の範囲が style でも、G の表（参照用）の値に付ける', () => {
+    const req = base()
+    req.lyricsAuthor = 'chat-ai'
+    req.output.requestScope = 'style'
+    req.axes.lyricsLanguage = { state: 'specified', value: 'japanese' }
+    expect(gen(req)).toContain(jaRow)
+  })
+
+  it('(1) 付けない側: chat-ai-instruction・混在・②お任せ（フォールバックの日本語）', () => {
+    expect(withLang('chat-ai-instruction', { state: 'specified', value: 'japanese' })).toContain(
+      '| 歌詞本文の言語 | 指定 | 日本語 |',
+    )
+    expect(withLang('chat-ai', { state: 'specified', value: 'mixed' })).not.toContain(
+      '漢字使用可能',
+    )
+    expect(withLang('chat-ai', { state: 'delegated' })).not.toContain('漢字使用可能')
+  })
+
+  it('(1) 画面の表示名（fields.json の「日本語」）は変えない', () => {
+    const f = spec.fieldById.get('lyricsLanguage')!
+    expect(f.options?.find((o) => o.id === 'japanese')?.label).toBe('日本語')
+  })
+
+  it('(2) B-LY-ja（chat-ai）の1つめの箇条は「すべての漢字に振り仮名」。②お任せ・混在でも出る', () => {
+    for (const lang of [
+      { state: 'specified', value: 'japanese' },
+      { state: 'specified', value: 'mixed' },
+      { state: 'delegated' },
+    ] as SongRequest['axes'][string][]) {
+      const t = withLang('chat-ai', lang)
+      expect(t).toContain(`歌詞を日本語で書く場合は、次の点に配慮してください。\n\n${NEW_KANJI}\n`)
+      expect(t).not.toContain('読み方が複数ある漢字')
+    }
+  })
+
+  it('(2) chat-ai-instruction の版は変えない', () => {
+    const t = withLang('chat-ai-instruction', { state: 'specified', value: 'japanese' })
+    expect(t).toContain('「読み方が複数ある漢字はひらがなで書く」ことを、指示文に含めてください。')
+    expect(t).not.toContain('振り仮名')
+  })
+})
+
 describe('依頼文の生成器: 利用者が入力した文字列（判断ポイント43）', () => {
   it('前後の空白を除き、改行は「 / 」1つに（空行が続くときも1つ）、セルの「|」は「\\|」に', () => {
     const req = base()
