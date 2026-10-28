@@ -186,7 +186,7 @@ python tools/check-fields/check_fields.py --markdown            # §3 の表を�
 | id | 項目 | 種類 | 既定値 | 選択肢 |
 |---|---|---|---|---|
 | `variantCount` | 案の数 | 数値 | 3（仮） | — |
-| `diffAxis` | 案ごとの差の付け方 | 単一選択 | `auto`（お任せ） | お任せ／情緒の幅／編成の幅／質感の幅／解釈の幅 |
+| `diffAxis` | 案ごとの差の付け方 | 単一選択 | `auto`（お任せ） | お任せ／情緒の幅／編成の幅／質感の幅／解釈の幅。選択肢ごとに、画面の説明（`description`）と対象のグループ（`targetGroups`。情緒＝`mood-tone`、編成＝`sound`、質感＝`production`。解釈は「お任せ」の項目すべて）を持つ（2026-10-29。UI 判断ポイント63） |
 | `granularity` | 出力する粒度 | 複数選択 | 基本・詳細の両方 | 基本／詳細 |
 | `variation` | 想定するバリエーション | 単一選択 | `standard` | ツールプロファイルのパラメータ `variation` の値（Suno: オフ／標準／高／超高／最大） |
 | `outputLanguage` | 出力言語 | 単一選択 | `mixed`（標準） | すべて英語／すべて日本語／標準 |
