@@ -113,7 +113,7 @@ ai-music-intent-builder/
 
 ### U1 データ層
 
-- 内容: 項目定義（`fields.json`）、語彙（`presets/`）、ツールプロファイル（`suno.json`）の読み込み。楽曲データの型と検証（`song.schema.json` を共有）。**検証の意味の規則は、`tools/check-fields/check_fields.py` が参照実装**（D1〜D12、S1〜S6、R、O1〜O4、F0〜F13、P0〜P11）
+- 内容: 項目定義（`fields.json`）、語彙（`presets/`）、ツールプロファイル（`suno.json`）の読み込み。楽曲データの型と検証（`song.schema.json` を共有）。**検証の意味の規則は、`tools/check-fields/check_fields.py` が参照実装**（D1〜D13、S1〜S6、R、O1〜O4、F0〜F13、P0〜P11）
 - 読む（目安 約200KB）: `docs/specifications/input-items.md`（27KB）、`fields.json`（19KB）、`fields.schema.json`（11KB）、`presets.md`（25KB）と `presets/index.json`・数ファイル、`tool-profile.md`（30KB）と `tool-profiles/suno.json`、`song-file.md`（41KB）と `song.schema.json`（7KB）・`song.example.json`、`tools/check-fields/check_fields.py`（54KB。必要な検査から）
 - 受け入れ基準: `song.example.json`・`song-export.example.json`・`factory-profiles.json` が、`check_fields.py` と同じ結果（エラー0・警告0）になる。負例（`test_check_fields.py` の主要なもの）で、同じ種類の指摘が出る
 - 分けてよい: U1a（項目・語彙・ツールプロファイル）／U1b（楽曲データの型と検証）

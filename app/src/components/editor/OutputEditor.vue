@@ -5,6 +5,7 @@ import { computed, nextTick, ref } from 'vue'
 import { spec } from '@/data/spec'
 import { isOutOfScope } from '@/domain/editor/cards'
 import { COUNT_RANGE } from '@/domain/editor/edit'
+import { diffAxisNotice } from '@/domain/editor/notices'
 import type { SongRequest } from '@/domain/types/song'
 
 const props = defineProps<{ request: SongRequest; scopeRequest: SongRequest }>()
@@ -18,8 +19,21 @@ function set(id: string, v: unknown) {
   props.request.output[id] = v
 }
 const hidden = (id: string) => isOutOfScope(spec, props.scopeRequest, id)
+// 選択肢の説明（description）は、ドロップダウンの中に出す（UI 判断ポイント63 (A)。いまは diffAxis だけが持つ）
 const options = (id: string) =>
-  (spec.outputById.get(id)?.options ?? []).map((o) => ({ value: o.id, label: o.label }))
+  (spec.outputById.get(id)?.options ?? []).map((o) => ({
+    value: o.id,
+    label: o.label,
+    ...(o.description ? { description: o.description } : {}),
+  }))
+// 説明は既定では1行で切れる（truncate）ため、折り返して全文を出し、一覧の幅と高さを広げる
+const DESCRIBED_SELECT_UI = {
+  itemDescription: 'whitespace-normal',
+  content:
+    'min-w-[min(26rem,calc(100vw-2rem))] max-h-[min(28rem,var(--reka-select-content-available-height,28rem))]',
+}
+// 案ごとの差が付きにくいときの案内（UI 判断ポイント63 (B)）
+const diffNotice = computed(() => diffAxisNotice(spec, props.request, props.scopeRequest))
 const profile = computed(() => spec.toolProfileById.get(props.request.toolId))
 const variationItems = computed(() => {
   const p = profile.value?.params.find(
@@ -96,10 +110,14 @@ const scopeNote = '（依頼文の範囲により、依頼文に出ません）'
       <USelect
         :model-value="out('diffAxis') as string"
         :items="options('diffAxis')"
+        :ui="DESCRIBED_SELECT_UI"
         class="w-full sm:w-64"
         data-testid="input-diffAxis"
         @update:model-value="(v: string) => set('diffAxis', v)"
       />
+      <p v-if="diffNotice" class="mt-1 text-xs text-muted" data-testid="notice-diffAxis">
+        {{ diffNotice }}
+      </p>
     </UFormField>
     <UFormField
       :label="fieldLabel('granularity')"

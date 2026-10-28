@@ -218,6 +218,11 @@ def check_definitions(fields, vocabs, report):
             report.error("D11 出力項目の既定値は真偽値: %s" % o["id"])
         if k == "number" and not isinstance(dflt, (int, float)):
             report.error("D11 出力項目の既定値は数値: %s" % o["id"])
+        for x in opts or []:
+            tg = x.get("targetGroups")
+            for g in tg if isinstance(tg, list) else []:  # 配列でないものは D1（スキーマ）が報告する
+                if g not in groups:
+                    report.error("D13 選択肢の対象のグループが未定義: %s/%s → %s" % (o["id"], x["id"], g))
     return fk
 
 

@@ -2,7 +2,9 @@
 // 依頼文は変えず、UI で案内する。文面・閾値・一言は、初版は UI の定数（ツールプロファイルに属性を足さない）
 import type { Spec } from '../spec'
 import type { SongRequest } from '../types/song'
-import { requestScopeOf } from './cards'
+import { INSTRUMENTAL_ONLY_FIELDS, VOCAL_ONLY_FIELDS } from '../validation/check-saved'
+import { isOutOfScope, requestScopeOf } from './cards'
+import { currentState } from './edit'
 
 /** 注意書きを出す対象ツール（どちらも Suno 固有の案内） */
 const SUNO = 'suno'
@@ -62,3 +64,39 @@ export const CHIP_NOTICE = {
   after:
     '240文字までなら、そのまま貼って送信できます。この一言で指示がどの程度歌詞に反映されるかは、まだ確認できていません。',
 } as const
+
+// 解釈の幅（対象のグループを持たず、「お任せ」の項目すべてが対象。UI 判断ポイント63）
+const DIFF_AXIS_INTERPRETATION = 'interpretation'
+
+/**
+ * UI 判断ポイント63 (B) 案ごとの差の付け方の案内。選んだ軸で変えられる項目（「お任せ」の項目）がないとき、文を返す（止めない）。
+ * 出す条件: 依頼文に案ごとの差の付け方が出るとき（案の数が2以上、依頼文の範囲で外れていない）。
+ * 対象は今の vocalMode で有効な項目。「既定値」「ツール任せ」は「お任せ」でない側に数える。
+ * ②で何も足させない項目（rule が leave。除外・補足）は、差の付けようがないため数えない。
+ * scopeReq は依頼文の範囲を見る依頼（isOutOfScope と同じ）
+ */
+export function diffAxisNotice(
+  spec: Spec,
+  req: SongRequest,
+  scopeReq: SongRequest = req,
+): string | null {
+  const out = (id: string) => (id in req.output ? req.output[id] : spec.outputById.get(id)?.default)
+  if (isOutOfScope(spec, scopeReq, 'diffAxis')) return null
+  const count = out('variantCount')
+  if (typeof count !== 'number' || count < 2) return null
+  const option = spec.outputById.get('diffAxis')?.options?.find((o) => o.id === out('diffAxis'))
+  const targets = option?.targetGroups
+  if (!targets && option?.id !== DIFF_AXIS_INTERPRETATION) return null
+  const invalid = new Set(req.vocalMode === 'vocal' ? INSTRUMENTAL_ONLY_FIELDS : VOCAL_ONLY_FIELDS)
+  const fields = spec.fieldsDef.fields.filter(
+    (f) =>
+      !invalid.has(f.id) &&
+      !isOutOfScope(spec, scopeReq, f.id) &&
+      f.states.delegated?.rule !== 'leave' &&
+      (!targets || targets.includes(f.group)),
+  )
+  if (fields.length === 0 || fields.some((f) => currentState(req, f) === 'delegated')) return null
+  return targets
+    ? `この軸の項目（${fields.map((f) => f.label).join('・')}）は、どれも「お任せ」でないため、案ごとの差が付きにくくなります`
+    : '「お任せ」の項目がないため、案ごとの差が付きにくくなります'
+}

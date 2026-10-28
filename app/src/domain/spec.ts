@@ -1,5 +1,5 @@
 // 仕様の定義（項目・語彙・ツールプロファイル）を、引きやすい形にまとめる。純関数（読み込み元に依存しない）。
-// 定義のファイルそのものの正しさは、設計側の check_fields.py（D1〜D12、P0〜P11）と build_presets.py が保証する（U1 の決定 1）。
+// 定義のファイルそのものの正しさは、設計側の check_fields.py（D1〜D13、P0〜P11）と build_presets.py が保証する（U1 の決定 1）。
 import type { FieldDef, FieldsDef, OutputDef } from './types/fields'
 import type { PresetIndex, Vocabulary } from './types/presets'
 import type { Param, ToolProfile } from './types/tool-profile'

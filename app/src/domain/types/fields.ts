@@ -36,6 +36,14 @@ export interface InlineOption {
   label: string
 }
 
+/** 出力項目の選択肢（UI 判断ポイント63） */
+export interface OutputOption extends InlineOption {
+  /** 画面の説明 */
+  description?: string
+  /** 対象のグループ id（案内の判定に使う） */
+  targetGroups?: string[]
+}
+
 export interface FieldDef {
   id: string
   label: string
@@ -102,7 +110,7 @@ export interface OutputDef {
   kind: OutputKind
   default: unknown
   /** 固定の選択肢。null は未定（titleLanguage） */
-  options?: InlineOption[] | null
+  options?: OutputOption[] | null
   /** 選択肢をツールプロファイルのパラメータから取る（variation） */
   optionsFrom?: { param: string }
   /** 項目の一覧を、ツールプロファイルの requestRole から取る（recommendParams） */

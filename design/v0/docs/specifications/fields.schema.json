@@ -218,7 +218,16 @@
                 "type": "object",
                 "additionalProperties": false,
                 "required": ["id", "label"],
-                "properties": { "id": { "$ref": "#/$defs/kebabId" }, "label": { "type": "string", "minLength": 1 } }
+                "properties": {
+                  "id": { "$ref": "#/$defs/kebabId" },
+                  "label": { "type": "string", "minLength": 1 },
+                  "description": { "description": "画面の説明（UI 判断ポイント63）", "type": "string", "minLength": 1 },
+                  "targetGroups": {
+                    "description": "その選択肢が対象とするグループ（groups の id）。定義済みかは D13 が確かめる（UI 判断ポイント63）",
+                    "type": "array", "minItems": 1, "uniqueItems": true,
+                    "items": { "$ref": "#/$defs/kebabId" }
+                  }
+                }
               }
             }
           ]

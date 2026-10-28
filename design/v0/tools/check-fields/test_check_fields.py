@@ -880,6 +880,37 @@ def _(d): fld_of(d, "purposeDetail")["leaveValues"] = ["x"]
 def _(d): fld_of(d, "voiceTreatment")["leaveValues"] = []
 
 
+# --- 出力項目の選択肢の description・targetGroups（UI 判断ポイント63）---
+def diff_opt(d, oid):
+    return next(x for x in out_of(d, "diffAxis")["options"] if x["id"] == oid)
+
+
+@pcase("D13: 選択肢の対象のグループが未定義", kind="fields",
+       has=["D13 選択肢の対象のグループが未定義: diffAxis/mood → no-such"])
+def _(d): diff_opt(d, "mood")["targetGroups"] = ["mood-tone", "no-such"]
+
+
+@pcase("D13: 定義済みの別のグループ（複数）なら通る", kind="fields", rc=0, counts=(0, 0))
+def _(d): diff_opt(d, "interpretation")["targetGroups"] = ["time", "lyrics"]
+
+
+@pcase("D13: 対象のグループの検査は、ほかの出力項目の選択肢にも効く", kind="fields",
+       has=["D13 選択肢の対象のグループが未定義: outputLanguage/mixed → no-such"])
+def _(d): next(x for x in out_of(d, "outputLanguage")["options"] if x["id"] == "mixed")["targetGroups"] = ["no-such"]
+
+
+@pcase("D1: targetGroups が空の配列", kind="fields", schema=True, counts=(1, 0), has=["D1 スキーマ違反: output/1/options: "])
+def _(d): diff_opt(d, "mood")["targetGroups"] = []
+
+
+@pcase("D1: targetGroups が文字列", kind="fields", schema=True, counts=(1, 0), has=["D1 スキーマ違反: output/1/options: "])
+def _(d): diff_opt(d, "mood")["targetGroups"] = "mood-tone"
+
+
+@pcase("D1: 選択肢の description が空", kind="fields", schema=True, counts=(1, 0), has=["D1 スキーマ違反: output/1/options: "])
+def _(d): diff_opt(d, "auto")["description"] = ""
+
+
 @pcase("D1: leaveValues に重複がある", kind="fields", schema=True, has=["D1 スキーマ違反: fields/14"])
 def _(d): fld_of(d, "voiceTreatment")["leaveValues"] = ["no-voice", "no-voice"]
 
