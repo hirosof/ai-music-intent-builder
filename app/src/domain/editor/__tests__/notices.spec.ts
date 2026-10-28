@@ -108,7 +108,7 @@ describe('案ごとの差の付け方の案内（UI 判断ポイント63）', ()
 
   it('情緒の幅: 情緒・雰囲気の3項目がどれも「お任せ」でないと出る。項目名は項目の表示名から', () => {
     expect(diffAxisNotice(spec, withAxis('mood', MOOD))).toBe(
-      'この軸の項目（基調となる情緒・強度・明暗）は、どれも「お任せ」でないため、案ごとの差が付きにくくなります',
+      'この軸の項目（基調となる情緒、強度、明暗）は、どれも「お任せ」でないため、案ごとの差が付きにくくなります',
     )
     // 1つでも「お任せ」なら出ない
     expect(diffAxisNotice(spec, withAxis('mood', { ...MOOD, brightness: 'delegated' }))).toBeNull()
@@ -132,7 +132,7 @@ describe('案ごとの差の付け方の案内（UI 判断ポイント63）', ()
       ensembleSize: 'defaulted',
     } // voiceTreatment は初期状態が③
     expect(diffAxisNotice(spec, withAxis('arrangement', sound))).toBe(
-      'この軸の項目（主旋律を担う楽器・伴奏・支える楽器・リズムの担い手・声の扱い・編成の規模）は、どれも「お任せ」でないため、案ごとの差が付きにくくなります',
+      'この軸の項目（主旋律を担う楽器、伴奏・支える楽器、リズムの担い手、声の扱い、編成の規模）は、どれも「お任せ」でないため、案ごとの差が付きにくくなります',
     )
     expect(
       diffAxisNotice(spec, withAxis('arrangement', { ...sound, voiceTreatment: 'delegated' })),
@@ -142,7 +142,7 @@ describe('案ごとの差の付け方の案内（UI 判断ポイント63）', ()
       recordingTexture: 'specified',
       mixDirection: 'defaulted',
     }
-    expect(diffAxisNotice(spec, withAxis('texture', prod))).toContain('（空間の質感・')
+    expect(diffAxisNotice(spec, withAxis('texture', prod))).toContain('（空間の質感、')
     expect(
       diffAxisNotice(spec, withAxis('texture', { ...prod, mixDirection: 'delegated' })),
     ).toBeNull()

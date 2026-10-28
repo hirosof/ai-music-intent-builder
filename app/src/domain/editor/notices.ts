@@ -97,6 +97,6 @@ export function diffAxisNotice(
   )
   if (fields.length === 0 || fields.some((f) => currentState(req, f) === 'delegated')) return null
   return targets
-    ? `この軸の項目（${fields.map((f) => f.label).join('・')}）は、どれも「お任せ」でないため、案ごとの差が付きにくくなります`
+    ? `この軸の項目（${fields.map((f) => f.label).join('、')}）は、どれも「お任せ」でないため、案ごとの差が付きにくくなります`
     : '「お任せ」の項目がないため、案ごとの差が付きにくくなります'
 }
