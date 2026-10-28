@@ -85,6 +85,7 @@ presets/
 | `structure` | ○ | `categorized`（カテゴリを持つ）／ `flat`（持たない） |
 | `categories` | categorized のとき必須。flat では持てない | §2-3 |
 | `items` | ○ | §2-4。**flat 語彙の表示順は配列順** |
+| `groups` | — | flat 語彙だけが持てる。語を表示の上でまとめるグループの定義（`{ "id": ..., "label": ... }` の配列。配列順がグループの表示順）。2026-10-28 追加（判断ポイント214） |
 | `warningPairs` | — | §2-6。ペアがある語彙だけ持つ |
 
 ### 2-3. カテゴリ（category。categorized 語彙のみ）
@@ -114,6 +115,7 @@ presets/
 | `aliases` | — | 検索用の別名。依頼文には使わない |
 | `defaultVisible` | — | `false` のときだけ書く（省略は表示）。`exclusion` と対 |
 | `exclusion` | `defaultVisible: false` のとき必須 | §2-5 |
+| `group` | — | flat 語彙で、語彙が `groups` を持つときだけ書ける。所属するグループの id。省略した語はグループなし（2026-10-28 追加。判断ポイント214） |
 
 ### 2-5. 除外情報（exclusion）
 
@@ -242,6 +244,7 @@ flat 語彙の表示順は配列順。
 | S10 | 各カテゴリの `itemOrder` が、所属する語と過不足なく一致する |
 | S12 | 各語彙ファイルを `presets.schema.json` で、`index.json` を `presets-index.schema.json` で検証（jsonschema がインストールされている場合） |
 | S13 | `term` の言語キーは `en` のみ。`jpNative` は `true` のときだけ |
+| S14 | `groups` は flat 語彙だけが持てる。グループ id は V-08 の形式で語彙内で一意、`label` は空でない。語の `group` は定義済みのグループで、`groups` のない語彙の語は `group` を持てない。グループなしの語は、グループのある語より前に並ぶ。同じグループの語は連続し、グループの並びは `groups` の順。語が1つもないグループはエラー（2026-10-28 追加。判断ポイント214） |
 
 S11 は欠番。語数のスナップショットは検証しない（語彙の追加・非表示化は通常の作業のため）。生成時に内訳を表示する。
 
@@ -256,6 +259,7 @@ S11 は欠番。語数のスナップショットは検証しない（語彙の�
 
 ### 6-2. 表示
 
+- 単一選択のドロップダウン（flat 語彙）: 語彙が `groups` を持つとき、グループごとに区切り線と見出し（グループの `label`）を置く（Nuxt UI の `USelect` の `type: 'separator'`・`type: 'label'` の項目。区切り線と見出しは選べない）。並びは、疑似選択肢（UI の実装の決定 K1）→ グループなしの語 → グループ（`groups` の順）。グループを持たない語彙の表示は変えない（2026-10-28 追加。判断ポイント214、UI 判断ポイント62）
 - 階層テーブル（categorized 語彙。Nuxt UI の `UTable` の tree data）: カテゴリを `order` 順に並べ、各カテゴリの語を `itemOrder` の順に出す。表示するのは `defaultVisible` が省略の語と、利用者が表示に切り替えた語、非表示でも状態が「未指定」以外の語（`decisions/presets.md` §4-2・§11-3 の4）
 - `represents` の語は、同じカテゴリの兄弟と相反する状態にすると警告（生成は止めない。`decisions/presets.md` §5-3）
 - 表示の切り替えは UI 設定に、**語彙ごとに入れ子**で持つ（既定値から変えたものだけ）。`decisions/presets.md` §11-3 の2の例 `{ "trip-hop": true }` は次の形に読み替える。

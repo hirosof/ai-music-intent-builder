@@ -61,24 +61,35 @@
 
 ## 3. 年代・時代感
 
-ポピュラー音楽の年代感を10年区切りで表す。クラシックの時代（バロック・古典派など）はジャンル語彙にあるため、
-ここでは扱わない。細かい指定（例: 1980年代後半）は「その他・補足」に書く。
-`term` は年代の英語表記として自明なもの（`1980s` など）に付けた。ジャンルから導く項目のため、②のときは
+ポピュラー音楽の年代感を、10年区切り（西暦）と日本の元号（和暦）で表す（元号は 2026-10-28 に追加。判断ポイント214）。
+単一選択なので、西暦と和暦は排他。表示では「西暦」「和暦」のグループに分ける（`groups`。判断ポイント214、UI 判断ポイント62）。
+クラシックの時代（バロック・古典派など）はジャンル語彙にあるため、ここでは扱わない。
+細かい指定（例: 1980年代後半、昭和50年代）は、項目の自由記述に書く（入力項目の判断ポイント29。2026-10-28 までは「その他・補足」に書いていた）。
+`term` は年代の英語表記として自明なもの（`1980s` など）と、元号の英語表記（Suno の生成物の実例 `Showa-era` の形）に付けた。ジャンルから導く項目のため、②のときは
 ジャンル側の手がかりで決まる（`../input-items.md` §2）。導かせたくないときは「年代を特定しない」（`no-era`。
 ①指定の値で、AIに年代を足させない）を選ぶ。②お任せ（AIが決めてよい）とは別。
 
 ```json
 {
+  "groups": [
+    { "id": "gregorian",    "label": "西暦" },
+    { "id": "japanese-era", "label": "和暦" }
+  ],
   "items": [
     { "id": "no-era",           "label": "年代を特定しない", "categories": ["era"] },
-    { "id": "1950s-or-earlier", "label": "1950年代以前", "categories": ["era"], "term": { "en": "1950s or earlier" } },
-    { "id": "1960s",            "label": "1960年代",     "categories": ["era"], "term": { "en": "1960s" } },
-    { "id": "1970s",            "label": "1970年代",     "categories": ["era"], "term": { "en": "1970s" } },
-    { "id": "1980s",            "label": "1980年代",     "categories": ["era"], "term": { "en": "1980s" } },
-    { "id": "1990s",            "label": "1990年代",     "categories": ["era"], "term": { "en": "1990s" } },
-    { "id": "2000s",            "label": "2000年代",     "categories": ["era"], "term": { "en": "2000s" } },
-    { "id": "2010s",            "label": "2010年代",     "categories": ["era"], "term": { "en": "2010s" } },
-    { "id": "2020s",            "label": "2020年代",     "categories": ["era"], "term": { "en": "2020s" } }
+    { "id": "1950s-or-earlier", "label": "1950年代以前", "categories": ["era"], "group": "gregorian", "term": { "en": "1950s or earlier" } },
+    { "id": "1960s",            "label": "1960年代",     "categories": ["era"], "group": "gregorian", "term": { "en": "1960s" } },
+    { "id": "1970s",            "label": "1970年代",     "categories": ["era"], "group": "gregorian", "term": { "en": "1970s" } },
+    { "id": "1980s",            "label": "1980年代",     "categories": ["era"], "group": "gregorian", "term": { "en": "1980s" } },
+    { "id": "1990s",            "label": "1990年代",     "categories": ["era"], "group": "gregorian", "term": { "en": "1990s" } },
+    { "id": "2000s",            "label": "2000年代",     "categories": ["era"], "group": "gregorian", "term": { "en": "2000s" } },
+    { "id": "2010s",            "label": "2010年代",     "categories": ["era"], "group": "gregorian", "term": { "en": "2010s" } },
+    { "id": "2020s",            "label": "2020年代",     "categories": ["era"], "group": "gregorian", "term": { "en": "2020s" } },
+    { "id": "meiji",            "label": "明治",         "categories": ["era"], "group": "japanese-era", "term": { "en": "Meiji-era" } },
+    { "id": "taisho",           "label": "大正",         "categories": ["era"], "group": "japanese-era", "term": { "en": "Taisho-era" } },
+    { "id": "showa",            "label": "昭和",         "categories": ["era"], "group": "japanese-era", "term": { "en": "Showa-era" } },
+    { "id": "heisei",           "label": "平成",         "categories": ["era"], "group": "japanese-era", "term": { "en": "Heisei-era" } },
+    { "id": "reiwa",            "label": "令和",         "categories": ["era"], "group": "japanese-era", "term": { "en": "Reiwa-era" } }
   ]
 }
 ```
