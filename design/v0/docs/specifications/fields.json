@@ -84,14 +84,14 @@
       "note": "地域・文化の様式に「使用する」があるときだけ意味を持つ（crossFieldRules）"
     },
     {
-      "id": "era", "label": "年代・時代感", "group": "genre-style", "kind": "select", "vocabulary": "era", "freeText": false,
+      "id": "era", "label": "年代・時代感", "group": "genre-style", "kind": "select", "vocabulary": "era", "freeText": true,
       "leaveValues": ["no-era"],
       "specificity": "adapt", "initialState": "delegated",
       "states": {
         "specified": {},
         "delegated": {"rule": "derive", "cues": ["mainGenre"], "fallback": {"type": "omit"}}
       },
-      "note": "導かせたくないときは値 `no-era` を指定する（判断ポイント9）"
+      "note": "導かせたくないときは値 `no-era` を指定する（判断ポイント9）。自由記述は 2026-10-28 から（例: 昭和50年代。判断ポイント29）"
     },
     {
       "id": "mood", "label": "基調となる情緒", "group": "mood-tone", "kind": "triSelect", "vocabulary": "emotion", "freeText": true,

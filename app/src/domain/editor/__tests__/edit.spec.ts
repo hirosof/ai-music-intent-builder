@@ -14,7 +14,9 @@ import {
   minuteBounds,
   secondBounds,
   removeSection,
+  selectMenu,
   selectOptions,
+  type SelectMenuEntry,
   selectValue,
   setChoice,
   setFreeText,
@@ -86,10 +88,15 @@ describe('単一選択（A1・K1・K2）', () => {
       .filter((o) => o.pseudo)
       .map((o) => o.value)
     expect(purpose).toEqual([SELECT_DELEGATED, SELECT_NONE])
+    // 年代・時代感は 2026-10-28 から自由記述を持つ（入力項目の判断ポイント29）。持たない例はテンポ感
+    const tempo = selectOptions(spec, field('tempoFeel'))
+      .filter((o) => o.pseudo)
+      .map((o) => o.value)
+    expect(tempo).toEqual([SELECT_DELEGATED])
     const era = selectOptions(spec, field('era'))
       .filter((o) => o.pseudo)
       .map((o) => o.value)
-    expect(era).toEqual([SELECT_DELEGATED])
+    expect(era).toEqual([SELECT_DELEGATED, SELECT_NONE])
   })
 
   it('固定の選択肢（歌詞本文の言語）も出す', () => {
@@ -131,6 +138,104 @@ describe('単一選択（A1・K1・K2）', () => {
     expect(checkSaved(JSON.stringify({ schemaVersion: 1, requests: [req] })).errors).toEqual([])
     setFreeText(req, f, '')
     expect(req.axes.purpose).toEqual({ state: 'specified' })
+  })
+})
+
+describe('ドロップダウンのグループ（UI 判断ポイント62。presets.md §6-2）', () => {
+  /** 並びを、見出しは「# 見出し」、区切り線は「---」、選択肢は表示名で表す */
+  const view = (es: SelectMenuEntry[]) =>
+    es.map((e) =>
+      e.type === 'item' ? e.option.label : e.type === 'label' ? `# ${e.label}` : '---',
+    )
+
+  it('年代・時代感: 疑似選択肢 → グループなしの語 → 西暦 → 和暦（各グループの前に区切り線と見出し）', () => {
+    const f = field('era')
+    expect(view(selectMenu(spec, f, selectOptions(spec, f)))).toEqual([
+      'お任せ',
+      '（一覧から選ばない）',
+      '年代を特定しない',
+      '---',
+      '# 西暦',
+      '1950年代以前',
+      '1960年代',
+      '1970年代',
+      '1980年代',
+      '1990年代',
+      '2000年代',
+      '2010年代',
+      '2020年代',
+      '---',
+      '# 和暦',
+      '明治',
+      '大正',
+      '昭和',
+      '平成',
+      '令和',
+    ])
+  })
+
+  it('グループを持たない語彙は、selectOptions の並びのまま（区切り線・見出しなし）', () => {
+    const f = field('intensity')
+    const opts = selectOptions(spec, f)
+    const menu = selectMenu(spec, f, opts)
+    expect(menu.every((e) => e.type === 'item')).toBe(true)
+    expect(menu.map((e) => (e.type === 'item' ? e.option : null))).toEqual(opts)
+  })
+
+  it('固定の選択肢（語彙を持たない項目）も、そのまま', () => {
+    const f = field('lyricsLanguage')
+    expect(selectMenu(spec, f, selectOptions(spec, f)).every((e) => e.type === 'item')).toBe(true)
+  })
+
+  it('表示の切り替えで語が1つも出ないグループは、見出しも区切り線も出さない', () => {
+    const f = field('era')
+    const groupOf = new Map(spec.vocabularyById.get('era')!.items.map((i) => [i.id, i.group]))
+    const opts = selectOptions(spec, f, undefined, (id) => groupOf.get(id) !== 'japanese-era')
+    const v = view(selectMenu(spec, f, opts))
+    expect(v).not.toContain('# 和暦')
+    expect(v.filter((x) => x === '---')).toHaveLength(1)
+  })
+
+  it('今の値が非表示の語なら、その語のグループの中に出す', () => {
+    const f = field('era')
+    const opts = selectOptions(spec, f, 'showa', (id) => id !== 'showa')
+    const v = view(selectMenu(spec, f, opts))
+    // selectOptions は非表示の今の値を末尾に足す。グループの中では、表示の語のあとに来る
+    expect(v.slice(v.indexOf('# 和暦'))).toEqual([
+      '# 和暦',
+      '明治',
+      '大正',
+      '平成',
+      '令和',
+      '昭和（非表示の語）',
+    ])
+  })
+
+  it('グループの id・見出しは語彙のデータだけから読む（画面のコードに決め打ちしない）', () => {
+    const era = spec.vocabularyById.get('era')!
+    const renamed = {
+      ...era,
+      groups: [{ id: 'g1', label: '区分A' }],
+      items: era.items.map((i) => (i.group ? { ...i, group: 'g1' } : i)),
+    }
+    const altered = { ...spec, vocabularyById: new Map(spec.vocabularyById).set('era', renamed) }
+    const f = field('era')
+    const v = view(selectMenu(altered, f, selectOptions(altered, f)))
+    expect(v).toContain('# 区分A')
+    expect(v).not.toContain('# 西暦')
+    expect(v.filter((x) => x === '---')).toHaveLength(1)
+  })
+
+  it('グループの定義にない group を持つ語は、グループなしとして出す（データでは S14 が防ぐ。落とさない）', () => {
+    const era = spec.vocabularyById.get('era')!
+    const broken = {
+      ...era,
+      items: era.items.map((i) => (i.id === 'showa' ? { ...i, group: 'unknown' } : i)),
+    }
+    const altered = { ...spec, vocabularyById: new Map(spec.vocabularyById).set('era', broken) }
+    const f = field('era')
+    const v = view(selectMenu(altered, f, selectOptions(altered, f)))
+    expect(v.slice(0, v.indexOf('---'))).toContain('昭和')
   })
 })
 

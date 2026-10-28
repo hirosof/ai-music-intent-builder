@@ -55,13 +55,14 @@ python -m venv .venv
 .venv/Scripts/python tools/check-fields/export_parity_cases.py # アプリの検証との照合用の正解データを書き出す（--check で最新か確認）。検査やテストを変えたら実行し、アプリのテストも流す
 .venv/Scripts/python tools/build-presets/build_presets.py      # 語彙（md）を変えたときに再生成
 .venv/Scripts/python tools/build-presets/build_presets.py --check   # 生成物が最新か（終了コード0）。語彙を変えたら最後に必ず行う
+.venv/Scripts/python tools/build-presets/test_build_presets.py      # build_presets.py の負例テスト（S14 グループなど）
 .venv/Scripts/python tools/measure-logs/measure_logs.py LOG_DIR --exclude-term WORD ...   # 6モデルの検証ログの機械測定（日本語の混入・文字数・否定の形・「自由記述」の位置・除外欄の語）
 .venv/Scripts/python tools/check-docs/check_docs.py          # 設計書の機械検査（判断ポイントの表・リンク・文字の破損・「次の番号」の記載）。期待: エラー0
 .venv/Scripts/python tools/check-docs/check_docs.py --next   # 判断ポイントの次の番号（追記する前に必ず見る。値は文書に書かない）
 .venv/Scripts/python tools/check-docs/test_check_docs.py     # check_docs.py の負例テスト
 ```
 
-機械検査を一通り回すとき（作業の区切り・コミットの前）は、上の `check_fields.py`（`--song` も）・`test_check_fields.py`・`build_presets.py --check`・`export_parity_cases.py --check`・`check_docs.py` と、下のアプリのテスト・型検査・lint・整形・ビルドを流す（`design/v0/docs/implementation-guide.md` §7）。
+機械検査を一通り回すとき（作業の区切り・コミットの前）は、上の `check_fields.py`（`--song` も）・`test_check_fields.py`・`build_presets.py --check`・`test_build_presets.py`・`export_parity_cases.py --check`・`check_docs.py` と、下のアプリのテスト・型検査・lint・整形・ビルドを流す（`design/v0/docs/implementation-guide.md` §7）。
 
 ## アプリのコマンド（`app/` で実行）
 

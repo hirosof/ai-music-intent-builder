@@ -40,6 +40,14 @@ export interface VocabularyItem {
   /** false のときだけ書かれる（省略は表示） */
   defaultVisible?: false
   exclusion?: Exclusion
+  /** 所属するグループの id（flat 語彙で、語彙が groups を持つときだけ。省略はグループなし。presets.md §2-4） */
+  group?: string
+}
+
+/** グループ（flat 語彙のみ。表示の上で語をまとめる。presets.md §2-2。判断ポイント214） */
+export interface VocabularyGroup {
+  id: string
+  label: string
 }
 
 /** カテゴリ（categorized 語彙のみ。presets.md §2-3）。表示のためだけに存在する */
@@ -67,6 +75,8 @@ export interface Vocabulary {
   axis: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G'
   label: string
   structure: 'categorized' | 'flat'
+  /** flat 語彙だけが持てる。配列順がグループの表示順 */
+  groups?: VocabularyGroup[]
   categories?: Category[]
   /** flat 語彙の表示順は配列順 */
   items: VocabularyItem[]

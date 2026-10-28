@@ -11,7 +11,10 @@
 ```
 python tools/build-presets/build_presets.py           # 検証して生成（生成先の古い JSON は削除する）
 python tools/build-presets/build_presets.py --check   # 生成せず、生成先が最新か確認（最新でなければ終了コード2）
+python tools/build-presets/test_build_presets.py      # 負例テスト（2026-10-28〜。S14 グループ。リポジトリの語彙は変えない）
 ```
+
+- flat 語彙は、表示の上のグループ（`groups`・語の `group`）を持てる（2026-10-28。判断ポイント214）。`groups` は語と同じ json ブロックに書く（例: `decisions/vocabulary/small-choices.md` §3 の `era`）。並びと参照の規則は S14（`docs/specifications/presets.md` §5）
 
 `jsonschema`（`pip install jsonschema`）が入っていれば、`docs/specifications/presets.schema.json`（語彙ファイル）と
 `presets-index.schema.json`（`index.json`）による検証も行う。なくても他の検証は実行される（省略した旨が注として表示される）。

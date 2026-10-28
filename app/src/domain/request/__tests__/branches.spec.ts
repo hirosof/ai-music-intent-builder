@@ -4,6 +4,7 @@ import { describe, it, expect } from 'vitest'
 
 import input from '@examples/inputs/rendered-12.json'
 import { spec } from '@/data/spec'
+import { checkSaved } from '@/data/validation'
 import { GenerationError } from '@/domain/request/errors'
 import { generateRequestText } from '@/domain/request/generate'
 import type { SongData, SongRequest } from '@/domain/types/song'
@@ -245,6 +246,45 @@ describe('依頼文の生成器: 日本語の歌詞の表記（request-text.md �
     const t = withLang('chat-ai-instruction', { state: 'specified', value: 'japanese' })
     expect(t).toContain('「読み方が複数ある漢字はひらがなで書く」ことを、指示文に含めてください。')
     expect(t).not.toContain('振り仮名')
+  })
+})
+
+describe('依頼文の生成器: 年代・時代感の元号と自由記述（語彙の判断ポイント214、入力項目の判断ポイント29）', () => {
+  const withEra = (era: SongRequest['axes'][string]) => {
+    const req = base()
+    req.axes.era = era
+    return gen(req)
+  }
+
+  it('元号の語は、既存の規則どおり表示名で出す（term の「Showa-era」は出さない。term の扱いは宿題49）', () => {
+    const t = withEra({ state: 'specified', value: 'showa' })
+    expect(t).toContain('| 年代・時代感 | 指定 | 昭和 | 翻案可 |')
+    expect(t).not.toContain('Showa-era')
+  })
+
+  it('自由記述ありは「昭和, 自由記述: 「昭和50年代」」。自由記述だけなら「自由記述: 「…」」', () => {
+    expect(withEra({ state: 'specified', value: 'showa', freeText: '昭和50年代' })).toContain(
+      '| 年代・時代感 | 指定 | 昭和, 自由記述: 「昭和50年代」 | 翻案可 |',
+    )
+    expect(withEra({ state: 'specified', freeText: '1980年代後半' })).toContain(
+      '| 年代・時代感 | 指定 | 自由記述: 「1980年代後半」 | 翻案可 |',
+    )
+  })
+
+  it('西暦の語と「年代を特定しない」は従来どおり', () => {
+    expect(withEra({ state: 'specified', value: '1980s' })).toContain(
+      '| 年代・時代感 | 指定 | 1980年代 | 翻案可 |',
+    )
+    expect(withEra({ state: 'specified', value: 'no-era' })).toContain(
+      '| 年代・時代感 | 指定 | 年代を特定しない（足さない。触れないまま残す） | — |',
+    )
+  })
+
+  it('自由記述つきの楽曲データは、保存データの検証を通る', () => {
+    const req = base()
+    req.axes.era = { state: 'specified', value: 'showa', freeText: '昭和50年代' }
+    const r = checkSaved(JSON.stringify({ schemaVersion: 1, requests: [req] }))
+    expect([...r.errors, ...r.warnings]).toEqual([])
   })
 })
 

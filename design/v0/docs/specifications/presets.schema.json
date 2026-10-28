@@ -12,6 +12,7 @@
     "axis": { "enum": ["A", "B", "C", "D", "E", "F", "G"] },
     "label": { "type": "string", "minLength": 1 },
     "structure": { "enum": ["categorized", "flat"] },
+    "groups": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/group" } },
     "categories": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/category" } },
     "items": { "type": "array", "minItems": 1 },
     "warningPairs": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/warningPair" } }
@@ -21,6 +22,7 @@
       "if": { "properties": { "structure": { "const": "categorized" } }, "required": ["structure"] },
       "then": {
         "required": ["categories"],
+        "not": { "required": ["groups"] },
         "properties": { "items": { "items": { "$ref": "#/$defs/categorizedItem" } } }
       }
     },
@@ -40,6 +42,16 @@
       "additionalProperties": false,
       "required": ["en"],
       "properties": { "en": { "type": "string", "minLength": 1 } }
+    },
+    "group": {
+      "description": "flat 語彙のグループ（表示の上で語をまとめる。配列順が表示順）。語の group の参照先・並びの検証は build_presets.py の S14（判断ポイント214）",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "type": "string", "minLength": 1 }
+      }
     },
     "category": {
       "type": "object",
@@ -77,6 +89,7 @@
       "properties": {
         "id": { "$ref": "#/$defs/id" },
         "label": { "type": "string", "minLength": 1 },
+        "group": { "$ref": "#/$defs/id" },
         "term": { "$ref": "#/$defs/term" },
         "jpNative": { "const": true },
         "aliases": { "$ref": "#/$defs/aliases" },

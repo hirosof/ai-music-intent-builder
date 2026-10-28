@@ -162,18 +162,27 @@ def parse_instrument_categories(report):
 # 統合
 # ---------------------------------------------------------------------------
 def collect_items(vocab_id, files, discriminator, report):
-    """語彙の語を統合する。返り値: (語の OrderedDict, id→定義ファイル, ファイル→列挙順の id 一覧)"""
+    """語彙の語を統合する。返り値: (語の OrderedDict, id→定義ファイル, ファイル→列挙順の id 一覧, グループの定義または None)
+
+    グループ（groups。判断ポイント214）は、語と同じ json ブロックに書く。その語彙の語を含むブロックの groups を取り込む。
+    """
     items = collections.OrderedDict()
     origin = {}
     listing = collections.OrderedDict()  # ファイル → その語彙の語を列挙した順の id
+    groups = None
     for rel in files:
         listing[rel] = []
         for b in json_blocks(rel, report):
             if not (isinstance(b, dict) and "items" in b):
                 continue
-            for src in b["items"]:
-                if discriminator and src.get("categories", [None])[0] != discriminator:
-                    continue
+            mine = [src for src in b["items"]
+                    if not discriminator or src.get("categories", [None])[0] == discriminator]
+            if mine and "groups" in b:
+                if groups is not None:
+                    report.error("S14 groups が複数のブロックにある: %s（%s）" % (vocab_id, rel))
+                else:
+                    groups = json.loads(json.dumps(b["groups"], ensure_ascii=False))  # deep copy
+            for src in mine:
                 it = json.loads(json.dumps(src, ensure_ascii=False))  # deep copy
                 listing[rel].append(it["id"])
                 if it["id"] in items:
@@ -186,7 +195,7 @@ def collect_items(vocab_id, files, discriminator, report):
                     continue
                 items[it["id"]] = it
                 origin[it["id"]] = rel
-    return items, origin, listing
+    return items, origin, listing, groups
 
 
 def derive_item_order(vocab_id, cid, items, files, listing, report):
@@ -232,9 +241,11 @@ def build(report):
     origins = {}
 
     for vocab_id, axis, label, structure, files, disc in VOCABULARIES:
-        items, origin, listing = collect_items(vocab_id, files, disc, report)
+        items, origin, listing, groups = collect_items(vocab_id, files, disc, report)
         origins[vocab_id] = origin
         vocab = collections.OrderedDict([("id", vocab_id), ("axis", axis), ("label", label), ("structure", structure)])
+        if groups is not None:
+            vocab["groups"] = groups  # flat 以外が持つと S14 のエラー
         if structure == "flat":
             for it in items.values():
                 if it.get("categories") != [disc]:
@@ -280,6 +291,56 @@ def build(report):
 # ---------------------------------------------------------------------------
 # 検証
 # ---------------------------------------------------------------------------
+def validate_groups(v, report):
+    """S14 語彙のグループ（groups）と語の group（判断ポイント214。presets.md §5）"""
+    vid = v["id"]
+    groups = v.get("groups")
+    gids = []
+    if groups is not None:
+        if v["structure"] != "flat":
+            report.error("S14 groups は flat 語彙だけが持てる: %s" % vid)
+        if not isinstance(groups, list) or not groups:
+            report.error("S14 groups が空: %s" % vid)
+            groups = []
+        for g in groups:
+            gid = g.get("id") if isinstance(g, dict) else None
+            if not isinstance(gid, str) or not ID_RE.match(gid):
+                report.error("S14 グループ id の形式違反（V-08）: %s/%r" % (vid, gid))
+            elif gid in gids:
+                report.error("S14 グループ id が重複: %s/%s" % (vid, gid))
+            label = g.get("label") if isinstance(g, dict) else None
+            if not isinstance(label, str) or not label.strip():
+                report.error("S14 グループの label が空: %s/%r" % (vid, gid))
+            gids.append(gid)
+    seq = []  # 語の並びに沿った、所属グループ（グループなしは None）
+    for it in v["items"]:
+        g = it.get("group")
+        if g is None:
+            seq.append(None)
+        elif v.get("groups") is None:
+            report.error("S14 groups のない語彙の語は group を持てない: %s/%s" % (vid, it["id"]))
+        elif g not in gids:
+            report.error("S14 未定義のグループ: %s/%s → %s" % (vid, it["id"], g))
+        else:
+            seq.append(g)
+    grouped_seen = False
+    for g in seq:
+        if g is not None:
+            grouped_seen = True
+        elif grouped_seen:
+            report.error("S14 グループなしの語は、グループのある語より前に並べる: %s" % vid)
+            break
+    runs = [g for i, g in enumerate(seq) if g is not None and (i == 0 or seq[i - 1] != g)]
+    for g in sorted({g for g in runs if runs.count(g) > 1}):
+        report.error("S14 同じグループの語が連続していない: %s/%s" % (vid, g))
+    firsts = [g for i, g in enumerate(runs) if g not in runs[:i]]
+    if firsts != [g for g in gids if g in firsts]:
+        report.error("S14 グループの並びが groups の順と違う: %s（%s）" % (vid, ", ".join(firsts)))
+    for g in gids:
+        if g not in seq:
+            report.error("S14 語が1つもないグループ: %s/%s" % (vid, g))
+
+
 def validate(out, per_vocab_ids, report):
     ids_by_vocab = {v["id"]: {it["id"] for it in v["items"]} for v in out["vocabularies"]}
 
@@ -367,6 +428,10 @@ def validate(out, per_vocab_ids, report):
             if any("represents" in it for it in v["items"]):
                 report.error("S8 フラット語彙に represents は置けない: %s" % v["id"])
 
+    # S14 グループ
+    for v in out["vocabularies"]:
+        validate_groups(v, report)
+
     # S9 警告ペア（語彙のファイルの中で完結する）
     for v in out["vocabularies"]:
         for p in v.get("warningPairs", []):
@@ -422,8 +487,10 @@ def render(name, obj):
         rows = ",\n".join(_j(v) for v in obj["vocabularies"])
         return '{\n"schemaVersion": %s,\n"vocabularies": [\n%s\n]\n}\n' % (_j(obj["schemaVersion"]), rows)
     head = ", ".join("%s: %s" % (_j(k), _j(x)) for k, x in obj.items()
-                     if k not in ("schemaVersion", "categories", "items", "warningPairs"))
+                     if k not in ("schemaVersion", "groups", "categories", "items", "warningPairs"))
     parts = ['"schemaVersion": %s,' % _j(obj["schemaVersion"]), head + ","]
+    if "groups" in obj:
+        parts.append('"groups": [\n' + ",\n".join(_j(g) for g in obj["groups"]) + "\n],")
     if "categories" in obj:
         parts.append('"categories": [\n' + ",\n".join(_j(c) for c in obj["categories"]) + "\n],")
     tail = '"items": [\n' + ",\n".join(_j(i) for i in obj["items"]) + "\n]"

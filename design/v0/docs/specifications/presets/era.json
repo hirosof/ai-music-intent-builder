@@ -1,15 +1,24 @@
 {
 "schemaVersion": 1,
 "id": "era", "axis": "B", "label": "年代・時代感", "structure": "flat",
+"groups": [
+{"id": "gregorian", "label": "西暦"},
+{"id": "japanese-era", "label": "和暦"}
+],
 "items": [
 {"id": "no-era", "label": "年代を特定しない"},
-{"id": "1950s-or-earlier", "label": "1950年代以前", "term": {"en": "1950s or earlier"}},
-{"id": "1960s", "label": "1960年代", "term": {"en": "1960s"}},
-{"id": "1970s", "label": "1970年代", "term": {"en": "1970s"}},
-{"id": "1980s", "label": "1980年代", "term": {"en": "1980s"}},
-{"id": "1990s", "label": "1990年代", "term": {"en": "1990s"}},
-{"id": "2000s", "label": "2000年代", "term": {"en": "2000s"}},
-{"id": "2010s", "label": "2010年代", "term": {"en": "2010s"}},
-{"id": "2020s", "label": "2020年代", "term": {"en": "2020s"}}
+{"id": "1950s-or-earlier", "label": "1950年代以前", "group": "gregorian", "term": {"en": "1950s or earlier"}},
+{"id": "1960s", "label": "1960年代", "group": "gregorian", "term": {"en": "1960s"}},
+{"id": "1970s", "label": "1970年代", "group": "gregorian", "term": {"en": "1970s"}},
+{"id": "1980s", "label": "1980年代", "group": "gregorian", "term": {"en": "1980s"}},
+{"id": "1990s", "label": "1990年代", "group": "gregorian", "term": {"en": "1990s"}},
+{"id": "2000s", "label": "2000年代", "group": "gregorian", "term": {"en": "2000s"}},
+{"id": "2010s", "label": "2010年代", "group": "gregorian", "term": {"en": "2010s"}},
+{"id": "2020s", "label": "2020年代", "group": "gregorian", "term": {"en": "2020s"}},
+{"id": "meiji", "label": "明治", "group": "japanese-era", "term": {"en": "Meiji-era"}},
+{"id": "taisho", "label": "大正", "group": "japanese-era", "term": {"en": "Taisho-era"}},
+{"id": "showa", "label": "昭和", "group": "japanese-era", "term": {"en": "Showa-era"}},
+{"id": "heisei", "label": "平成", "group": "japanese-era", "term": {"en": "Heisei-era"}},
+{"id": "reiwa", "label": "令和", "group": "japanese-era", "term": {"en": "Reiwa-era"}}
 ]
 }

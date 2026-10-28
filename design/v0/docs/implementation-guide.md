@@ -199,7 +199,7 @@ ai-music-intent-builder/
 
 **機械検査の一覧（2026-10-26）**: 作業の区切り・コミットの前に、一通り回す。コマンドは `CLAUDE.md` の「コマンド」と「アプリのコマンド」。
 
-- 設計側（`design/v0/` で実行）: `tools/check-fields/check_fields.py`（`--song docs/specifications/song.example.json` も）、`tools/check-fields/test_check_fields.py`（212ケース。2分以上かかる）、`tools/build-presets/build_presets.py --check`、`tools/check-fields/export_parity_cases.py --check`、**`tools/check-docs/check_docs.py`（設計書の機械検査。エラー0。`tools/check-docs/README.md`）**
+- 設計側（`design/v0/` で実行）: `tools/check-fields/check_fields.py`（`--song docs/specifications/song.example.json` も）、`tools/check-fields/test_check_fields.py`（212ケース。2分以上かかる）、`tools/build-presets/build_presets.py --check`、`tools/build-presets/test_build_presets.py`（2026-10-28〜。S14 グループの負例）、`tools/check-fields/export_parity_cases.py --check`、**`tools/check-docs/check_docs.py`（設計書の機械検査。エラー0。`tools/check-docs/README.md`）**
 - アプリ（`app/` で実行）: `npx vitest run`、`npm run build`（型検査＋ビルド）、`npx oxlint .`、`npx eslint .`、`npx oxfmt --check src/`
 - 文書を変えたときは、少なくとも `check_docs.py` を流す。`check_docs.py` の検査や許可リストを変えたときは、`tools/check-docs/test_check_docs.py` も流す
 

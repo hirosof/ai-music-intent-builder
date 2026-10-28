@@ -88,6 +88,42 @@ export function selectOptions(
   return out
 }
 
+/** ドロップダウンの1行（選択肢・区切り線・見出し）。区切り線と見出しは選べない */
+export type SelectMenuEntry =
+  | { type: 'item'; option: SelectOption }
+  | { type: 'separator' }
+  | { type: 'label'; label: string }
+
+/**
+ * 単一選択のドロップダウンの並び（UI 判断ポイント62。presets.md §6-2）。語彙が groups を持つとき、
+ * 疑似選択肢 → グループなしの語 → グループ（groups の順。各グループの前に区切り線と見出し）。
+ * グループの id は語彙のデータだけから読む。表示の切り替えで語が1つも出ないグループは、見出しも出さない。
+ * groups を持たない語彙は、selectOptions の並びのまま
+ */
+export function selectMenu(
+  spec: Spec,
+  field: FieldDef,
+  options: SelectOption[],
+): SelectMenuEntry[] {
+  const item = (option: SelectOption): SelectMenuEntry => ({ type: 'item', option })
+  const vocab = field.vocabulary ? spec.vocabularyById.get(field.vocabulary) : undefined
+  const groups = vocab?.groups ?? []
+  if (!vocab || groups.length === 0) return options.map(item)
+  const known = new Set(groups.map((g) => g.id))
+  const groupOf = new Map(
+    vocab.items.map((i) => [i.id, i.group && known.has(i.group) ? i.group : undefined]),
+  )
+  const words = options.filter((o) => !o.pseudo)
+  const out = options.filter((o) => o.pseudo).map(item)
+  out.push(...words.filter((o) => !groupOf.get(o.value)).map(item))
+  for (const g of groups) {
+    const members = words.filter((o) => groupOf.get(o.value) === g.id)
+    if (members.length === 0) continue
+    out.push({ type: 'separator' }, { type: 'label', label: g.label }, ...members.map(item))
+  }
+  return out
+}
+
 /** 単一選択の今の選択（疑似選択肢を含む） */
 export function selectValue(req: SongRequest, field: FieldDef): string {
   const a = req.axes[field.id]
