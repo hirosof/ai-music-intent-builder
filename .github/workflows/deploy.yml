@@ -1,7 +1,7 @@
 name: deploy
 
 env:
-    CURRENT_EDITION_DOCS_DIR: "./app"
+    BUILD_TARGET_APP_DIR: "./app"
 
 on:
   # Runs on pushes targeting the `main` branch. Change this to `master` if you're
@@ -42,19 +42,19 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: npm # or pnpm / yarn
-          cache-dependency-path: "${{env.CURRENT_EDITION_DOCS_DIR}}/package-lock.json"
+          cache: npm
+          cache-dependency-path: "${{env.BUILD_TARGET_APP_DIR}}/package-lock.json"
           
       - name: Setup Pages
         uses: actions/configure-pages@v6
       - name: Install dependencies
-        run: npm ci --prefix "${{env.CURRENT_EDITION_DOCS_DIR}}" # or pnpm install / yarn install / bun install
+        run: npm ci --prefix "${{env.BUILD_TARGET_APP_DIR}}"
       - name: Application Build
-        run: npm run build --prefix "${{env.CURRENT_EDITION_DOCS_DIR}}" # or pnpm docs:build / yarn docs:build / bun run docs:build
+        run: npm run build --prefix "${{env.BUILD_TARGET_APP_DIR}}"
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
-          path: "${{env.CURRENT_EDITION_DOCS_DIR}}/dist"
+          path: "${{env.BUILD_TARGET_APP_DIR}}/dist"
 
   # Deployment job
   deploy:
