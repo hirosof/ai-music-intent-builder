@@ -404,12 +404,16 @@ describe('ファイルの取り込み（M5）', () => {
     expect(stored()!.profiles.map((p) => p.name)).toEqual(['new'])
   })
 
-  it('ストアが拒否されていると取り込めない', async () => {
+  it('ストアが拒否されていると取り込めない（追加・置換・追加して開くを出さない）', async () => {
     localStorage.setItem(STORAGE_KEYS.profiles, '{')
     const w = await mountApp()
     await receive(w, 'a.json', fileText({ name: 'X', data: f1.data }))
-    expect($('import-store-rejected')).not.toBeNull()
+    expect($('import-store-rejected')!.textContent).toContain(
+      'ユーザープロファイルを読み込めなかったため、取り込めません',
+    )
     expect($('import-add')).toBeNull()
+    expect($('import-replace')).toBeNull()
+    expect($('import-add-open')).toBeNull()
     expect(localStorage.getItem(STORAGE_KEYS.profiles)).toBe('{')
   })
 
@@ -571,6 +575,35 @@ describe('取り込みの選択・プレビュー・直接開く（判断ポイ�
     expect(editor().song.value).toEqual(createInitialSong(spec))
     expect(editor().currentProfileName.value).toBe('前')
     expect(toastTitles()).toContain('（開いていません）')
+  })
+
+  it('ストア拒否中も、選択・プレビューと「開く（保存しない）」は使える（細部 (5)）', async () => {
+    localStorage.setItem(STORAGE_KEYS.profiles, '{')
+    const w = await mountApp()
+    await receive(w, 'a.json', fileText({ name: 'X', data: f1.data }, { name: 'Y', data: f2.data }))
+    expect($('import-store-rejected')).not.toBeNull()
+    expect([checked(0), checked(1)]).toEqual([true, true])
+    expect($('import-row-summary-1')!.textContent).toContain('用途: ')
+    expect($('import-open')).toBeNull()
+    await click('import-select-0')
+    expect($('import-open')).not.toBeNull()
+    expect($('import-add-open')).toBeNull()
+    expect($('import-add')).toBeNull()
+    expect($('import-replace')).toBeNull()
+    await click('import-open')
+    expect($('import-confirm-open')!.textContent).toContain('「Y」を開きますか')
+    await click('import-open-ok')
+    expect(editor().song.value).toEqual(f2.data)
+    expect(editor().currentProfileName.value).toBeNull()
+    expect(localStorage.getItem(STORAGE_KEYS.profiles)).toBe('{')
+    expect(toastTitles()).toContain('「Y」を開きました（ユーザープロファイルには保存していません）')
+
+    // 開いたあとの保存は、今の拒否中の保存と同じ（理由を出して保存しない）
+    await click('save-song')
+    await type('save-name', 'Y')
+    expect($('save-store-rejected')).not.toBeNull()
+    expect($<HTMLButtonElement>('save-submit')!.disabled).toBe(true)
+    expect(localStorage.getItem(STORAGE_KEYS.profiles)).toBe('{')
   })
 
   it('追加して開く: 上書きなら、その名前で開く', async () => {

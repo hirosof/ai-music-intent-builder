@@ -3,7 +3,8 @@
 // 1つのダイアログの中で、段階を切り替える: 検査の結果と取り込むプロファイルの選択 → 追加／置換 →（置換の確認）／（名前の衝突ごとの確認）。
 // 選択とプレビュー、1件だけ選んだときの直接開く（判断ポイント65）。「追加」「置換」は選んだものだけが対象で、編集中の内容は変えない。
 // 「開く（保存しない）」はストアに入れずに編集中の内容として開き、「追加して開く」は追加のあとに開く。
-// どちらも、先に「新規」と同じ確認を出す（判断ポイント52。同じダイアログの中で切り替える）
+// どちらも、先に「新規」と同じ確認を出す（判断ポイント52。同じダイアログの中で切り替える）。
+// ストア拒否中は「開く（保存しない）」だけを使える（判断ポイント65 (5)。ストアを使わないため）
 import { useToast } from '@nuxt/ui/composables'
 import { computed, ref, watch } from 'vue'
 import { useProfileStore } from '@/composables/useProfileStore'
@@ -138,7 +139,7 @@ function openAsEditing(profile: Profile, name: string | null) {
 }
 
 function askOpen(mode: 'open' | 'addOpen') {
-  if (chosenCount.value !== 1) return
+  if (chosenCount.value !== 1 || (mode === 'addOpen' && rejectedStore.value)) return
   openMode.value = mode
   step.value = 'confirmOpen'
 }
@@ -184,7 +185,7 @@ const renameInvalid = computed(() => {
 })
 
 function replace() {
-  if (!chosen.value || chosenCount.value === 0) return
+  if (!chosen.value || chosenCount.value === 0 || rejectedStore.value) return
   const c = profiles.commit(importReplace(chosen.value))
   if (!c.ok) {
     failure.value = c.errors
@@ -212,15 +213,16 @@ function replace() {
         :description="result.errors.join('\n')"
         data-testid="import-rejected"
       />
-      <UAlert
-        v-else-if="rejectedStore"
-        color="warning"
-        variant="subtle"
-        title="ユーザープロファイルを読み込めなかったため、取り込めません"
-        :description="rejectedStore.join('\n')"
-        data-testid="import-store-rejected"
-      />
       <div v-else-if="file && step === 'choose'" class="space-y-3" data-testid="import-choose">
+        <!-- ストア拒否中も、検査・選択・プレビューと「開く（保存しない）」は使える（判断ポイント65 (5)） -->
+        <UAlert
+          v-if="rejectedStore"
+          color="warning"
+          variant="subtle"
+          title="ユーザープロファイルを読み込めなかったため、取り込めません"
+          :description="rejectedStore.join('\n')"
+          data-testid="import-store-rejected"
+        />
         <p data-testid="import-count">
           プロファイル {{ file.profiles.length }} 件（選択 {{ chosenCount }} 件）
         </p>
@@ -296,7 +298,10 @@ function replace() {
           :description="result.warnings.join('\n')"
           data-testid="import-warnings"
         />
-        <p class="text-sm text-muted">
+        <p v-if="rejectedStore" class="text-sm text-muted">
+          1件だけ選ぶと、編集中の内容として開けます（ユーザープロファイルには保存しません）。
+        </p>
+        <p v-else class="text-sm text-muted">
           「追加」は選んだものを今のユーザープロファイルに加えます（同じ名前があれば、1件ずつ確認します）。「置換」は今のユーザープロファイルを、選んだものだけで入れ替えます。1件だけ選ぶと、編集中の内容として開けます。
         </p>
         <UAlert
@@ -391,20 +396,23 @@ function replace() {
           />
         </template>
         <template v-else>
-          <template v-if="file && !rejectedStore">
-            <UButton
-              label="追加"
-              :disabled="chosenCount === 0"
-              data-testid="import-add"
-              @click="add"
-            />
-            <UButton
-              label="置換"
-              color="neutral"
-              :disabled="chosenCount === 0"
-              data-testid="import-replace"
-              @click="step = 'confirmReplace'"
-            />
+          <template v-if="file">
+            <!-- ストア拒否中は、ストアを使う操作（追加・置換・追加して開く）を出さない（判断ポイント65 (5)） -->
+            <template v-if="!rejectedStore">
+              <UButton
+                label="追加"
+                :disabled="chosenCount === 0"
+                data-testid="import-add"
+                @click="add"
+              />
+              <UButton
+                label="置換"
+                color="neutral"
+                :disabled="chosenCount === 0"
+                data-testid="import-replace"
+                @click="step = 'confirmReplace'"
+              />
+            </template>
             <!-- 1件だけ選んだとき（判断ポイント65 (3)） -->
             <template v-if="chosenCount === 1">
               <UButton
@@ -414,6 +422,7 @@ function replace() {
                 @click="askOpen('open')"
               />
               <UButton
+                v-if="!rejectedStore"
                 label="追加して開く"
                 color="neutral"
                 data-testid="import-add-open"
