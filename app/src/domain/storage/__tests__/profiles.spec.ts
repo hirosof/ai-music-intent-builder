@@ -10,7 +10,10 @@ import {
   findProfile,
   importAdd,
   importReplace,
+  renameError,
+  renameProfile,
   saveProfile,
+  selectFromFile,
   suggestName,
   type ConflictResolution,
   type NameConflict,
@@ -162,5 +165,52 @@ describe('ファイル名', () => {
     expect(exportFileName([{ ...f1, name: '..' }], at)).toBe(
       'ai-music-intent-builder-profiles-20261019-0805.json',
     )
+  })
+})
+
+describe('名前の変更（判断ポイント66）', () => {
+  it('名前だけを変え、中身・更新日時・並びの位置は変えない。引数は書き換えない', () => {
+    const s0 = saveProfile(storeOf(['a', f1], ['b', f2]), 'c', f3.data, LATER)
+    const before = JSON.stringify(s0)
+    const s1 = renameProfile(s0, 'b', 'B2')
+    expect(s1.profiles.map((p) => p.name)).toEqual(['a', 'B2', 'c'])
+    expect(s1.profiles[1]!.data).toEqual(f2.data)
+    expect(s1.profiles[1]!.updatedAt).toBe(s0.profiles[1]!.updatedAt)
+    expect(s1.profiles[1]!.data).not.toBe(s0.profiles[1]!.data)
+    expect(JSON.stringify(s0)).toBe(before)
+  })
+
+  it('一意: 空・ほかと同じ名前は使えない。今と同じ名前は何もしない', () => {
+    const s0 = storeOf(['a', f1], ['b', f2])
+    expect(renameError(s0, 'a', '')).toBe('名前を入力してください')
+    expect(renameError(s0, 'a', 'b')).toBe('その名前はすでにあります')
+    expect(renameError(s0, 'a', 'a')).toBeNull()
+    expect(renameError(s0, 'a', 'z')).toBeNull()
+    expect(() => renameProfile(s0, 'a', 'b')).toThrow('すでにあります')
+    expect(() => renameProfile(s0, 'a', '')).toThrow('名前を入力')
+    expect(() => renameProfile(s0, 'x', 'y')).toThrow('プロファイルがない')
+    expect(renameProfile(s0, 'a', 'a')).toBe(s0)
+  })
+})
+
+describe('取り込むプロファイルの選択（判断ポイント65）', () => {
+  it('選んだ位置のものだけを、ファイルの順に残す。ほかのキーは変えない', () => {
+    const file = fileOf({ ...f1, name: 'x' }, { ...f2, name: 'y' }, { ...f3, name: 'z' })
+    const sub = selectFromFile(file, new Set([2, 0]))
+    expect(sub.profiles.map((p) => p.name)).toEqual(['x', 'z'])
+    expect(sub.exportedAt).toBe(file.exportedAt)
+    expect(selectFromFile(file, new Set()).profiles).toEqual([])
+    expect(file.profiles).toHaveLength(3)
+  })
+
+  it('選んだものだけで置換・追加する', async () => {
+    const file = fileOf({ ...f1, name: 'x' }, { ...f2, name: 'y' })
+    expect(importReplace(selectFromFile(file, new Set([1]))).profiles.map((p) => p.name)).toEqual([
+      'y',
+    ])
+    const r = await importAdd(storeOf(['a', f1]), selectFromFile(file, new Set([0])), () => ({
+      action: 'skip',
+    }))
+    expect(r.store.profiles.map((p) => p.name)).toEqual(['a', 'x'])
   })
 })

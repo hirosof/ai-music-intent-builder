@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // プロファイルのポップアップ（U4d の決定 M6、判断ポイント37・44・52）。ユーザー／ファクトリーのタブ。
-// ユーザー: 名前の検索、並び替え（名前順／更新日時の新しい順）、すべて書き出す、各行に読み込む・上書き保存・書き出す・削除。
+// ユーザー: 名前の検索、並び替え（名前順／更新日時の新しい順）、すべて書き出す、各行に読み込む・上書き保存・名前を変更（判断ポイント66）・書き出す・削除。
 // ファクトリー: 各行に読み込む。確認は、同じポップアップの中で一覧の代わりに出す（モーダルを重ねない。判断ポイント8）
 import { useToast } from '@nuxt/ui/composables'
 import { computed, ref, watch } from 'vue'
@@ -10,7 +10,13 @@ import { factoryProfiles } from '@/data/factory'
 import { downloadJson, prepareForSave } from '@/data/storage'
 import { checkSaved } from '@/data/validation'
 import { exportFileName } from '@/domain/storage/file-name'
-import { buildExportFile, deleteProfile, saveProfile } from '@/domain/storage/profiles'
+import {
+  buildExportFile,
+  deleteProfile,
+  renameError,
+  renameProfile,
+  saveProfile,
+} from '@/domain/storage/profiles'
 import { formatDisplayTimestamp } from '@/domain/storage/timestamp'
 import { norm } from '@/domain/editor/tree'
 import type { Profile } from '@/domain/types/song'
@@ -25,12 +31,24 @@ const tab = ref<'user' | 'factory'>('user')
 const query = ref('')
 const sort = ref<'name' | 'updated'>('updated')
 type Pending = {
-  kind: 'load' | 'overwrite' | 'delete'
+  kind: 'load' | 'overwrite' | 'delete' | 'rename'
   profile: Profile
   source: 'user' | 'factory'
 }
 const pending = ref<Pending | null>(null)
 const failure = ref<string[]>([])
+// 名前の変更の入力（判断ポイント66。一意・空は不可。今と同じなら何もしない）
+const newName = ref('')
+function askRename(p: Profile) {
+  newName.value = p.name
+  pending.value = { kind: 'rename', profile: p, source: 'user' }
+}
+const renameInvalid = computed(() => {
+  const p = pending.value
+  const store = profiles.store.value
+  if (p?.kind !== 'rename' || !store) return null
+  return renameError(store, p.profile.name, newName.value.trim())
+})
 watch(open, (v) => {
   if (v) {
     pending.value = null
@@ -82,6 +100,10 @@ function confirm() {
     return
   }
   if (!store) return
+  if (p.kind === 'rename') {
+    renameConfirmed(p.profile.name)
+    return
+  }
   const next =
     p.kind === 'overwrite'
       ? saveProfile(store, p.profile.name, prepared.value.song, new Date())
@@ -102,12 +124,33 @@ function confirm() {
   pending.value = null
 }
 
+/** 名前を変える。覚えている名前がそのプロファイルなら追従させる。中身と更新日時は変えない */
+function renameConfirmed(from: string) {
+  const store = profiles.store.value
+  const to = newName.value.trim()
+  if (!store || renameInvalid.value) return
+  if (to === from) {
+    pending.value = null
+    return
+  }
+  const c = profiles.commit(renameProfile(store, from, to))
+  if (!c.ok) {
+    failure.value = c.errors
+    pending.value = null
+    return
+  }
+  if (editor.currentProfileName.value === from) editor.currentProfileName.value = to
+  toast.add({ title: `「${from}」の名前を「${to}」に変更しました`, color: 'success' })
+  pending.value = null
+}
+
 const confirmText = computed(() => {
   const p = pending.value
   if (!p) return ''
   if (p.kind === 'load')
     return `「${p.profile.name}」を読み込みます。編集中の内容は破棄されます。残したいときは、先に保存または書き出してください。`
   if (p.kind === 'overwrite') return `「${p.profile.name}」を、編集中の内容で上書きします。`
+  if (p.kind === 'rename') return `「${p.profile.name}」の新しい名前を入力してください。`
   return `「${p.profile.name}」を削除します。元に戻せません。`
 })
 </script>
@@ -123,6 +166,19 @@ const confirmText = computed(() => {
     <template #body>
       <div v-if="pending" class="space-y-3" data-testid="profiles-confirm">
         <p>{{ confirmText }}</p>
+        <UFormField
+          v-if="pending.kind === 'rename'"
+          label="新しい名前"
+          :error="renameInvalid ?? undefined"
+        >
+          <UInput
+            v-model="newName"
+            class="w-full"
+            autofocus
+            data-testid="profiles-rename-input"
+            @keydown.enter="confirm"
+          />
+        </UFormField>
         <UAlert
           v-if="pending.kind === 'overwrite' && prepared.errors.length"
           color="error"
@@ -134,14 +190,17 @@ const confirmText = computed(() => {
         <!-- 実行するボタンを左、やめるボタンを右（利用者の判断 (a)） -->
         <div class="flex justify-end gap-2" data-testid="dialog-buttons">
           <UButton
-            label="はい"
+            :label="pending.kind === 'rename' ? '変更する' : 'はい'"
             :color="pending.kind === 'delete' ? 'error' : 'primary'"
-            :disabled="pending.kind === 'overwrite' && prepared.errors.length > 0"
+            :disabled="
+              (pending.kind === 'overwrite' && prepared.errors.length > 0) ||
+              (pending.kind === 'rename' && !!renameInvalid)
+            "
             data-testid="profiles-confirm-yes"
             @click="confirm"
           />
           <UButton
-            label="いいえ"
+            :label="pending.kind === 'rename' ? 'キャンセル' : 'いいえ'"
             color="neutral"
             variant="outline"
             data-testid="profiles-confirm-no"
@@ -212,6 +271,14 @@ const confirmText = computed(() => {
                     variant="outline"
                     data-testid="profile-overwrite"
                     @click="pending = { kind: 'overwrite', profile: p, source: 'user' }"
+                  />
+                  <UButton
+                    size="xs"
+                    label="名前を変更"
+                    color="neutral"
+                    variant="outline"
+                    data-testid="profile-rename"
+                    @click="askRename(p)"
                   />
                   <UButton
                     size="xs"

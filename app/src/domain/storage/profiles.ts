@@ -47,6 +47,33 @@ export function deleteProfile(store: ProfileStore, name: string): ProfileStore {
   return { ...store, profiles: store.profiles.filter((p) => p.name !== name) }
 }
 
+/** 名前の変更で、新しい名前が使えないときの理由（使えるなら null）。今と同じ名前は使える（何もしない） */
+export function renameError(store: ProfileStore, from: string, to: string): string | null {
+  if (to === '') return '名前を入力してください'
+  if (to !== from && findProfile(store, to)) return 'その名前はすでにあります'
+  return null
+}
+
+/**
+ * プロファイルの名前を変える（ui-and-nonfunctional.md 判断ポイント66）。中身・updatedAt・並びの位置は変えない。
+ * 今と同じ名前ならストアをそのまま返す。使えない名前・ないプロファイルは例外（確認は呼び出し側の UI が先に行う）
+ */
+export function renameProfile(store: ProfileStore, from: string, to: string): ProfileStore {
+  const err = renameError(store, from, to)
+  if (err) throw new Error(`${err}: ${to}`)
+  const i = store.profiles.findIndex((p) => p.name === from)
+  if (i < 0) throw new Error(`プロファイルがない: ${from}`)
+  if (from === to) return store
+  const profiles = [...store.profiles]
+  profiles[i] = { ...clone(profiles[i]!), name: to }
+  return { ...store, profiles }
+}
+
+/** ファイルのうち、選んだプロファイルだけのファイル（取り込みの対象。判断ポイント65）。並びはファイルの順 */
+export function selectFromFile(file: ExportFile, indexes: ReadonlySet<number>): ExportFile {
+  return { ...file, profiles: file.profiles.filter((_, i) => indexes.has(i)) }
+}
+
 /** 「別名で追加」の候補名。名前（2）、名前（3）…のうち、使われていない最初のもの（U3 の決定 I6） */
 export function suggestName(name: string, taken: ReadonlySet<string>): string {
   for (let n = 2; ; n++) {

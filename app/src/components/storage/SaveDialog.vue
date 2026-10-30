@@ -1,7 +1,9 @@
 <script setup lang="ts">
 // 「保存」と「書き出す」（U4d の決定 M3・M4、判断ポイント36・43・44）。
 // 名前を入力 →（同名があれば同じダイアログの中で上書きの確認）→ ユーザープロファイルに保存。
-// 「書き出す」は、保存したその1件をファイルに書き出す。ストアが拒否されているときは、保存せずにファイルにだけ書き出す。
+// 「書き出す」は、チェック「プロファイルにも保存する」（初期値オフ。判断ポイント64）がオンなら、保存したその1件を書き出す。
+// オフなら、ストアも覚えている名前も変えずに、入力した名前の1件をファイルに書き出すだけ（同名があっても確認しない）。
+// ストアが拒否されているときは、チェックを無効にしてオフのまま（保存せずにファイルにだけ書き出す）。
 // エラーが1件でもあれば保存できない（警告は許す）
 import { useToast } from '@nuxt/ui/composables'
 import { computed, ref, watch } from 'vue'
@@ -21,11 +23,14 @@ const toast = useToast()
 const name = ref('')
 const confirmOverwrite = ref(false)
 const failure = ref<string[]>([])
+// 書き出すときにストアにも保存するか（判断ポイント64。開くたびにオフに戻す）
+const alsoStore = ref(false)
 watch(open, (v) => {
   if (!v) return
   name.value = editor.currentProfileName.value ?? ''
   confirmOverwrite.value = false
   failure.value = []
+  alsoStore.value = false
 })
 
 const prepared = computed(() => prepareForSave(editor.song.value))
@@ -41,12 +46,14 @@ const canSubmit = computed(
     !(props.mode === 'save' && rejected.value),
 )
 const title = computed(() => (props.mode === 'save' ? 'ユーザープロファイルに保存' : '書き出す'))
+// ストアに保存するか（保存は常に。書き出しはチェックがオンのときだけ。拒否中は保存しない）
+const storing = computed(() => !rejected.value && (props.mode === 'save' || alsoStore.value))
 
 function submit() {
   if (!canSubmit.value) return
   const now = new Date()
-  const store = profiles.store.value
-  // ストアに保存する（拒否されているときの書き出しは、保存しない）
+  const store = storing.value ? profiles.store.value : null
+  // ストアに保存する（保存しない書き出し・拒否されているときの書き出しは、ストアも覚えている名前も変えない）
   if (store) {
     if (findProfile(store, trimmed.value) && !confirmOverwrite.value) {
       confirmOverwrite.value = true
@@ -60,7 +67,7 @@ function submit() {
     editor.currentProfileName.value = trimmed.value
   }
   if (props.mode === 'export') {
-    const saved = profiles.store.value && findProfile(profiles.store.value, trimmed.value)
+    const saved = store && profiles.store.value && findProfile(profiles.store.value, trimmed.value)
     const profile = saved ?? makeProfile(trimmed.value, prepared.value.song, now)
     downloadJson(exportFileName([profile], now), buildExportFile([profile], now))
   }
@@ -93,9 +100,21 @@ function submit() {
             @keydown.enter="submit"
           />
         </UFormField>
-        <p v-if="mode === 'export' && !rejected" class="text-sm text-muted">
-          ユーザープロファイルに保存してから、その1件をファイルに書き出します。
-        </p>
+        <template v-if="mode === 'export'">
+          <UCheckbox
+            v-model="alsoStore"
+            label="プロファイルにも保存する"
+            :disabled="rejected"
+            data-testid="save-also-store"
+          />
+          <p v-if="!rejected" class="text-sm text-muted" data-testid="save-export-note">
+            {{
+              alsoStore
+                ? 'ユーザープロファイルに保存してから、その1件をファイルに書き出します。'
+                : 'ユーザープロファイルには保存せず、ファイルに書き出すだけです。'
+            }}
+          </p>
+        </template>
         <UAlert
           v-if="rejected"
           color="warning"

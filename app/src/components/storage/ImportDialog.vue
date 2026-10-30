@@ -1,27 +1,41 @@
 <script setup lang="ts">
 // ファイルの取り込み（U4d の決定 M5。song-file.md §4-3・§6-2、判断ポイント35・44・46）。
-// 1つのダイアログの中で、段階を切り替える: 検査の結果 → 追加／置換の選択 →（置換の確認）／（名前の衝突ごとの確認）。
-// 取り込み先はユーザープロファイルだけで、編集中の内容は変えない
+// 1つのダイアログの中で、段階を切り替える: 検査の結果と取り込むプロファイルの選択 → 追加／置換 →（置換の確認）／（名前の衝突ごとの確認）。
+// 選択とプレビュー、1件だけ選んだときの直接開く（判断ポイント65）。「追加」「置換」は選んだものだけが対象で、編集中の内容は変えない。
+// 「開く（保存しない）」はストアに入れずに編集中の内容として開き、「追加して開く」は追加のあとに開く。
+// どちらも、先に「新規」と同じ確認を出す（判断ポイント52。同じダイアログの中で切り替える）
 import { useToast } from '@nuxt/ui/composables'
 import { computed, ref, watch } from 'vue'
 import { useProfileStore } from '@/composables/useProfileStore'
+import { useSongEditor } from '@/composables/useSongEditor'
+import { spec } from '@/data/spec'
+import { checkSaved } from '@/data/validation'
 import type { LoadResult } from '@/domain/storage/load'
+import { profilePreview } from '@/domain/storage/preview'
 import {
+  findProfile,
   importAdd,
   importReplace,
+  selectFromFile,
   type ConflictResolution,
   type NameConflict,
 } from '@/domain/storage/profiles'
-import type { ExportFile } from '@/domain/types/song'
+import type { ExportFile, Profile } from '@/domain/types/song'
 
 const open = defineModel<boolean>('open', { required: true })
 const props = defineProps<{ fileName: string; result: LoadResult<ExportFile> | null }>()
 
 const profiles = useProfileStore()
+const editor = useSongEditor()
 const toast = useToast()
 
-type Step = 'choose' | 'confirmReplace' | 'conflict'
+type Step = 'choose' | 'confirmReplace' | 'conflict' | 'confirmOpen'
 const step = ref<Step>('choose')
+// 1件だけ選んだときの直接開く（判断ポイント65 (3)）。open: 開く（保存しない）、addOpen: 追加して開く
+const openMode = ref<'open' | 'addOpen'>('open')
+// 選んだプロファイル（ファイルの中の位置）と、展開している行
+const selected = ref(new Set<number>())
+const expanded = ref(new Set<number>())
 const conflict = ref<NameConflict | null>(null)
 const renameTo = ref('')
 const applyToRest = ref(false)
@@ -45,6 +59,30 @@ watch(open, (v) => {
 })
 
 const file = computed(() => (props.result?.ok ? props.result.value : null))
+const chosen = computed(() => (file.value ? selectFromFile(file.value, selected.value) : null))
+const chosenCount = computed(() => chosen.value?.profiles.length ?? 0)
+// 選択の初期値はすべて。開いたときと、ファイルが変わったときに選び直す
+watch(
+  [open, () => props.result],
+  ([v]) => {
+    if (!v) return
+    selected.value = new Set(file.value?.profiles.map((_, i) => i) ?? [])
+    expanded.value = new Set()
+  },
+  { immediate: true },
+)
+const previews = computed(() =>
+  (file.value?.profiles ?? []).map((p) =>
+    profilePreview(spec, p, checkSaved(JSON.stringify(p.data)).warnings),
+  ),
+)
+function toggle(set: 'selected' | 'expanded', i: number, on: boolean) {
+  const next = new Set(set === 'selected' ? selected.value : expanded.value)
+  if (on) next.add(i)
+  else next.delete(i)
+  if (set === 'selected') selected.value = next
+  else expanded.value = next
+}
 const rejectedStore = computed(() =>
   profiles.state.value.status === 'rejected' ? profiles.state.value.errors : null,
 )
@@ -58,10 +96,11 @@ function finish(summary: string) {
   open.value = false
 }
 
-async function add() {
+/** 選んだものを追加する。書き込めたら結果を返す（閉じた・失敗したら null） */
+async function addChosen() {
   const store = profiles.store.value
-  if (!store || !file.value) return
-  const r = await importAdd(store, file.value, (c) => {
+  if (!store || !chosen.value || chosenCount.value === 0) return null
+  const r = await importAdd(store, chosen.value, (c) => {
     if (remembered === 'overwrite' || remembered === 'skip') return { action: remembered }
     if (remembered === 'rename') return { action: 'rename', name: c.suggestedName }
     conflict.value = c
@@ -69,16 +108,60 @@ async function add() {
     step.value = 'conflict'
     return new Promise<ConflictResolution>((resolve) => (answer = resolve))
   })
-  if (!open.value) return
+  if (!open.value) return null
   const c = profiles.commit(r.store)
   if (!c.ok) {
     failure.value = c.errors
     step.value = 'choose'
+    return null
+  }
+  return r
+}
+const addSummary = (r: { added: string[]; overwritten: string[]; skipped: string[] }) =>
+  `追加 ${r.added.length} 件・上書き ${r.overwritten.length} 件・取り込まない ${r.skipped.length} 件`
+
+async function add() {
+  const r = await addChosen()
+  if (r) finish(addSummary(r))
+}
+
+/** 編集中の内容として開く。name は画面が覚えている名前（保存しないで開くときは null） */
+function openAsEditing(profile: Profile, name: string | null) {
+  editor.replaceSong(profile.data, name)
+  const warnings = checkSaved(JSON.stringify(profile.data)).warnings
+  toast.add({
+    title: `「${profile.name}」を開きました${name === null ? '（ユーザープロファイルには保存していません）' : ''}${warnings.length ? '（注意があります）' : ''}`,
+    description: warnings.join('\n') || undefined,
+    color: warnings.length ? 'warning' : 'success',
+  })
+  open.value = false
+}
+
+function askOpen(mode: 'open' | 'addOpen') {
+  if (chosenCount.value !== 1) return
+  openMode.value = mode
+  step.value = 'confirmOpen'
+}
+
+/** 確認のあと、開く。追加して開くは「追加」と同じ処理（名前の衝突の確認を含む）のあと、追加した名前で開く */
+async function confirmOpen() {
+  const incoming = chosen.value?.profiles[0]
+  if (!incoming || chosenCount.value !== 1) return
+  if (openMode.value === 'open') {
+    openAsEditing(incoming, null)
     return
   }
-  finish(
-    `追加 ${r.added.length} 件・上書き ${r.overwritten.length} 件・取り込まない ${r.skipped.length} 件`,
-  )
+  const r = await addChosen()
+  if (!r) return
+  const name = r.added[0] ?? r.overwritten[0]
+  const stored =
+    name !== undefined && profiles.store.value && findProfile(profiles.store.value, name)
+  if (!stored) {
+    // 取り込まないを選んだときは、開かない
+    finish(`${addSummary(r)}（開いていません）`)
+    return
+  }
+  openAsEditing(stored, stored.name)
 }
 
 function decide(action: ConflictResolution['action']) {
@@ -101,14 +184,14 @@ const renameInvalid = computed(() => {
 })
 
 function replace() {
-  if (!file.value) return
-  const c = profiles.commit(importReplace(file.value))
+  if (!chosen.value || chosenCount.value === 0) return
+  const c = profiles.commit(importReplace(chosen.value))
   if (!c.ok) {
     failure.value = c.errors
     step.value = 'choose'
     return
   }
-  finish(`ユーザープロファイルを ${file.value.profiles.length} 件に置き換えました`)
+  finish(`ユーザープロファイルを ${chosenCount.value} 件に置き換えました`)
 }
 </script>
 
@@ -138,10 +221,73 @@ function replace() {
         data-testid="import-store-rejected"
       />
       <div v-else-if="file && step === 'choose'" class="space-y-3" data-testid="import-choose">
-        <p>
-          プロファイル {{ file.profiles.length }} 件:
-          {{ file.profiles.map((p) => p.name).join('、') }}
+        <p data-testid="import-count">
+          プロファイル {{ file.profiles.length }} 件（選択 {{ chosenCount }} 件）
         </p>
+        <!-- 取り込むものを選ぶ（初期値はすべて選択）。行を展開すると「指定」の項目を出す（判断ポイント65） -->
+        <ul
+          class="divide-y divide-default rounded-md border border-default"
+          data-testid="import-list"
+        >
+          <li
+            v-for="(pv, i) in previews"
+            :key="i"
+            class="space-y-1 p-2"
+            :data-testid="`import-row-${i}`"
+          >
+            <div class="flex items-start gap-2">
+              <UCheckbox
+                :model-value="selected.has(i)"
+                :aria-label="`${pv.name} を選ぶ`"
+                class="pt-0.5"
+                :data-testid="`import-select-${i}`"
+                @update:model-value="(v: unknown) => toggle('selected', i, v === true)"
+              />
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-baseline gap-x-2">
+                  <span class="font-medium break-all">{{ pv.name }}</span>
+                  <span class="text-xs text-muted">{{ pv.updatedAt }}</span>
+                  <UBadge
+                    v-if="pv.hasWarnings"
+                    label="注意あり"
+                    color="warning"
+                    variant="subtle"
+                    size="sm"
+                    :data-testid="`import-row-warning-${i}`"
+                  />
+                </div>
+                <div class="text-xs text-muted" :data-testid="`import-row-summary-${i}`">
+                  {{ pv.tool
+                  }}<template v-for="x in pv.summary" :key="x.label">
+                    ／ {{ x.label }}: {{ x.text }}</template
+                  >
+                </div>
+              </div>
+              <UButton
+                size="xs"
+                color="neutral"
+                variant="ghost"
+                :label="expanded.has(i) ? '閉じる' : '詳しく'"
+                :data-testid="`import-expand-${i}`"
+                @click="toggle('expanded', i, !expanded.has(i))"
+              />
+            </div>
+            <div
+              v-if="expanded.has(i)"
+              class="space-y-1 pl-7 text-sm"
+              :data-testid="`import-detail-${i}`"
+            >
+              <dl v-if="pv.specified.length" class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
+                <template v-for="x in pv.specified" :key="x.label">
+                  <dt class="text-muted">{{ x.label }}</dt>
+                  <dd class="break-all">{{ x.text }}</dd>
+                </template>
+              </dl>
+              <p v-else class="text-muted">「指定」の項目はありません</p>
+              <p v-if="pv.others" class="text-xs text-muted">ほかの項目: {{ pv.others }}</p>
+            </div>
+          </li>
+        </ul>
         <UAlert
           v-if="result?.ok && result.warnings.length"
           color="warning"
@@ -151,7 +297,7 @@ function replace() {
           data-testid="import-warnings"
         />
         <p class="text-sm text-muted">
-          「追加」は今のユーザープロファイルに加えます（同じ名前があれば、1件ずつ確認します）。「置換」は今のユーザープロファイルをすべて入れ替えます。
+          「追加」は選んだものを今のユーザープロファイルに加えます（同じ名前があれば、1件ずつ確認します）。「置換」は今のユーザープロファイルを、選んだものだけで入れ替えます。1件だけ選ぶと、編集中の内容として開けます。
         </p>
         <UAlert
           v-if="failure.length"
@@ -163,7 +309,18 @@ function replace() {
       </div>
       <div v-else-if="step === 'confirmReplace'" data-testid="import-confirm-replace">
         <p>
-          今のユーザープロファイルは、すべてファイルの内容に置き換わります。よろしいですか？（編集中の内容は変わりません）
+          今のユーザープロファイルは、すべて選んだ
+          {{ chosenCount }} 件に置き換わります。よろしいですか？（編集中の内容は変わりません）
+        </p>
+      </div>
+      <div v-else-if="step === 'confirmOpen'" class="space-y-2" data-testid="import-confirm-open">
+        <p class="font-medium">
+          「{{ chosen?.profiles[0]?.name }}」を{{
+            openMode === 'open' ? '開きますか' : '追加して開きますか'
+          }}
+        </p>
+        <p class="text-sm text-muted">
+          編集中の内容は破棄されます。残したいときは、先に保存または書き出してください。
         </p>
       </div>
       <div
@@ -203,6 +360,21 @@ function replace() {
             @click="decide('skip')"
           />
         </template>
+        <template v-else-if="step === 'confirmOpen'">
+          <UButton
+            :label="openMode === 'open' ? '破棄して開く' : '破棄して追加して開く'"
+            color="error"
+            data-testid="import-open-ok"
+            @click="confirmOpen"
+          />
+          <UButton
+            label="戻る"
+            color="neutral"
+            variant="outline"
+            data-testid="import-back"
+            @click="step = 'choose'"
+          />
+        </template>
         <template v-else-if="step === 'confirmReplace'">
           <UButton
             label="置き換える"
@@ -220,13 +392,34 @@ function replace() {
         </template>
         <template v-else>
           <template v-if="file && !rejectedStore">
-            <UButton label="追加" data-testid="import-add" @click="add" />
+            <UButton
+              label="追加"
+              :disabled="chosenCount === 0"
+              data-testid="import-add"
+              @click="add"
+            />
             <UButton
               label="置換"
               color="neutral"
+              :disabled="chosenCount === 0"
               data-testid="import-replace"
               @click="step = 'confirmReplace'"
             />
+            <!-- 1件だけ選んだとき（判断ポイント65 (3)） -->
+            <template v-if="chosenCount === 1">
+              <UButton
+                label="開く（保存しない）"
+                color="neutral"
+                data-testid="import-open"
+                @click="askOpen('open')"
+              />
+              <UButton
+                label="追加して開く"
+                color="neutral"
+                data-testid="import-add-open"
+                @click="askOpen('addOpen')"
+              />
+            </template>
           </template>
           <UButton
             label="閉じる"
