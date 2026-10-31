@@ -1,4 +1,5 @@
-// 保存の画面（U4d。jsdom で構造と操作だけ）: 保存・書き出す（M3・M4）、プロファイルのポップアップ（M6）、ファイルの取り込み（M5）。
+// 保存の画面（U4d。jsdom で構造と操作だけ）: 保存・書き出す（M3・M4）、ファイルの取り込み（M5）。
+// プロファイル管理の画面（判断ポイント67。ポップアップ〔M6〕を置き換えた）は profiles-view.spec.ts
 // ダウンロードは URL.createObjectURL とリンクのクリックを捕まえて、中身とファイル名を確かめる
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
@@ -273,97 +274,6 @@ describe('書き出す（M4・判断ポイント64）', () => {
     expect(downloads.map((d) => d.name)).toEqual(['曲C.json'])
     const file = JSON.parse(await downloads[0]!.blob.text()) as ExportFile
     expect(file.profiles[0]!.data).toEqual(editor().savedSong.value)
-  })
-})
-
-describe('プロファイルのポップアップ（M6）', () => {
-  const twoProfiles = () =>
-    save(
-      save(emptyStore(), 'いろは', f1.data, new Date('2026-10-01T00:00:00Z')),
-      'あいう',
-      f2.data,
-      NOW,
-    )
-  const names = () =>
-    [...document.querySelectorAll('[data-testid^="profile-"]')]
-      .map((e) => e.getAttribute('data-testid')!)
-      .filter((t) => !/^profile-(load|overwrite|rename|export|delete)$/.test(t))
-      .map((t) => t.slice('profile-'.length))
-
-  it('一覧は更新日時の新しい順で、名前で絞り込める', async () => {
-    putStore(twoProfiles())
-    await mountApp()
-    await click('open-profiles')
-    expect(names()).toEqual(['あいう', 'いろは'])
-    await type('profiles-search', 'イロ')
-    expect(names()).toEqual(['いろは'])
-  })
-
-  it('読み込むは確認を挟み、編集中の内容を置き換えて名前を覚える。「いいえ」なら変わらない', async () => {
-    putStore(twoProfiles())
-    await mountApp()
-    await click('open-profiles')
-    const row = $('profile-いろは')
-    await click('profile-load', row)
-    expect($('profiles-confirm')!.textContent).toContain('編集中の内容は破棄されます')
-    await click('profiles-confirm-no')
-    expect(editor().song.value).toEqual(createInitialSong(spec))
-    await click('profile-load', $('profile-いろは'))
-    await click('profiles-confirm-yes')
-    expect(editor().song.value).toEqual(f1.data)
-    expect(currentName()).toBe('いろは')
-  })
-
-  it('ファクトリーは読み込むだけで、名前は覚えない', async () => {
-    await mountApp()
-    await click('open-profiles')
-    const tab = [...document.querySelectorAll('button[role="tab"]')].find((b) =>
-      b.textContent?.includes('ファクトリー'),
-    ) as HTMLElement
-    tab.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))
-    await flushPromises()
-    await click('factory-load', $(`factory-${f2.name}`))
-    await click('profiles-confirm-yes')
-    expect(editor().song.value).toEqual(f2.data)
-    expect(currentName()).toBeNull()
-  })
-
-  it('上書き保存と削除は確認を挟む。すべて書き出す', async () => {
-    putStore(twoProfiles())
-    await mountApp()
-    editor().song.value.requests[0]!.output.variantCount = 7
-    await click('open-profiles')
-    await click('profile-overwrite', $('profile-いろは'))
-    await click('profiles-confirm-yes')
-    expect(
-      stored()!.profiles.find((p) => p.name === 'いろは')!.data.requests[0]!.output.variantCount,
-    ).toBe(7)
-    expect(currentName()).toBe('いろは')
-    await click('profile-delete', $('profile-いろは'))
-    await click('profiles-confirm-yes')
-    expect(stored()!.profiles.map((p) => p.name)).toEqual(['あいう'])
-    expect(currentName()).toBeNull()
-    await click('profiles-export-all')
-    expect(downloads).toHaveLength(1)
-    expect(downloads[0]!.name).toBe('あいう.json')
-  })
-
-  it('未完成なら上書き保存できない', async () => {
-    putStore(twoProfiles())
-    localStorage.setItem(STORAGE_KEYS.song, JSON.stringify(incompleteSong()))
-    await mountApp()
-    await click('open-profiles')
-    await click('profile-overwrite', $('profile-いろは'))
-    expect($('profiles-overwrite-errors')).not.toBeNull()
-    expect($<HTMLButtonElement>('profiles-confirm-yes')!.disabled).toBe(true)
-  })
-
-  it('ストアが拒否されていると、理由を出し、操作を出さない', async () => {
-    localStorage.setItem(STORAGE_KEYS.profiles, JSON.stringify({ schemaVersion: 9, profiles: [] }))
-    await mountApp()
-    await click('open-profiles')
-    expect($('profiles-rejected')!.textContent).toContain('F8 新しい版')
-    expect($('profiles-export-all')).toBeNull()
   })
 })
 
@@ -658,90 +568,13 @@ describe('取り込みの選択・プレビュー・直接開く（判断ポイ�
   })
 })
 
-describe('名前の変更（判断ポイント66）', () => {
-  const store2 = () =>
-    save(
-      save(emptyStore(), 'いろは', f1.data, new Date('2026-10-01T00:00:00Z')),
-      'あいう',
-      f2.data,
-      NOW,
-    )
-
-  it('同じポップアップの中で入力し、名前だけを変える（中身・更新日時は変えない）。覚えている名前も追従する', async () => {
-    putStore(store2())
-    const before = stored()!.profiles.find((p) => p.name === 'いろは')!
-    await mountApp()
-    setCurrent('いろは')
-    await click('open-profiles')
-    await click('profile-rename', $('profile-いろは'))
-    expect($('profiles-tabs')).toBeNull()
-    expect($<HTMLInputElement>('profiles-rename-input')!.value).toBe('いろは')
-    await type('profiles-rename-input', '  にほへ  ')
-    await click('profiles-confirm-yes')
-    const after = stored()!.profiles.find((p) => p.name === 'にほへ')!
-    expect(after.data).toEqual(before.data)
-    expect(after.updatedAt).toBe(before.updatedAt)
-    expect(stored()!.profiles.map((p) => p.name)).toEqual(['にほへ', 'あいう'])
-    expect(currentName()).toBe('にほへ')
-    expect(editor().currentProfileId.value).toBe(after.id)
-    expect($('profile-にほへ')).not.toBeNull()
-    // 保存の名前の初期値も、id で覚えたプロファイルの今の名前（判断ポイント70）
-    await click('save-song')
-    expect($<HTMLInputElement>('save-name')!.value).toBe('にほへ')
-  })
-
-  it('覚えている名前がほかのプロファイルなら、変えない', async () => {
-    putStore(store2())
-    await mountApp()
-    setCurrent('あいう')
-    await click('open-profiles')
-    await click('profile-rename', $('profile-いろは'))
-    await type('profiles-rename-input', 'にほへ')
-    await click('profiles-confirm-yes')
-    expect(currentName()).toBe('あいう')
-  })
-
-  it('空・ほかと同じ名前は変更できない。今と同じ名前なら何もしない。キャンセルで戻る', async () => {
-    putStore(store2())
-    const before = localStorage.getItem(STORAGE_KEYS.profiles)
-    await mountApp()
-    await click('open-profiles')
-    await click('profile-rename', $('profile-いろは'))
-    await type('profiles-rename-input', ' ')
-    expect($<HTMLButtonElement>('profiles-confirm-yes')!.disabled).toBe(true)
-    expect(document.body.textContent).toContain('名前を入力してください')
-    await type('profiles-rename-input', 'あいう')
-    expect($<HTMLButtonElement>('profiles-confirm-yes')!.disabled).toBe(true)
-    expect(document.body.textContent).toContain('その名前はすでにあります')
-    await type('profiles-rename-input', 'いろは')
-    await click('profiles-confirm-yes')
-    expect(localStorage.getItem(STORAGE_KEYS.profiles)).toBe(before)
-    expect($('profiles-tabs')).not.toBeNull()
-    await click('profile-rename', $('profile-いろは'))
-    await type('profiles-rename-input', 'べつ')
-    await click('profiles-confirm-no')
-    expect(localStorage.getItem(STORAGE_KEYS.profiles)).toBe(before)
-  })
-
-  it('ファクトリーには名前の変更がない', async () => {
-    await mountApp()
-    await click('open-profiles')
-    const tab = [...document.querySelectorAll('button[role="tab"]')].find((b) =>
-      b.textContent?.includes('ファクトリー'),
-    ) as HTMLElement
-    tab.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))
-    await flushPromises()
-    expect($('profiles-factory')!.querySelector('[data-testid="profile-rename"]')).toBeNull()
-  })
-})
-
 describe('ボタンの並び（利用者の判断 (a): 実行するボタンを左、やめるボタンを右）', () => {
   const order = () =>
     [...document.querySelectorAll('[data-testid="dialog-buttons"] button')].map((b) =>
       b.getAttribute('data-testid'),
     )
 
-  it('新規・保存・プロファイルの確認・取り込み', async () => {
+  it('新規・保存・取り込み（プロファイル管理の画面は profiles-view.spec.ts）', async () => {
     putStore(save(emptyStore(), 'A', f1.data, NOW))
     const w = await mountApp()
     await click('new-song')
@@ -751,15 +584,6 @@ describe('ボタンの並び（利用者の判断 (a): 実行するボタンを�
     await click('save-song')
     expect(order()).toEqual(['save-submit', 'save-cancel'])
     await click('save-cancel')
-
-    await click('open-profiles')
-    await click('profile-load', $('profile-A'))
-    expect(order()).toEqual(['profiles-confirm-yes', 'profiles-confirm-no'])
-    await click('profiles-confirm-no')
-    document
-      .querySelector<HTMLElement>('[data-testid="profiles-dialog"] button[aria-label]')
-      ?.click()
-    await flushPromises()
 
     await receive(w, 'a.json', toJsonText(buildExportFile(asUser([{ ...f2, name: 'A' }]), NOW)))
     expect(order()).toEqual([

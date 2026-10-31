@@ -1,15 +1,16 @@
 <script setup lang="ts">
 // 主画面: カード一覧＋依頼文のカード（ui-and-nonfunctional.md §1・§3・§3-1。表示のボタンは廃止。判断ポイント55）。カードの「変更」でポップアップ（U4b）。
-// ヘッダー: ［新規］［保存］［書き出す］［読込］［プロファイル］（U4d の決定 M1）。スマホ幅では「…」のメニューにまとめる
+// ヘッダー: ［新規］［保存］［書き出す］［読込］［プロファイル］（U4d の決定 M1）。スマホ幅では「…」のメニューにまとめる。
+// ［プロファイル］は、プロファイル管理の画面（/profiles）へ移る（判断ポイント67）
 import type { DropdownMenuItem } from '@nuxt/ui'
 import { useFileDialog } from '@vueuse/core'
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import ConfirmReplaceDialog from '@/components/ConfirmReplaceDialog.vue'
 import CardEditor from '@/components/editor/CardEditor.vue'
 import RequestTextArea from '@/components/editor/RequestTextArea.vue'
 import SongCard from '@/components/editor/SongCard.vue'
 import ImportDialog from '@/components/storage/ImportDialog.vue'
-import ProfilesDialog from '@/components/storage/ProfilesDialog.vue'
 import SaveDialog from '@/components/storage/SaveDialog.vue'
 import { useSongEditor } from '@/composables/useSongEditor'
 import { loadImportFile } from '@/data/storage'
@@ -18,12 +19,12 @@ import type { LoadResult } from '@/domain/storage/load'
 import type { ExportFile } from '@/domain/types/song'
 
 const editor = useSongEditor()
+const router = useRouter()
 const cards = computed(() => visibleCards(editor.request.value))
 
 const confirmNew = ref(false)
 const saveMode = ref<'save' | 'export'>('save')
 const saveOpen = ref(false)
-const profilesOpen = ref(false)
 const importOpen = ref(false)
 const importName = ref('')
 const importResult = ref<LoadResult<ExportFile> | null>(null)
@@ -61,7 +62,7 @@ const actions = computed(() => [
   { label: '保存', testid: 'save-song', onSelect: () => openSave('save') },
   { label: '書き出す', testid: 'export-song', onSelect: () => openSave('export') },
   { label: '読込', testid: 'import-file', onSelect: () => openFile() },
-  { label: 'プロファイル', testid: 'open-profiles', onSelect: () => (profilesOpen.value = true) },
+  { label: 'プロファイル', testid: 'open-profiles', onSelect: () => router.push('/profiles') },
 ])
 const menuItems = computed<DropdownMenuItem[]>(() =>
   actions.value.map((a) => ({ label: a.label, onSelect: a.onSelect })),
@@ -148,6 +149,5 @@ const editorOpen = computed({
     @confirm="editor.resetToInitial()"
   />
   <SaveDialog v-model:open="saveOpen" :mode="saveMode" />
-  <ProfilesDialog v-model:open="profilesOpen" />
   <ImportDialog v-model:open="importOpen" :file-name="importName" :result="importResult" />
 </template>

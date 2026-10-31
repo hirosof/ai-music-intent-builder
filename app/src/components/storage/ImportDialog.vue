@@ -36,6 +36,8 @@ const props = withDefaults(
   }>(),
   { initialFolderId: null },
 )
+// 編集中の内容として開いたとき（管理画面は、組み立ての画面に戻る。判断ポイント67）
+const emit = defineEmits<{ opened: [] }>()
 
 const profiles = useProfileStore()
 const editor = useSongEditor()
@@ -168,6 +170,7 @@ function openAsEditing(profile: Profile, id: string | null) {
     color: warnings.length ? 'warning' : 'success',
   })
   open.value = false
+  emit('opened')
 }
 
 function askOpen(mode: 'open' | 'addOpen') {
