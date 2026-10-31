@@ -19,7 +19,7 @@ import {
 } from '@/domain/storage/profiles'
 import { formatDisplayTimestamp } from '@/domain/storage/timestamp'
 import { norm } from '@/domain/editor/tree'
-import type { Profile } from '@/domain/types/song'
+import type { Profile, UserProfile } from '@/domain/types/song'
 
 const open = defineModel<boolean>('open', { required: true })
 
@@ -30,24 +30,23 @@ const toast = useToast()
 const tab = ref<'user' | 'factory'>('user')
 const query = ref('')
 const sort = ref<'name' | 'updated'>('updated')
-type Pending = {
-  kind: 'load' | 'overwrite' | 'delete' | 'rename'
-  profile: Profile
-  source: 'user' | 'factory'
-}
+// ユーザープロファイルは id で特定する（判断ポイント70）。ファクトリーは id を持たない
+type Pending =
+  | { kind: 'load' | 'overwrite' | 'delete' | 'rename'; profile: UserProfile; source: 'user' }
+  | { kind: 'load'; profile: Profile; source: 'factory' }
 const pending = ref<Pending | null>(null)
 const failure = ref<string[]>([])
 // 名前の変更の入力（判断ポイント66。一意・空は不可。今と同じなら何もしない）
 const newName = ref('')
-function askRename(p: Profile) {
+function askRename(p: UserProfile) {
   newName.value = p.name
   pending.value = { kind: 'rename', profile: p, source: 'user' }
 }
 const renameInvalid = computed(() => {
   const p = pending.value
   const store = profiles.store.value
-  if (p?.kind !== 'rename' || !store) return null
-  return renameError(store, p.profile.name, newName.value.trim())
+  if (p?.kind !== 'rename' || p.source !== 'user' || !store) return null
+  return renameError(store, p.profile.id, newName.value.trim())
 })
 watch(open, (v) => {
   if (v) {
@@ -78,9 +77,9 @@ const tabs = [
   { label: 'ファクトリー', value: 'factory', slot: 'factory' as const },
 ]
 
-function exportProfiles(list: readonly Profile[]) {
+function exportProfiles(list: readonly UserProfile[]) {
   const now = new Date()
-  downloadJson(exportFileName(list, now), buildExportFile(list, now))
+  downloadJson(exportFileName(list, now), buildExportFile(list, now, profiles.store.value?.folders))
   toast.add({ title: `${list.length} 件を書き出しました`, color: 'success' })
 }
 
@@ -89,7 +88,7 @@ function confirm() {
   if (!p) return
   const store = profiles.store.value
   if (p.kind === 'load') {
-    editor.replaceSong(p.profile.data, p.source === 'user' ? p.profile.name : null)
+    editor.replaceSong(p.profile.data, p.source === 'user' ? p.profile.id : null)
     const warnings = checkSaved(JSON.stringify(p.profile.data)).warnings
     toast.add({
       title: `「${p.profile.name}」を読み込みました${warnings.length ? '（注意があります）' : ''}`,
@@ -99,24 +98,25 @@ function confirm() {
     open.value = false
     return
   }
-  if (!store) return
+  if (!store || p.source !== 'user') return
   if (p.kind === 'rename') {
-    renameConfirmed(p.profile.name)
+    renameConfirmed(p.profile)
     return
   }
+  const { id, folderId, name } = p.profile
   const next =
     p.kind === 'overwrite'
-      ? saveProfile(store, p.profile.name, prepared.value.song, new Date())
-      : deleteProfile(store, p.profile.name)
+      ? saveProfile(store, folderId, name, prepared.value.song, new Date()).store
+      : deleteProfile(store, id)
   const c = profiles.commit(next)
   if (!c.ok) {
     failure.value = c.errors
     pending.value = null
     return
   }
-  if (p.kind === 'overwrite') editor.currentProfileName.value = p.profile.name
-  if (p.kind === 'delete' && editor.currentProfileName.value === p.profile.name)
-    editor.currentProfileName.value = null
+  if (p.kind === 'overwrite') editor.currentProfileId.value = id
+  if (p.kind === 'delete' && editor.currentProfileId.value === id)
+    editor.currentProfileId.value = null
   toast.add({
     title: `「${p.profile.name}」を${p.kind === 'overwrite' ? '上書き保存しました' : '削除しました'}`,
     color: 'success',
@@ -124,22 +124,22 @@ function confirm() {
   pending.value = null
 }
 
-/** 名前を変える。覚えている名前がそのプロファイルなら追従させる。中身と更新日時は変えない */
-function renameConfirmed(from: string) {
+/** 名前を変える。中身と更新日時は変えない。編集中の内容との対応は id なので、そのまま保たれる（判断ポイント70） */
+function renameConfirmed(profile: UserProfile) {
   const store = profiles.store.value
+  const from = profile.name
   const to = newName.value.trim()
   if (!store || renameInvalid.value) return
   if (to === from) {
     pending.value = null
     return
   }
-  const c = profiles.commit(renameProfile(store, from, to))
+  const c = profiles.commit(renameProfile(store, profile.id, to))
   if (!c.ok) {
     failure.value = c.errors
     pending.value = null
     return
   }
-  if (editor.currentProfileName.value === from) editor.currentProfileName.value = to
   toast.add({ title: `「${from}」の名前を「${to}」に変更しました`, color: 'success' })
   pending.value = null
 }
@@ -249,7 +249,7 @@ const confirmText = computed(() => {
             <ul class="divide-y divide-default">
               <li
                 v-for="p in userList"
-                :key="p.name"
+                :key="p.id"
                 class="flex flex-wrap items-center justify-between gap-2 py-2"
                 :data-testid="`profile-${p.name}`"
               >

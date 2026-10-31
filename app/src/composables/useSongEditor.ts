@@ -35,16 +35,17 @@ export interface SongEditor {
   warnings: Readonly<Ref<FieldWarning[]>>
   generated: Readonly<Ref<GeneratedText>>
   /**
-   * 編集中の内容に対応するユーザープロファイルの名前（読み込んだ、または最後に保存した名前。U4d の決定 M2）。
-   * 保存・書き出しの名前の初期値。画面の中だけで覚え、保存しない（開き直すと忘れる）
+   * 編集中の内容に対応するユーザープロファイルの id（読み込んだ、または最後に保存したプロファイル。U4d の決定 M2）。
+   * 名前は同じフォルダの中でしか一意でないため、id で覚える（判断ポイント70）。名前の変更・移動のあとも対応が保たれる。
+   * 保存・書き出しの名前と保存先の初期値。画面の中だけで覚え、保存しない（開き直すと忘れる）
    */
-  currentProfileName: Ref<string | null>
+  currentProfileId: Ref<string | null>
   /** 起動時の自動保存の読み込み結果（通知に使う） */
   restored: Readonly<Ref<AutosaveLoad | null>>
   /** 起動時に1回呼ぶ。自動保存を読み込み、以後の変更を自動保存する */
   start(): void
   /** 編集中の内容を置き換える（新規・プロファイルの読み込み）。一時保持（編集中のデータに残った値）も消え、すぐに自動保存する */
-  replaceSong(data: SongData, profileName?: string | null): void
+  replaceSong(data: SongData, profileId?: string | null): void
   /** 初期状態に置き換える（判断ポイント52） */
   resetToInitial(): void
   /** 自動保存の監視を止める（テストで、編集状態を作り直すとき） */
@@ -54,7 +55,7 @@ export interface SongEditor {
 export function createSongEditor(): SongEditor {
   const song = ref<SongData>(createInitialSong(spec))
   const restored = shallowRef<AutosaveLoad | null>(null)
-  const currentProfileName = ref<string | null>(null)
+  const currentProfileId = ref<string | null>(null)
   let started = false
   const scope = effectScope(true)
 
@@ -72,9 +73,9 @@ export function createSongEditor(): SongEditor {
     }
   })
 
-  function replaceSong(data: SongData, profileName: string | null = null) {
+  function replaceSong(data: SongData, profileId: string | null = null) {
     song.value = cloneJson(data)
-    currentProfileName.value = profileName
+    currentProfileId.value = profileId
     saveAutosave(song.value)
   }
 
@@ -86,7 +87,7 @@ export function createSongEditor(): SongEditor {
     warnings,
     generated,
     restored,
-    currentProfileName,
+    currentProfileId,
     start() {
       if (started) return
       started = true

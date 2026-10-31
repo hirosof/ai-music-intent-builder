@@ -8,6 +8,9 @@ export interface SchemaValidators {
   file: ValidateFunction
   /** プロファイルのストア（song-export.schema.json の $defs/profileStore） */
   store: ValidateFunction
+  /** 版1 のエクスポートファイル・ストア（移行の前に検証する。$defs/exportFileV1・profileStoreV1） */
+  fileV1: ValidateFunction
+  storeV1: ValidateFunction
 }
 
 export function createSchemaValidators(
@@ -28,5 +31,7 @@ export function createSchemaValidators(
     song: get(songSchema.$id),
     file: get(exportSchema.$id),
     store: get(`${exportSchema.$id}#/$defs/profileStore`),
+    fileV1: get(`${exportSchema.$id}#/$defs/exportFileV1`),
+    storeV1: get(`${exportSchema.$id}#/$defs/profileStoreV1`),
   }
 }

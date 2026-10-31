@@ -86,8 +86,30 @@ def export(f=None):
     return x
 
 
-def store(profiles=None):
-    return {"schemaVersion": 1, "profiles": copy.deepcopy(EXPORT["profiles"]) if profiles is None else profiles}
+def store(profiles=None, folders=None):
+    return {"schemaVersion": 2,
+            "folders": copy.deepcopy(EXPORT["folders"]) if folders is None else folders,
+            "profiles": copy.deepcopy(EXPORT["profiles"]) if profiles is None else profiles}
+
+
+def v1(x):
+    """版2 のストア／ファイルを、版1 の形（folders なし、プロファイルに id・folderId なし）にする。"""
+    x = copy.deepcopy(x)
+    x["schemaVersion"] = 1
+    x.pop("folders", None)
+    for p in x["profiles"]:
+        p.pop("id", None)
+        p.pop("folderId", None)
+    return x
+
+
+def folder(fid, name, parent=None):
+    return {"id": fid, "parentId": parent, "name": name}
+
+
+def prof(pid, name, folder_id=None):
+    """例のプロファイル（data は例のまま）の id・名前・所属を変えたもの。"""
+    return dict(copy.deepcopy(EXPORT["profiles"][0]), id=pid, name=name, folderId=folder_id)
 
 
 def req(x):
@@ -126,7 +148,7 @@ case("正例: factory-profiles.json はスキーマにも適合する", copy.dee
 case("正例: ストア（プロファイル1件）", store(), rc=0, counts=(0, 0), has=["プロファイルのストア"])
 case("正例: ストア（0件）", store([]), rc=0, counts=(0, 0))
 case("正例: 名前が違うプロファイルが2件", export(lambda x: x["profiles"].append(
-    dict(copy.deepcopy(x["profiles"][0]), name="別の曲"))), rc=0, counts=(0, 0), lacks=["F5"])
+    dict(copy.deepcopy(x["profiles"][0]), id="p2", name="別の曲"))), rc=0, counts=(0, 0), lacks=["F5"])
 
 # ---------------------------------------------------------------------------
 # F0 形
@@ -149,12 +171,14 @@ case("F8: 楽曲データの版が新しい", song(lambda x: x.update(schemaVers
 case("F8: 楽曲データの版が古い", song(lambda x: x.update(schemaVersion=0)), has=["F8 古い版"])
 case("F8: 楽曲データの版が整数でない", song(lambda x: x.update(schemaVersion="1")),
      has=["F8 schemaVersion がない、または整数でない"])
-case("F8: エクスポートファイルの版が新しい", export(lambda x: x.update(schemaVersion=2)),
+case("F8: エクスポートファイルの版が新しい", export(lambda x: x.update(schemaVersion=3)),
      has=["F8 新しい版"], lacks=["[プロファイル「"])
 case("F8: プロファイルの data の版が新しい（外側の版とは別に判定する）",
      in_export(lambda d: d.update(schemaVersion=2)),
      has=["F8 新しい版", "[プロファイル「和風戦闘BGM」]"], lacks=["F1 スキーマ違反"])
-case("F8: ストアの版が新しい", dict(store(), schemaVersion=2), has=["F8 新しい版"])
+case("F8: ストアの版が新しい", dict(store(), schemaVersion=3), has=["F8 新しい版（3。このツールが読めるのは 2 まで）"])
+case("F8: エクスポートファイルの版が古い（移行が未定義）", export(lambda x: x.update(schemaVersion=0)),
+     has=["F8 古い版（0）"], lacks=["[プロファイル「"])
 
 # ---------------------------------------------------------------------------
 # F2 依頼の id の一意
@@ -197,9 +221,68 @@ case("F4: derived なのに derivedFrom が null", song(lambda x: req(x).update(
 # ---------------------------------------------------------------------------
 # F5 プロファイル名の一意
 # ---------------------------------------------------------------------------
-case("F5: name が重複", export(lambda x: x["profiles"].append(copy.deepcopy(x["profiles"][0]))),
-     has=["F5 プロファイルの name が重複"])
-case("F5: ストア内の name が重複", store(EXPORT["profiles"] * 2), has=["F5 プロファイルの name が重複"])
+case("F5: name が重複（同じフォルダ）", export(lambda x: x["profiles"].append(
+    dict(copy.deepcopy(x["profiles"][0]), id="p2"))),
+     has=["F5 プロファイルの name が、同じフォルダの中で重複: '和風戦闘BGM'（要素 #0, #1）"], lacks=["F14"])
+case("F5: ストア内の name が重複", store([prof("a", "曲"), prof("b", "曲")], []),
+     has=["F5 プロファイルの name が、同じフォルダの中で重複: '曲'"])
+case("F5: 別のフォルダなら同じ name でよい（判断ポイント68）",
+     store([prof("a", "曲"), prof("b", "曲", "f1")], [folder("f1", "ゲーム")]), rc=0, counts=(0, 0), lacks=["F5"])
+
+# ---------------------------------------------------------------------------
+# F14〜F17 フォルダと id（版2。判断ポイント68）
+# ---------------------------------------------------------------------------
+case("F14: プロファイルの id が重複", store([prof("a", "曲1"), prof("a", "曲2")], []),
+     has=["F14 プロファイルの id が重複: 'a'（要素 #0, #1）"], counts=(1, 0))
+case("F14: フォルダの id が重複", store([], [folder("f", "A"), folder("f", "B")]),
+     has=["F14 フォルダの id が重複: 'f'（要素 #0, #1）"], counts=(1, 0))
+case("F14: フォルダとプロファイルの id は別々に一意を見る", store([prof("x", "曲", "x")], [folder("x", "A")]),
+     rc=0, counts=(0, 0))
+case("F14: id の形式は縛らない（UUID でなくてよい）", store([prof("1", "曲", "abc")], [folder("abc", "A")]),
+     rc=0, counts=(0, 0))
+case("F14: id が空はスキーマ違反", store([prof("", "曲")], []), schema=True, has=["F1 スキーマ違反: profiles/0/id"])
+case("F15: プロファイルの folderId が実在しない", store([prof("a", "曲", "zz")], []),
+     has=["F15 プロファイルの folderId が、実在するフォルダを指さない: 'zz'（要素 #0）"], counts=(1, 0))
+case("F15: フォルダの parentId が実在しない", store([], [folder("f", "A", "zz")]),
+     has=["F15 フォルダの parentId が、実在するフォルダを指さない: 'zz'（要素 #0）"], counts=(1, 0))
+case("F16: フォルダが自分自身を親にしている", store([], [folder("f", "A", "f")]),
+     has=["F16 フォルダの親子が循環している（要素 #0）"], counts=(1, 0))
+case("F16: フォルダの親子が循環している（3つ。循環の外の子は指摘しない）",
+     store([], [folder("a", "A", "c"), folder("b", "B", "a"), folder("c", "C", "b"), folder("d", "D", "a")]),
+     once=("F16", 3), lacks=["要素 #3"])
+case("F16: 深い入れ子は正しい（深さの上限なし）",
+     store([prof("p", "曲", "e")], [folder("a", "A"), folder("b", "B", "a"), folder("c", "C", "b"),
+                                   folder("d", "D", "c"), folder("e", "E", "d")]), rc=0, counts=(0, 0))
+case("F17: フォルダの name が空白だけ", store([], [folder("f", "  ")]),
+     has=["F17 フォルダの name が、前後の空白を除いて空（要素 #0）"], counts=(1, 0))
+case("F17: フォルダの name が空はスキーマ違反", store([], [folder("f", "")]), schema=True,
+     has=["F1 スキーマ違反: folders/0/name"])
+case("F17: 同じ親の中でフォルダの name が重複", store([], [folder("a", "ゲーム"), folder("b", "ゲーム")]),
+     has=["F17 フォルダの name が、同じ親の中で重複: 'ゲーム'（要素 #0, #1）"], counts=(1, 0))
+case("F17: 親が違えば同じ name でよい", store([], [folder("a", "ゲーム"), folder("b", "ゲーム", "a")]),
+     rc=0, counts=(0, 0))
+case("F1: 版2 のファイルに folders がない", export(lambda x: x.pop("folders")), schema=True,
+     has=["F1 スキーマ違反: : 'folders' is a required property"])
+case("F1: 版2 のプロファイルに id がない", export(lambda x: x["profiles"][0].pop("id")), schema=True,
+     has=["F1 スキーマ違反: profiles/0: 'id' is a required property"])
+
+# ---------------------------------------------------------------------------
+# 版1 → 2 の移行（song-file.md §6-2。判断ポイント68）
+# ---------------------------------------------------------------------------
+case("移行: 版1 のエクスポートファイルは、版2 に移行して読める", v1(export()), rc=0, counts=(0, 0),
+     has=["移行: 版1 のため、版2 に移行して検証する", "プロファイル 1 件"])
+case("移行: 版1 のストアは、版2 に移行して読める", v1(store()), rc=0, counts=(0, 0),
+     has=["移行: 版1 のため、版2 に移行して検証する", "プロファイルのストア"])
+case("移行: 版1 のストア（0件）", v1(store([], [])), rc=0, counts=(0, 0), has=["移行: 版1"])
+case("移行: 版1 のファイルも、版1 の形として検証する（folders は持てない）",
+     dict(v1(export()), folders=[]), schema=True, has=["F1 スキーマ違反: : Additional properties"])
+case("移行: 版1 のプロファイルは id を持てない", v1(export(lambda x: x["profiles"][0].update(name="曲"))) | {
+    "profiles": [dict(v1(export())["profiles"][0], id="a")]}, schema=True, has=["F1 スキーマ違反: profiles/0: Additional properties"])
+case("移行: 版1 の name の重複は、移行後もルートで重複（F5）",
+     v1(store([prof("a", "曲"), prof("b", "曲")], [])), has=["F5 プロファイルの name が、同じフォルダの中で重複: '曲'"],
+     lacks=["F14"])
+case("移行: 移行した版1 のファイルの data も検証する", v1(in_export(lambda d: req(d).update(vocalMode="x"))),
+     has=["[プロファイル「和風戦闘BGM」]"])
 
 # ---------------------------------------------------------------------------
 # F6 初版の制約
@@ -920,8 +1003,37 @@ def _(d): d["fields"][0]["rangeFrom"] = {"param": "length"}
 
 
 # ---------------------------------------------------------------------------
+# 移行の結果そのもの（--song の出力には現れないため、関数を直接呼ぶ）
+# ---------------------------------------------------------------------------
+def direct_migration():
+    """版1 → 2 の移行の結果（song-file.md §4-2）。問題のリストを返す（空なら期待どおり）。"""
+    sys.path.insert(0, str(HERE))
+    import check_fields as cf
+    n = iter(range(1, 100))
+    src = v1(store([prof("a", "曲1"), prof("b", "曲2")], []))
+    before = copy.deepcopy(src)
+    out = cf.migrate_container(src, new_id=lambda: "n%d" % next(n))
+    problems = []
+    if out.get("schemaVersion") != 2 or out.get("folders") != []:
+        problems.append("版2・folders が空になっていない: %r" % ({k: out.get(k) for k in ("schemaVersion", "folders")},))
+    got = [(p.get("id"), p.get("folderId"), p.get("name")) for p in out.get("profiles", [])]
+    if got != [("n1", None, "曲1"), ("n2", None, "曲2")]:
+        problems.append("プロファイルの id・folderId が違う: %r" % (got,))
+    if src != before:
+        problems.append("引数を書き換えた")
+    return problems
+
+
+DIRECT = [("移行: 版1 → 2 の結果（版2、folders は空、各プロファイルに新しい id と folderId = null）", direct_migration)]
+
+
 def main():
     failed, skipped = [], 0
+    for name, f in DIRECT:
+        problems = f()
+        print("  %s  %s" % ("○" if not problems else "✗", name))
+        if problems:
+            failed.append((name, problems, ""))
     for c in CASES:
         if c["schema"] and not HAS_SCHEMA:
             skipped += 1
@@ -953,9 +1065,10 @@ def main():
         print("  --- 出力 ---")
         for line in err.rstrip().splitlines():
             print("  | " + line)
-    ran = len(CASES) - skipped
+    total = len(CASES) + len(DIRECT)
+    ran = total - skipped
     print("\n%d ケース中 %d 件を実行、%d 件が期待どおり、%d 件が失敗、%d 件をスキップ" % (
-        len(CASES), ran, ran - len(failed), len(failed), skipped))
+        total, ran, ran - len(failed), len(failed), skipped))
     return 1 if failed else 0
 
 

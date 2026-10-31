@@ -1,9 +1,14 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "exportType": "profiles",
   "exportedAt": "2026-09-21T10:00:00+09:00",
+  "folders": [
+    { "id": "5f0c2a8e-3b1d-4c6a-9e7f-1a2b3c4d5e6f", "parentId": null, "name": "ゲーム" }
+  ],
   "profiles": [
     {
+      "id": "9d8e7f60-1a2b-4c3d-8e5f-6a7b8c9d0e1f",
+      "folderId": "5f0c2a8e-3b1d-4c6a-9e7f-1a2b3c4d5e6f",
       "name": "和風戦闘BGM",
       "updatedAt": "2026-09-21T09:30:00+09:00",
       "data": {

@@ -59,21 +59,45 @@ export interface SongData {
   requests: SongRequest[]
 }
 
-/** プロファイル（ユーザー・ファクトリー共通。song-file.md §4-1） */
+/** プロファイル（ユーザー・ファクトリー共通の部分。song-file.md §4-1）。ファクトリープロファイルはこの形 */
 export interface Profile {
   name: string
   updatedAt: string
   data: SongData
 }
 
-/** プロファイルのストア（localStorage。song-file.md §4-2） */
-export interface ProfileStore {
-  schemaVersion: number
-  profiles: Profile[]
+/** ユーザープロファイル（版2。song-file.md §4-1。判断ポイント68）。id で特定し、名前は同じフォルダの中で一意 */
+export interface UserProfile extends Profile {
+  id: string
+  /** 所属するフォルダの id。null はルート */
+  folderId: string | null
 }
 
-/** エクスポートファイル（song-file.md §4-2）。常にプロファイルの配列を持つ */
+/** フォルダ（song-file.md §4-6）。名前は同じ親の中で一意 */
+export interface Folder {
+  id: string
+  /** 親のフォルダの id。null はルート直下 */
+  parentId: string | null
+  name: string
+}
+
+/** プロファイルのストア（localStorage。版2。song-file.md §4-2） */
+export interface ProfileStore {
+  schemaVersion: number
+  folders: Folder[]
+  profiles: UserProfile[]
+}
+
+/** エクスポートファイル（版2。song-file.md §4-2）。常にプロファイルの配列を持つ */
 export interface ExportFile extends ProfileStore {
   exportType: 'profiles'
   exportedAt: string
+}
+
+/** 版1 のエクスポートファイル（フォルダなし）。同梱のファクトリープロファイルもこの形 */
+export interface ExportFileV1 {
+  schemaVersion: 1
+  exportType: 'profiles'
+  exportedAt: string
+  profiles: Profile[]
 }

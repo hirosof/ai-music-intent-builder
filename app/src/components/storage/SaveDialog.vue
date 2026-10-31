@@ -11,7 +11,13 @@ import { useProfileStore } from '@/composables/useProfileStore'
 import { useSongEditor } from '@/composables/useSongEditor'
 import { downloadJson, prepareForSave } from '@/data/storage'
 import { exportFileName } from '@/domain/storage/file-name'
-import { buildExportFile, findProfile, makeProfile, saveProfile } from '@/domain/storage/profiles'
+import {
+  buildExportFile,
+  findProfileById,
+  findProfileByName,
+  makeProfile,
+  saveProfile,
+} from '@/domain/storage/profiles'
 
 const open = defineModel<boolean>('open', { required: true })
 const props = defineProps<{ mode: 'save' | 'export' }>()
@@ -25,9 +31,17 @@ const confirmOverwrite = ref(false)
 const failure = ref<string[]>([])
 // 書き出すときにストアにも保存するか（判断ポイント64。開くたびにオフに戻す）
 const alsoStore = ref(false)
+// 保存先のフォルダ（null はルート）。編集中の内容に対応するプロファイルがあればそのフォルダ（判断ポイント70。選ぶ画面は段階2）
+const folderId = ref<string | null>(null)
 watch(open, (v) => {
   if (!v) return
-  name.value = editor.currentProfileName.value ?? ''
+  const current = editor.currentProfileId.value
+  const p =
+    current !== null && profiles.store.value
+      ? findProfileById(profiles.store.value, current)
+      : undefined
+  name.value = p?.name ?? ''
+  folderId.value = p?.folderId ?? null
   confirmOverwrite.value = false
   failure.value = []
   alsoStore.value = false
@@ -53,23 +67,32 @@ function submit() {
   if (!canSubmit.value) return
   const now = new Date()
   const store = storing.value ? profiles.store.value : null
+  let savedId: string | null = null
   // ストアに保存する（保存しない書き出し・拒否されているときの書き出しは、ストアも覚えている名前も変えない）
   if (store) {
-    if (findProfile(store, trimmed.value) && !confirmOverwrite.value) {
+    if (findProfileByName(store, folderId.value, trimmed.value) && !confirmOverwrite.value) {
       confirmOverwrite.value = true
       return
     }
-    const c = profiles.commit(saveProfile(store, trimmed.value, prepared.value.song, now))
+    const saved = saveProfile(store, folderId.value, trimmed.value, prepared.value.song, now)
+    const c = profiles.commit(saved.store)
     if (!c.ok) {
       failure.value = c.errors
       return
     }
-    editor.currentProfileName.value = trimmed.value
+    savedId = saved.id
+    editor.currentProfileId.value = saved.id
   }
   if (props.mode === 'export') {
-    const saved = store && profiles.store.value && findProfile(profiles.store.value, trimmed.value)
+    const saved =
+      savedId !== null && profiles.store.value
+        ? findProfileById(profiles.store.value, savedId)
+        : undefined
     const profile = saved ?? makeProfile(trimmed.value, prepared.value.song, now)
-    downloadJson(exportFileName([profile], now), buildExportFile([profile], now))
+    downloadJson(
+      exportFileName([profile], now),
+      buildExportFile([profile], now, profiles.store.value?.folders),
+    )
   }
   toast.add({
     title:

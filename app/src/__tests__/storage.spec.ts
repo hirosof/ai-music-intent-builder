@@ -148,7 +148,10 @@ describe('自動保存（判断ポイント43・45）', () => {
       // キーは消さない（次の自動保存で上書きされる）
       expect(localStorage.getItem(STORAGE_KEYS.song)).not.toBeNull()
     }
-    for (const text of ['{', JSON.stringify(buildExportFile([factoryProfiles[0]!], NOW))]) {
+    for (const text of [
+      '{',
+      JSON.stringify(buildExportFile([makeProfile('f', factoryProfiles[0]!.data, NOW)], NOW)),
+    ]) {
       localStorage.setItem(STORAGE_KEYS.song, text)
       expect(loadAutosaveFromStorage().status).toBe('discarded')
     }
@@ -187,26 +190,26 @@ describe('プロファイルのストア（判断ポイント44）', () => {
   it('値がなければ空のストア。書き込んだものを読める', () => {
     const st = openProfileStore()
     expect(st).toEqual({ status: 'ok', store: emptyStore(), warnings: [] })
-    const next = saveProfile(emptyStore(), 'a', instSong, NOW)
+    const next = saveProfile(emptyStore(), null, 'a', instSong, NOW).store
     const c = commitProfileStore(st, next)
     expect(c.ok).toBe(true)
     expect(openProfileStore()).toEqual({ status: 'ok', store: next, warnings: [] })
-    const c2 = commitProfileStore(c.ok ? c.state : st, deleteProfile(next, 'a'))
+    const c2 = commitProfileStore(c.ok ? c.state : st, deleteProfile(next, next.profiles[0]!.id))
     expect(c2.ok).toBe(true)
     expect(openProfileStore()).toEqual({ status: 'ok', store: emptyStore(), warnings: [] })
   })
 
   it('拒否したストアには、保存・削除・取り込み（追加・置換）のどれでも書き込まない（中身を保つ）', async () => {
-    const base = saveProfile(emptyStore(), 'a', instSong, NOW)
-    const original = JSON.stringify({ ...base, schemaVersion: 2 })
+    const base = saveProfile(emptyStore(), null, 'a', instSong, NOW).store
+    const original = JSON.stringify({ ...base, schemaVersion: 3 })
     localStorage.setItem(STORAGE_KEYS.profiles, original)
     const st = openProfileStore()
     expect(st.status).toBe('rejected')
     expect(st.status === 'rejected' && st.errors.some((e) => e.includes('F8 新しい版'))).toBe(true)
     const file = buildExportFile([makeProfile('b', instSong, NOW)], NOW)
     const attempts = {
-      保存: saveProfile(base, 'c', instSong, NOW),
-      削除: deleteProfile(base, 'a'),
+      保存: saveProfile(base, null, 'c', instSong, NOW).store,
+      削除: deleteProfile(base, base.profiles[0]!.id),
       取り込みの追加: (await importAdd(base, file, () => ({ action: 'overwrite' }))).store,
       取り込みの置換: importReplace(file),
     }
@@ -218,9 +221,27 @@ describe('プロファイルのストア（判断ポイント44）', () => {
     }
   })
 
+  it('版1 のストアは、移行して読み、版2 で書き戻す（判断ポイント68）', () => {
+    const v1 = {
+      schemaVersion: 1,
+      profiles: [{ name: 'a', updatedAt: '2026-10-01T00:00:00+09:00', data: instSong }],
+    }
+    localStorage.setItem(STORAGE_KEYS.profiles, JSON.stringify(v1))
+    const st = openProfileStore()
+    expect(st.status).toBe('ok')
+    const store = st.status === 'ok' ? st.store : null
+    expect(store?.schemaVersion).toBe(2)
+    expect(store?.folders).toEqual([])
+    expect(store?.profiles.map((p) => [p.name, p.folderId])).toEqual([['a', null]])
+    expect(store?.profiles[0]!.id).toMatch(/^[0-9a-f-]{36}$/)
+    // 書き戻した値は、移行した結果と同じ（開き直しても id は変わらない）
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.profiles)!)).toEqual(store)
+    expect(openProfileStore()).toEqual(st)
+  })
+
   it('エラーのあるストアは書き込まない', () => {
     const st = openProfileStore()
-    const bad = saveProfile(emptyStore(), 'a', s5Song(), NOW)
+    const bad = saveProfile(emptyStore(), null, 'a', s5Song(), NOW).store
     expect(commitProfileStore(st, bad)).toMatchObject({ ok: false, reason: 'invalid' })
     expect(localStorage.getItem(STORAGE_KEYS.profiles)).toBeNull()
   })
@@ -236,11 +257,11 @@ describe('プロファイルのストア（判断ポイント44）', () => {
 
 describe('ファイルの読み込み（判断ポイント46）', () => {
   it('エクスポートファイルだけを受け付け、他の形は理由つきで拒否する', () => {
-    const file = toJsonText(buildExportFile([factoryProfiles[0]!], NOW))
+    const file = toJsonText(buildExportFile([makeProfile('f', factoryProfiles[0]!.data, NOW)], NOW))
     expect(loadImportFile(file).ok).toBe(true)
     for (const text of [
       JSON.stringify(instSong),
-      toJsonText(saveProfile(emptyStore(), 'a', instSong, NOW)),
+      toJsonText(saveProfile(emptyStore(), null, 'a', instSong, NOW).store),
     ]) {
       const r = loadImportFile(text)
       expect(r.ok).toBe(false)
@@ -264,7 +285,7 @@ describe('ファイルの読み込み（判断ポイント46）', () => {
       // ストア
       localStorage.setItem(
         STORAGE_KEYS.profiles,
-        toJsonText(saveProfile(emptyStore(), 'a', song, NOW)),
+        toJsonText(saveProfile(emptyStore(), null, 'a', song, NOW).store),
       )
       const st = openProfileStore()
       expect(st.status).toBe('rejected')

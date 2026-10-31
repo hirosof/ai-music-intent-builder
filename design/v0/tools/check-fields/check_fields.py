@@ -611,7 +611,9 @@ def check_request(req, fields, fk, vocabs, report, profile=None):
 # 保存データ（楽曲データ・エクスポートファイル・プロファイルのストア）の検証
 # 仕様: docs/specifications/song-file.md §6・§9
 # ---------------------------------------------------------------------------
+# 版は、楽曲データと、ストア／エクスポートファイル（外側の形）で別々（§6）
 SUPPORTED_SCHEMA_VERSION = 1
+SUPPORTED_CONTAINER_VERSION = 2
 SONG_SCHEMA_FILE = SPEC / "song.schema.json"
 EXPORT_SCHEMA_FILE = SPEC / "song-export.schema.json"
 
@@ -645,10 +647,16 @@ def load_schema_validators(report):
     def make(schema):
         return jsonschema.Draft202012Validator(schema, registry=registry, format_checker=jsonschema.FormatChecker())
 
+    def ref(name):
+        return make({"$schema": export["$schema"], "$ref": export["$id"] + "#/$defs/" + name})
+
     return {
         "song": make(song),
         "file": make(export),
-        "store": make({"$schema": export["$schema"], "$ref": export["$id"] + "#/$defs/profileStore"}),
+        "store": ref("profileStore"),
+        # 版1（移行の前に、版1 の形として検証する）
+        "file_v1": ref("exportFileV1"),
+        "store_v1": ref("profileStoreV1"),
     }
 
 
@@ -663,19 +671,118 @@ def check_by_schema(validator, obj, report, skip_data=False):
         report.error("F1 スキーマ違反: %s: %s" % ("/".join(str(x) for x in path), err.message[:200]))
 
 
-def check_version(obj, report):
-    """F8 schemaVersion（song-file.md §6-2 の 1〜3）。読めない版なら False を返し、以降の検証を省く（部分的に読まない）。"""
+def check_version(obj, report, supported=SUPPORTED_SCHEMA_VERSION, migrations=None):
+    """F8 schemaVersion（song-file.md §6-2 の 1〜3）。読めない版なら False を返し、以降の検証を省く（部分的に読まない）。
+    古い版は、supported までの各段の移行（migrations の n → n+1）がそろっていれば読める。"""
     v = obj.get("schemaVersion")
     if isinstance(v, bool) or not isinstance(v, int):
         report.error("F8 schemaVersion がない、または整数でない: %r" % (v,))
         return False
-    if v > SUPPORTED_SCHEMA_VERSION:
-        report.error("F8 新しい版（%d。このツールが読めるのは %d まで）のため、拒否する" % (v, SUPPORTED_SCHEMA_VERSION))
+    if v > supported:
+        report.error("F8 新しい版（%d。このツールが読めるのは %d まで）のため、拒否する" % (v, supported))
         return False
-    if v < SUPPORTED_SCHEMA_VERSION:
+    if v < supported and not all(n in (migrations or {}) for n in range(v, supported)):
         report.error("F8 古い版（%d）で、移行が未定義のため、拒否する" % v)
         return False
     return True
+
+
+def migrate_container_1_to_2(obj, new_id):
+    """ストア／エクスポートファイルの版1 → 2（song-file.md §4-2・§6-2。判断ポイント68）。
+    各プロファイルに新しい id、folderId を null、folders を空にする。引数は書き換えない。"""
+    out = dict(obj, schemaVersion=2, folders=[])
+    profiles = obj.get("profiles")
+    if isinstance(profiles, list):
+        out["profiles"] = [dict(p, id=new_id(), folderId=None) if isinstance(p, dict) else p for p in profiles]
+    return out
+
+
+# ストア／エクスポートファイルの移行（n → n+1 を1段ずつ。song-file.md §6-2 の 2）
+CONTAINER_MIGRATIONS = {1: migrate_container_1_to_2}
+
+
+def migrate_container(obj, new_id=None):
+    """ストア／エクスポートファイルを、今の版（SUPPORTED_CONTAINER_VERSION）まで移行する。版は check_version で確かめておくこと。"""
+    if new_id is None:
+        import uuid
+        new_id = lambda: str(uuid.uuid4())  # noqa: E731
+    while obj["schemaVersion"] < SUPPORTED_CONTAINER_VERSION:
+        obj = CONTAINER_MIGRATIONS[obj["schemaVersion"]](obj, new_id)
+    return obj
+
+
+def duplicates(items, key):
+    """key(要素) が None でない要素を key ごとにまとめ、2件以上あるもの（[(key, [要素の位置…])]。最初に現れた順）を返す。"""
+    groups = {}
+    for i, x in enumerate(items):
+        k = key(x)
+        if k is not None:
+            groups.setdefault(k, []).append(i)
+    return [(k, idx) for k, idx in groups.items() if len(idx) > 1]
+
+
+def positions(idx):
+    return ", ".join("#%d" % i for i in idx)
+
+
+def check_folders(folders, profiles, report):
+    """フォルダとプロファイルの id・所属・名前（F14〜F17・F5。song-file.md §4-1・§4-6・§9-2。判断ポイント68）。
+    型の違反は F1 が指摘するので、ここでは期待する型の値だけを見る。"""
+    def str_of(x, k):
+        v = x.get(k) if isinstance(x, dict) else None
+        return v if isinstance(v, str) else None
+
+    invalid = object()
+
+    def ref_of(x, k):
+        """フォルダの参照（文字列か null）。キーがない・型が違うときは invalid（一意の判定の対象外。F1 が指摘する）。"""
+        if not isinstance(x, dict) or k not in x:
+            return invalid
+        v = x[k]
+        return v if v is None or isinstance(v, str) else invalid
+
+    for k, idx in duplicates(folders, lambda f: str_of(f, "id")):
+        report.error("F14 フォルダの id が重複: %r（要素 %s）" % (k, positions(idx)))
+    for k, idx in duplicates(profiles, lambda p: str_of(p, "id")):
+        report.error("F14 プロファイルの id が重複: %r（要素 %s）" % (k, positions(idx)))
+    ids = {str_of(f, "id") for f in folders} - {None}
+    for i, f in enumerate(folders):
+        pid = str_of(f, "parentId")
+        if pid is not None and pid not in ids:
+            report.error("F15 フォルダの parentId が、実在するフォルダを指さない: %r（要素 #%d）" % (pid, i))
+    for i, p in enumerate(profiles):
+        fid = str_of(p, "folderId")
+        if fid is not None and fid not in ids:
+            report.error("F15 プロファイルの folderId が、実在するフォルダを指さない: %r（要素 #%d）" % (fid, i))
+    parent = {}
+    for f in folders:
+        fid = str_of(f, "id")
+        if fid is not None and fid not in parent:
+            parent[fid] = str_of(f, "parentId")
+    for i, f in enumerate(folders):
+        start = str_of(f, "id")
+        if start is None:
+            continue
+        seen, cur = set(), parent.get(start)
+        while cur is not None and cur in parent and cur not in seen:
+            if cur == start:
+                report.error("F16 フォルダの親子が循環している（要素 #%d）" % i)
+                break
+            seen.add(cur)
+            cur = parent[cur]
+    for i, f in enumerate(folders):
+        name = f.get("name") if isinstance(f, dict) else None
+        if isinstance(name, str) and name.strip() == "":
+            report.error("F17 フォルダの name が、前後の空白を除いて空（要素 #%d）" % i)
+
+    def name_in(x, k):
+        name, ref = str_of(x, "name"), ref_of(x, k)
+        return None if name is None or ref is invalid else (ref, name)
+
+    for k, idx in duplicates(folders, lambda f: name_in(f, "parentId")):
+        report.error("F17 フォルダの name が、同じ親の中で重複: %r（要素 %s）" % (k[1], positions(idx)))
+    for k, idx in duplicates(profiles, lambda p: name_in(p, "folderId")):
+        report.error("F5 プロファイルの name が、同じフォルダの中で重複: %r（要素 %s）" % (k[1], positions(idx)))
 
 
 def derived_ref(r):
@@ -847,23 +954,25 @@ def check_profiles_container(obj, kind, fields, fk, vocabs, tool_profiles, valid
     """エクスポートファイル（kind = file）またはプロファイルのストア（kind = store）を検証する。"""
     label = "エクスポートファイル" if kind == "file" else "プロファイルのストア"
     report.scope = "[%s] " % label
-    if not check_version(obj, report):
+    if not check_version(obj, report, SUPPORTED_CONTAINER_VERSION, CONTAINER_MIGRATIONS):
         return
     if kind == "file" and obj.get("exportType") != "profiles":
         report.error("F0 exportType は profiles のみ: %r" % (obj.get("exportType"),))
-    check_by_schema(validators[kind] if validators else None, obj, report, skip_data=True)
+    version = obj["schemaVersion"]
+    if version < SUPPORTED_CONTAINER_VERSION:
+        # 古い版は、その版の形として検証してから移行する（§6-2 の 2）
+        check_by_schema(validators[kind + "_v%d" % version] if validators else None, obj, report, skip_data=True)
+        report.note("移行: 版%d のため、版%d に移行して検証する" % (version, SUPPORTED_CONTAINER_VERSION))
+        obj = migrate_container(obj)
+    else:
+        check_by_schema(validators[kind] if validators else None, obj, report, skip_data=True)
     profiles = obj.get("profiles")
     if not isinstance(profiles, list):
         report.error("F0 profiles がない、または配列でない")
         return
     report.note("形: %s（プロファイル %d 件）" % (label, len(profiles)))
-    names = {}
-    for i, p in enumerate(profiles):
-        if isinstance(p, dict) and isinstance(p.get("name"), str):
-            names.setdefault(p["name"], []).append(i)
-    for name, idx in names.items():
-        if len(idx) > 1:
-            report.error("F5 プロファイルの name が重複: %r（要素 %s）" % (name, ", ".join("#%d" % i for i in idx)))
+    folders = obj.get("folders")
+    check_folders(folders if isinstance(folders, list) else [], profiles, report)
     for i, p in enumerate(profiles):
         name = p.get("name") if isinstance(p, dict) else None
         report.scope = "[プロファイル「%s」] " % (name if isinstance(name, str) else "#%d" % i)

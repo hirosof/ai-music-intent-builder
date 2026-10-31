@@ -89,15 +89,19 @@ export type ProfileStoreState =
   | { status: 'ok'; store: ProfileStore; warnings: string[] }
   | { status: 'rejected'; errors: string[] }
 
-/** プロファイルのストアを開く。値がなければ空のストア。拒否したら、そのストアには書き込めない状態になる */
+/**
+ * プロファイルのストアを開く。値がなければ空のストア。拒否したら、そのストアには書き込めない状態になる。
+ * 古い版（版1）は移行して読み、今の版で書き戻す（判断ポイント68。書き戻せなくても、次の書き込みで今の版になる）
+ */
 export function openProfileStore(): ProfileStoreState {
   const r = readStorage(STORAGE_KEYS.profiles)
   if (!r.ok) return { status: 'rejected', errors: [`localStorage を読めない: ${r.error}`] }
   if (r.text === null) return { status: 'ok', store: emptyStore(), warnings: [] }
   const loaded = loadSaved(r.text, 'store', checkSaved)
-  return loaded.ok
-    ? { status: 'ok', store: loaded.value, warnings: loaded.warnings }
-    : { status: 'rejected', errors: loaded.errors }
+  if (!loaded.ok) return { status: 'rejected', errors: loaded.errors }
+  if (loaded.migratedFrom !== undefined)
+    writeStorage(STORAGE_KEYS.profiles, toJsonText(loaded.value))
+  return { status: 'ok', store: loaded.value, warnings: loaded.warnings }
 }
 
 export type StoreCommit =

@@ -82,6 +82,26 @@ const NOW = new Date('2026-10-19T01:00:00Z')
 const f1 = factoryProfiles[0]!
 const f2 = factoryProfiles[1]!
 const putStore = (s: ProfileStore) => localStorage.setItem(STORAGE_KEYS.profiles, toJsonText(s))
+/** ルートに保存したストア（id は UUID） */
+const save = (s: ProfileStore, name: string, data: SongData, at: Date) =>
+  saveProfile(s, null, name, data, at).store
+/** 保存したストア（localStorage）で、その名前のプロファイルの id。なければ決まった印 */
+const idOf = (name: string) => stored()?.profiles.find((p) => p.name === name)?.id ?? `id:${name}`
+/** 画面が覚える「対応するプロファイル」（id。判断ポイント70）を、名前で指定する */
+const setCurrent = (name: string) => (editor().currentProfileId.value = idOf(name))
+/** 画面が覚えているプロファイルの、今の名前（ストアにない id はそのまま） */
+const currentName = () => {
+  const id = editor().currentProfileId.value
+  return id === null ? null : (stored()?.profiles.find((p) => p.id === id)?.name ?? id)
+}
+/** 書き出しのファイルに入れるプロファイル（ルート。id は位置から） */
+const asUser = (ps: { name: string; data: SongData; updatedAt?: string }[]) =>
+  ps.map((p, i) => ({
+    updatedAt: '2026-10-01T00:00:00+09:00',
+    ...p,
+    id: `file${i + 1}`,
+    folderId: null,
+  }))
 const incompleteSong = (): SongData => {
   const s = createInitialSong(spec)
   s.requests[0]!.axes.purpose = { state: 'specified' }
@@ -104,7 +124,7 @@ describe('保存（M3）', () => {
     await type('save-name', '曲A')
     await click('save-submit')
     expect(stored()!.profiles.map((p) => p.name)).toEqual(['曲A'])
-    expect(editor().currentProfileName.value).toBe('曲A')
+    expect(currentName()).toBe('曲A')
     expect(toastTitles()).toContain('「曲A」を保存しました')
 
     editor().song.value.requests[0]!.output.variantCount = 5
@@ -116,6 +136,40 @@ describe('保存（M3）', () => {
     await click('save-submit')
     expect(stored()!.profiles).toHaveLength(1)
     expect(stored()!.profiles[0]!.data.requests[0]!.output.variantCount).toBe(5)
+  })
+
+  it('保存先は、覚えているプロファイルのフォルダ。同名の判定もそのフォルダの中（判断ポイント70）', async () => {
+    const g = { id: 'g', parentId: null, name: 'ゲーム' }
+    putStore({
+      ...emptyStore(),
+      folders: [g],
+      profiles: [
+        { id: 'root', folderId: null, name: '曲', updatedAt: f1.updatedAt, data: f1.data },
+        { id: 'in-g', folderId: 'g', name: '曲', updatedAt: f1.updatedAt, data: f1.data },
+      ],
+    })
+    await mountApp()
+    editor().replaceSong(f2.data, 'in-g')
+    await click('save-song')
+    expect($<HTMLInputElement>('save-name')!.value).toBe('曲')
+    await click('save-submit')
+    expect($('save-confirm-overwrite')).not.toBeNull()
+    await click('save-submit')
+    const ps = stored()!.profiles
+    expect(ps.map((p) => p.id)).toEqual(['root', 'in-g'])
+    expect(ps[1]!.data).toEqual(f2.data)
+    expect(ps[0]!.data).toEqual(f1.data)
+    expect(editor().currentProfileId.value).toBe('in-g')
+  })
+
+  it('覚えているプロファイルがなければ、保存先はルート。新しい id を覚える', async () => {
+    await mountApp()
+    await click('save-song')
+    await type('save-name', '新曲')
+    await click('save-submit')
+    const p = stored()!.profiles[0]!
+    expect([p.name, p.folderId]).toEqual(['新曲', null])
+    expect(editor().currentProfileId.value).toBe(p.id)
   })
 
   it('未完成なら保存できず、理由を出す（判断ポイント43）', async () => {
@@ -148,12 +202,12 @@ describe('書き出す（M4・判断ポイント64）', () => {
     expect(stored()!.profiles.map((p) => p.name)).toEqual(['曲B'])
     expect(downloads.map((d) => d.name)).toEqual(['曲B.json'])
     const file = JSON.parse(await downloads[0]!.blob.text()) as ExportFile
-    expect(file).toMatchObject({ schemaVersion: 1, exportType: 'profiles' })
+    expect(file).toMatchObject({ schemaVersion: 2, exportType: 'profiles', folders: [] })
     expect(file.profiles).toEqual(stored()!.profiles)
   })
 
   it('オン: 同じ名前があれば上書きの確認を挟む', async () => {
-    putStore(saveProfile(emptyStore(), '曲B', f1.data, NOW))
+    putStore(save(emptyStore(), '曲B', f1.data, NOW))
     await mountApp()
     await click('export-song')
     await type('save-name', '曲B')
@@ -179,16 +233,16 @@ describe('書き出す（M4・判断ポイント64）', () => {
   })
 
   it('オフ: ストアも覚えている名前も変えず、入力した名前の1件を書き出すだけ（同名があっても確認しない）', async () => {
-    putStore(saveProfile(emptyStore(), '曲B', f1.data, NOW))
+    putStore(save(emptyStore(), '曲B', f1.data, NOW))
     const before = localStorage.getItem(STORAGE_KEYS.profiles)
     await mountApp()
-    editor().currentProfileName.value = '前の名前'
+    setCurrent('前の名前')
     await click('export-song')
     await type('save-name', '曲B')
     await click('save-submit')
     expect($('save-confirm-overwrite')).toBeNull()
     expect(localStorage.getItem(STORAGE_KEYS.profiles)).toBe(before)
-    expect(editor().currentProfileName.value).toBe('前の名前')
+    expect(currentName()).toBe('id:前の名前')
     expect(downloads.map((d) => d.name)).toEqual(['曲B.json'])
     const file = JSON.parse(await downloads[0]!.blob.text()) as ExportFile
     expect(file.profiles.map((p) => p.name)).toEqual(['曲B'])
@@ -224,8 +278,8 @@ describe('書き出す（M4・判断ポイント64）', () => {
 
 describe('プロファイルのポップアップ（M6）', () => {
   const twoProfiles = () =>
-    saveProfile(
-      saveProfile(emptyStore(), 'いろは', f1.data, new Date('2026-10-01T00:00:00Z')),
+    save(
+      save(emptyStore(), 'いろは', f1.data, new Date('2026-10-01T00:00:00Z')),
       'あいう',
       f2.data,
       NOW,
@@ -257,7 +311,7 @@ describe('プロファイルのポップアップ（M6）', () => {
     await click('profile-load', $('profile-いろは'))
     await click('profiles-confirm-yes')
     expect(editor().song.value).toEqual(f1.data)
-    expect(editor().currentProfileName.value).toBe('いろは')
+    expect(currentName()).toBe('いろは')
   })
 
   it('ファクトリーは読み込むだけで、名前は覚えない', async () => {
@@ -271,7 +325,7 @@ describe('プロファイルのポップアップ（M6）', () => {
     await click('factory-load', $(`factory-${f2.name}`))
     await click('profiles-confirm-yes')
     expect(editor().song.value).toEqual(f2.data)
-    expect(editor().currentProfileName.value).toBeNull()
+    expect(currentName()).toBeNull()
   })
 
   it('上書き保存と削除は確認を挟む。すべて書き出す', async () => {
@@ -284,11 +338,11 @@ describe('プロファイルのポップアップ（M6）', () => {
     expect(
       stored()!.profiles.find((p) => p.name === 'いろは')!.data.requests[0]!.output.variantCount,
     ).toBe(7)
-    expect(editor().currentProfileName.value).toBe('いろは')
+    expect(currentName()).toBe('いろは')
     await click('profile-delete', $('profile-いろは'))
     await click('profiles-confirm-yes')
     expect(stored()!.profiles.map((p) => p.name)).toEqual(['あいう'])
-    expect(editor().currentProfileName.value).toBeNull()
+    expect(currentName()).toBeNull()
     await click('profiles-export-all')
     expect(downloads).toHaveLength(1)
     expect(downloads[0]!.name).toBe('あいう.json')
@@ -315,12 +369,7 @@ describe('プロファイルのポップアップ（M6）', () => {
 
 describe('ファイルの取り込み（M5）', () => {
   const fileText = (...ps: { name: string; data: SongData }[]) =>
-    toJsonText(
-      buildExportFile(
-        ps.map((p) => ({ ...p, updatedAt: '2026-10-01T00:00:00+09:00' })),
-        NOW,
-      ),
-    )
+    toJsonText(buildExportFile(asUser(ps), NOW))
 
   it('エクスポートファイルでなければ、理由つきで取り込まない', async () => {
     const w = await mountApp()
@@ -341,12 +390,7 @@ describe('ファイルの取り込み（M5）', () => {
 
   it('衝突ごとに確認（別名・上書き・取り込まない）', async () => {
     putStore(
-      saveProfile(
-        saveProfile(saveProfile(emptyStore(), 'A', f1.data, NOW), 'B', f1.data, NOW),
-        'C',
-        f1.data,
-        NOW,
-      ),
+      save(save(save(emptyStore(), 'A', f1.data, NOW), 'B', f1.data, NOW), 'C', f1.data, NOW),
     )
     const w = await mountApp()
     await receive(
@@ -372,7 +416,7 @@ describe('ファイルの取り込み（M5）', () => {
   })
 
   it('「残りすべてに適用」で、以後の衝突を聞かない', async () => {
-    putStore(saveProfile(saveProfile(emptyStore(), 'A', f1.data, NOW), 'B', f1.data, NOW))
+    putStore(save(save(emptyStore(), 'A', f1.data, NOW), 'B', f1.data, NOW))
     const w = await mountApp()
     await receive(w, 'a.json', fileText({ name: 'A', data: f2.data }, { name: 'B', data: f2.data }))
     await click('import-add')
@@ -384,7 +428,7 @@ describe('ファイルの取り込み（M5）', () => {
   })
 
   it('別名がすでにある名前なら、別名で追加を押せない', async () => {
-    putStore(saveProfile(saveProfile(emptyStore(), 'A', f1.data, NOW), 'Z', f1.data, NOW))
+    putStore(save(save(emptyStore(), 'A', f1.data, NOW), 'Z', f1.data, NOW))
     const w = await mountApp()
     await receive(w, 'a.json', fileText({ name: 'A', data: f2.data }))
     await click('import-add')
@@ -394,7 +438,7 @@ describe('ファイルの取り込み（M5）', () => {
   })
 
   it('置換は確認を挟んで、ストアを入れ替える', async () => {
-    putStore(saveProfile(emptyStore(), 'old', f1.data, NOW))
+    putStore(save(emptyStore(), 'old', f1.data, NOW))
     const w = await mountApp()
     await receive(w, 'a.json', fileText({ name: 'new', data: f2.data }))
     await click('import-replace')
@@ -418,7 +462,7 @@ describe('ファイルの取り込み（M5）', () => {
   })
 
   it('衝突の確認の途中で閉じると、何も書き込まない', async () => {
-    putStore(saveProfile(emptyStore(), 'A', f1.data, NOW))
+    putStore(save(emptyStore(), 'A', f1.data, NOW))
     const w = await mountApp()
     await receive(w, 'a.json', fileText({ name: 'N', data: f2.data }, { name: 'A', data: f2.data }))
     await click('import-add')
@@ -437,12 +481,7 @@ describe('ファイルの取り込み（M5）', () => {
 
 describe('取り込みの選択・プレビュー・直接開く（判断ポイント65）', () => {
   const fileText = (...ps: { name: string; data: SongData }[]) =>
-    toJsonText(
-      buildExportFile(
-        ps.map((p) => ({ ...p, updatedAt: '2026-10-01T00:00:00+09:00' })),
-        NOW,
-      ),
-    )
+    toJsonText(buildExportFile(asUser(ps), NOW))
   const checked = (i: number) =>
     $<HTMLButtonElement>(`import-select-${i}`)!.getAttribute('aria-checked') === 'true'
   const songWithWarning = (): SongData => {
@@ -498,7 +537,7 @@ describe('取り込みの選択・プレビュー・直接開く（判断ポイ�
   })
 
   it('置換は、ストアを選んだものだけで入れ替える（確認は今のまま）', async () => {
-    putStore(saveProfile(emptyStore(), 'old', f1.data, NOW))
+    putStore(save(emptyStore(), 'old', f1.data, NOW))
     const w = await mountApp()
     await receive(w, 'a.json', xyz())
     await click('import-select-0')
@@ -524,10 +563,10 @@ describe('取り込みの選択・プレビュー・直接開く（判断ポイ�
   })
 
   it('開く（保存しない）: 確認を挟み、編集中の内容として開く。ストアは変えず、覚えている名前はなし', async () => {
-    putStore(saveProfile(emptyStore(), 'old', f1.data, NOW))
+    putStore(save(emptyStore(), 'old', f1.data, NOW))
     const before = localStorage.getItem(STORAGE_KEYS.profiles)
     const w = await mountApp()
-    editor().currentProfileName.value = 'old'
+    setCurrent('old')
     await receive(w, 'a.json', fileText({ name: 'Y', data: f2.data }))
     await click('import-open')
     expect($('import-confirm-open')!.textContent).toContain('編集中の内容は破棄されます')
@@ -536,7 +575,7 @@ describe('取り込みの選択・プレビュー・直接開く（判断ポイ�
     await click('import-open')
     await click('import-open-ok')
     expect(editor().song.value).toEqual(f2.data)
-    expect(editor().currentProfileName.value).toBeNull()
+    expect(currentName()).toBeNull()
     expect(localStorage.getItem(STORAGE_KEYS.profiles)).toBe(before)
     expect(toastTitles()).toContain('「Y」を開きました（ユーザープロファイルには保存していません）')
   })
@@ -551,11 +590,11 @@ describe('取り込みの選択・プレビュー・直接開く（判断ポイ�
     await click('import-open-ok')
     expect(stored()!.profiles.map((p) => p.name)).toEqual(['Y'])
     expect(editor().song.value).toEqual(f2.data)
-    expect(editor().currentProfileName.value).toBe('Y')
+    expect(currentName()).toBe('Y')
   })
 
   it('追加して開く: 名前が衝突したら確認する。別名なら別名で開き、取り込まないなら開かない', async () => {
-    putStore(saveProfile(emptyStore(), 'Y', f1.data, NOW))
+    putStore(save(emptyStore(), 'Y', f1.data, NOW))
     const w = await mountApp()
     await receive(w, 'a.json', fileText({ name: 'Y', data: f2.data }))
     await click('import-add-open')
@@ -564,16 +603,16 @@ describe('取り込みの選択・プレビュー・直接開く（判断ポイ�
     await click('import-rename-ok')
     expect(stored()!.profiles.map((p) => p.name)).toEqual(['Y', 'Y（2）'])
     expect(editor().song.value).toEqual(f2.data)
-    expect(editor().currentProfileName.value).toBe('Y（2）')
+    expect(currentName()).toBe('Y（2）')
 
-    editor().replaceSong(createInitialSong(spec), '前')
+    editor().replaceSong(createInitialSong(spec), 'id:前')
     await receive(w, 'b.json', fileText({ name: 'Y', data: f2.data }))
     await click('import-add-open')
     await click('import-open-ok')
     await click('import-skip')
     expect(stored()!.profiles.map((p) => p.name)).toEqual(['Y', 'Y（2）'])
     expect(editor().song.value).toEqual(createInitialSong(spec))
-    expect(editor().currentProfileName.value).toBe('前')
+    expect(currentName()).toBe('id:前')
     expect(toastTitles()).toContain('（開いていません）')
   })
 
@@ -594,7 +633,7 @@ describe('取り込みの選択・プレビュー・直接開く（判断ポイ�
     expect($('import-confirm-open')!.textContent).toContain('「Y」を開きますか')
     await click('import-open-ok')
     expect(editor().song.value).toEqual(f2.data)
-    expect(editor().currentProfileName.value).toBeNull()
+    expect(currentName()).toBeNull()
     expect(localStorage.getItem(STORAGE_KEYS.profiles)).toBe('{')
     expect(toastTitles()).toContain('「Y」を開きました（ユーザープロファイルには保存していません）')
 
@@ -607,7 +646,7 @@ describe('取り込みの選択・プレビュー・直接開く（判断ポイ�
   })
 
   it('追加して開く: 上書きなら、その名前で開く', async () => {
-    putStore(saveProfile(emptyStore(), 'Y', f1.data, NOW))
+    putStore(save(emptyStore(), 'Y', f1.data, NOW))
     const w = await mountApp()
     await receive(w, 'a.json', fileText({ name: 'Y', data: f2.data }))
     await click('import-add-open')
@@ -615,14 +654,14 @@ describe('取り込みの選択・プレビュー・直接開く（判断ポイ�
     await click('import-overwrite')
     expect(stored()!.profiles.map((p) => p.data)).toEqual([f2.data])
     expect(editor().song.value).toEqual(f2.data)
-    expect(editor().currentProfileName.value).toBe('Y')
+    expect(currentName()).toBe('Y')
   })
 })
 
 describe('名前の変更（判断ポイント66）', () => {
   const store2 = () =>
-    saveProfile(
-      saveProfile(emptyStore(), 'いろは', f1.data, new Date('2026-10-01T00:00:00Z')),
+    save(
+      save(emptyStore(), 'いろは', f1.data, new Date('2026-10-01T00:00:00Z')),
       'あいう',
       f2.data,
       NOW,
@@ -632,7 +671,7 @@ describe('名前の変更（判断ポイント66）', () => {
     putStore(store2())
     const before = stored()!.profiles.find((p) => p.name === 'いろは')!
     await mountApp()
-    editor().currentProfileName.value = 'いろは'
+    setCurrent('いろは')
     await click('open-profiles')
     await click('profile-rename', $('profile-いろは'))
     expect($('profiles-tabs')).toBeNull()
@@ -643,19 +682,23 @@ describe('名前の変更（判断ポイント66）', () => {
     expect(after.data).toEqual(before.data)
     expect(after.updatedAt).toBe(before.updatedAt)
     expect(stored()!.profiles.map((p) => p.name)).toEqual(['にほへ', 'あいう'])
-    expect(editor().currentProfileName.value).toBe('にほへ')
+    expect(currentName()).toBe('にほへ')
+    expect(editor().currentProfileId.value).toBe(after.id)
     expect($('profile-にほへ')).not.toBeNull()
+    // 保存の名前の初期値も、id で覚えたプロファイルの今の名前（判断ポイント70）
+    await click('save-song')
+    expect($<HTMLInputElement>('save-name')!.value).toBe('にほへ')
   })
 
   it('覚えている名前がほかのプロファイルなら、変えない', async () => {
     putStore(store2())
     await mountApp()
-    editor().currentProfileName.value = 'あいう'
+    setCurrent('あいう')
     await click('open-profiles')
     await click('profile-rename', $('profile-いろは'))
     await type('profiles-rename-input', 'にほへ')
     await click('profiles-confirm-yes')
-    expect(editor().currentProfileName.value).toBe('あいう')
+    expect(currentName()).toBe('あいう')
   })
 
   it('空・ほかと同じ名前は変更できない。今と同じ名前なら何もしない。キャンセルで戻る', async () => {
@@ -699,7 +742,7 @@ describe('ボタンの並び（利用者の判断 (a): 実行するボタンを�
     )
 
   it('新規・保存・プロファイルの確認・取り込み', async () => {
-    putStore(saveProfile(emptyStore(), 'A', f1.data, NOW))
+    putStore(save(emptyStore(), 'A', f1.data, NOW))
     const w = await mountApp()
     await click('new-song')
     expect(order()).toEqual(['confirm-ok', 'confirm-cancel'])
@@ -718,7 +761,7 @@ describe('ボタンの並び（利用者の判断 (a): 実行するボタンを�
       ?.click()
     await flushPromises()
 
-    await receive(w, 'a.json', toJsonText(buildExportFile([{ ...f2, name: 'A' }], NOW)))
+    await receive(w, 'a.json', toJsonText(buildExportFile(asUser([{ ...f2, name: 'A' }]), NOW)))
     expect(order()).toEqual([
       'import-add',
       'import-replace',

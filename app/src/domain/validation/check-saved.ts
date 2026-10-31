@@ -3,12 +3,13 @@
 // 指摘の文言は参照実装と同じ（U1 の決定 4）。照合は __tests__/check-saved.spec.ts（正解データは export_parity_cases.py が書き出す）。
 // 仕様: song-file.md §6・§9、input-items.md §4〜§6、tool-profile.md §9
 import { fieldItemIds, profileParam, type Spec } from '../spec'
+import { canMigrateContainer, migrateContainer, STORE_SCHEMA_VERSION } from '../storage/migrate'
 import type { OutputDef, StateId } from '../types/fields'
 import type { ToolProfile } from '../types/tool-profile'
 import { pyRepr } from './py-repr'
 import type { SchemaValidators } from './schema'
 
-/** 楽曲データ・ストア・エクスポートファイルの版のうち、このアプリが読める版（song-file.md §6-2） */
+/** 楽曲データの版のうち、このアプリが読める版（song-file.md §6-2）。ストア／エクスポートファイルの版は別（STORE_SCHEMA_VERSION） */
 export const SUPPORTED_SCHEMA_VERSION = 1
 
 // vocalMode によって有効・無効が切り替わる項目（L-01。宿題38）
@@ -457,24 +458,115 @@ function checkRequestRules(
 // ---------------------------------------------------------------------------
 // 楽曲データ・ストア・エクスポートファイル
 // ---------------------------------------------------------------------------
-/** F8 schemaVersion（song-file.md §6-2 の 1〜3）。読めない版なら false（以降の検証を省く） */
-function checkVersion(obj: Obj, report: Report): boolean {
+/**
+ * F8 schemaVersion（song-file.md §6-2 の 1〜3）。読めない版なら false（以降の検証を省く）。
+ * canMigrate があれば、古い版でも、今の版までの移行がそろっていれば読める
+ */
+function checkVersion(
+  obj: Obj,
+  report: Report,
+  supported = SUPPORTED_SCHEMA_VERSION,
+  canMigrate: (v: number) => boolean = () => false,
+): boolean {
   const v = obj.schemaVersion
   if (!isInt(v)) {
     report.error(`F8 schemaVersion がない、または整数でない: ${pyRepr(v)}`)
     return false
   }
-  if (v > SUPPORTED_SCHEMA_VERSION) {
-    report.error(
-      `F8 新しい版（${v}。このツールが読めるのは ${SUPPORTED_SCHEMA_VERSION} まで）のため、拒否する`,
-    )
+  if (v > supported) {
+    report.error(`F8 新しい版（${v}。このツールが読めるのは ${supported} まで）のため、拒否する`)
     return false
   }
-  if (v < SUPPORTED_SCHEMA_VERSION) {
+  if (v < supported && !canMigrate(v)) {
     report.error(`F8 古い版（${v}）で、移行が未定義のため、拒否する`)
     return false
   }
   return true
+}
+
+/** key(要素) が undefined でない要素を key ごとにまとめ、2件以上あるもの（最初に現れた順）。key は文字列にして比べる */
+function duplicates<K>(items: unknown[], key: (x: unknown) => K | undefined): [K, number[]][] {
+  const groups = new Map<string, [K, number[]]>()
+  items.forEach((x, i) => {
+    const k = key(x)
+    if (k === undefined) return
+    const s = JSON.stringify(k)
+    const g = groups.get(s)
+    if (g) g[1].push(i)
+    else groups.set(s, [k, [i]])
+  })
+  return [...groups.values()].filter(([, idx]) => idx.length > 1)
+}
+const positions = (idx: number[]) => idx.map((i) => `#${i}`).join(', ')
+
+/**
+ * フォルダとプロファイルの id・所属・名前（F14〜F17・F5。song-file.md §4-1・§4-6・§9-2。判断ポイント68）。
+ * 型の違反は F1 が指摘するので、ここでは期待する型の値だけを見る
+ */
+function checkFolders(folders: unknown[], profiles: unknown[], report: Report) {
+  const strOf = (x: unknown, k: string) => (isObj(x) && isStr(x[k]) ? x[k] : undefined)
+  // フォルダの参照（文字列か null）。キーがない・型が違うときは undefined（一意の判定の対象外）
+  const refOf = (x: unknown, k: string): string | null | undefined => {
+    if (!isObj(x) || !has(x, k)) return undefined
+    const v = x[k]
+    return v === null || isStr(v) ? v : undefined
+  }
+  for (const [k, idx] of duplicates(folders, (f) => strOf(f, 'id')))
+    report.error(`F14 フォルダの id が重複: ${pyRepr(k)}（要素 ${positions(idx)}）`)
+  for (const [k, idx] of duplicates(profiles, (p) => strOf(p, 'id')))
+    report.error(`F14 プロファイルの id が重複: ${pyRepr(k)}（要素 ${positions(idx)}）`)
+  const ids = new Set(folders.map((f) => strOf(f, 'id')).filter(isStr))
+  folders.forEach((f, i) => {
+    const pid = strOf(f, 'parentId')
+    if (pid !== undefined && !ids.has(pid))
+      report.error(
+        `F15 フォルダの parentId が、実在するフォルダを指さない: ${pyRepr(pid)}（要素 #${i}）`,
+      )
+  })
+  profiles.forEach((p, i) => {
+    const fid = strOf(p, 'folderId')
+    if (fid !== undefined && !ids.has(fid))
+      report.error(
+        `F15 プロファイルの folderId が、実在するフォルダを指さない: ${pyRepr(fid)}（要素 #${i}）`,
+      )
+  })
+  const parent = new Map<string, string | undefined>()
+  for (const f of folders) {
+    const fid = strOf(f, 'id')
+    if (fid !== undefined && !parent.has(fid)) parent.set(fid, strOf(f, 'parentId'))
+  }
+  folders.forEach((f, i) => {
+    const start = strOf(f, 'id')
+    if (start === undefined) return
+    const seen = new Set<string>()
+    let cur = parent.get(start)
+    while (cur !== undefined && parent.has(cur) && !seen.has(cur)) {
+      if (cur === start) {
+        report.error(`F16 フォルダの親子が循環している（要素 #${i}）`)
+        break
+      }
+      seen.add(cur)
+      cur = parent.get(cur)
+    }
+  })
+  folders.forEach((f, i) => {
+    const name = isObj(f) ? f.name : undefined
+    if (isStr(name) && name.trim() === '')
+      report.error(`F17 フォルダの name が、前後の空白を除いて空（要素 #${i}）`)
+  })
+  const nameIn = (x: unknown, k: string): [string | null, string] | undefined => {
+    const name = strOf(x, 'name')
+    const ref = refOf(x, k)
+    return name === undefined || ref === undefined ? undefined : [ref, name]
+  }
+  for (const [k, idx] of duplicates(folders, (f) => nameIn(f, 'parentId')))
+    report.error(
+      `F17 フォルダの name が、同じ親の中で重複: ${pyRepr(k[1])}（要素 ${positions(idx)}）`,
+    )
+  for (const [k, idx] of duplicates(profiles, (p) => nameIn(p, 'folderId')))
+    report.error(
+      `F5 プロファイルの name が、同じフォルダの中で重複: ${pyRepr(k[1])}（要素 ${positions(idx)}）`,
+    )
 }
 
 /** F1 スキーマ適合。skipData のときは、プロファイルの data の中の違反を数えない（data ごとに別に検証するため） */
@@ -548,26 +640,25 @@ function checkProfilesContainer(
 ) {
   const label = kind === 'file' ? 'エクスポートファイル' : 'プロファイルのストア'
   report.scope = `[${label}] `
-  if (!checkVersion(obj, report)) return
+  if (!checkVersion(obj, report, STORE_SCHEMA_VERSION, canMigrateContainer)) return
   if (kind === 'file' && obj.exportType !== 'profiles')
     report.error(`F0 exportType は profiles のみ: ${pyRepr(obj.exportType)}`)
-  checkBySchema(validators[kind], obj, report, true)
+  const version = obj.schemaVersion as number
+  if (version < STORE_SCHEMA_VERSION) {
+    // 古い版は、その版の形として検証してから移行する（§6-2 の 2）
+    checkBySchema(validators[kind === 'file' ? 'fileV1' : 'storeV1'], obj, report, true)
+    report.note(`移行: 版${version} のため、版${STORE_SCHEMA_VERSION} に移行して検証する`)
+    obj = migrateContainer(obj)
+  } else {
+    checkBySchema(validators[kind], obj, report, true)
+  }
   const profiles = obj.profiles
   if (!Array.isArray(profiles)) {
     report.error('F0 profiles がない、または配列でない')
     return
   }
   report.note(`形: ${label}（プロファイル ${profiles.length} 件）`)
-  const names = new Map<string, number[]>()
-  profiles.forEach((p, i) => {
-    if (isObj(p) && isStr(p.name)) names.set(p.name, [...(names.get(p.name) ?? []), i])
-  })
-  for (const [name, idx] of names) {
-    if (idx.length > 1)
-      report.error(
-        `F5 プロファイルの name が重複: ${pyRepr(name)}（要素 ${idx.map((i) => `#${i}`).join(', ')}）`,
-      )
-  }
+  checkFolders(Array.isArray(obj.folders) ? obj.folders : [], profiles, report)
   profiles.forEach((p: unknown, i) => {
     const name = isObj(p) ? p.name : undefined
     report.scope = `[プロファイル「${isStr(name) ? name : `#${i}`}」] `

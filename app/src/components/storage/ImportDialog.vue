@@ -14,7 +14,7 @@ import { checkSaved } from '@/data/validation'
 import type { LoadResult } from '@/domain/storage/load'
 import { profilePreview } from '@/domain/storage/preview'
 import {
-  findProfile,
+  findProfileById,
   importAdd,
   importReplace,
   selectFromFile,
@@ -126,12 +126,12 @@ async function add() {
   if (r) finish(addSummary(r))
 }
 
-/** 編集中の内容として開く。name は画面が覚えている名前（保存しないで開くときは null） */
-function openAsEditing(profile: Profile, name: string | null) {
-  editor.replaceSong(profile.data, name)
+/** 編集中の内容として開く。id は画面が覚えるプロファイルの id（保存しないで開くときは null。判断ポイント70） */
+function openAsEditing(profile: Profile, id: string | null) {
+  editor.replaceSong(profile.data, id)
   const warnings = checkSaved(JSON.stringify(profile.data)).warnings
   toast.add({
-    title: `「${profile.name}」を開きました${name === null ? '（ユーザープロファイルには保存していません）' : ''}${warnings.length ? '（注意があります）' : ''}`,
+    title: `「${profile.name}」を開きました${id === null ? '（ユーザープロファイルには保存していません）' : ''}${warnings.length ? '（注意があります）' : ''}`,
     description: warnings.join('\n') || undefined,
     color: warnings.length ? 'warning' : 'success',
   })
@@ -154,15 +154,15 @@ async function confirmOpen() {
   }
   const r = await addChosen()
   if (!r) return
-  const name = r.added[0] ?? r.overwritten[0]
+  const id = r.storedIds[0]
   const stored =
-    name !== undefined && profiles.store.value && findProfile(profiles.store.value, name)
+    id !== undefined && profiles.store.value && findProfileById(profiles.store.value, id)
   if (!stored) {
     // 取り込まないを選んだときは、開かない
     finish(`${addSummary(r)}（開いていません）`)
     return
   }
-  openAsEditing(stored, stored.name)
+  openAsEditing(stored, stored.id)
 }
 
 function decide(action: ConflictResolution['action']) {

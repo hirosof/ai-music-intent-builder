@@ -2,25 +2,27 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "song-export.schema.json",
   "title": "エクスポートファイル（プロファイルの配列）",
-  "description": "ファイル入出力の形（根）。仕様は docs/specifications/song-file.md §4。プロファイルのストア（localStorage の値）は #/$defs/profileStore で検証する（ファイルから exportType と exportedAt を除いた形）。プロファイルの data は song.schema.json を参照する。名前の一意（ファイル内・ストア内）は JSON Schema では表現できないため、tools/check-fields/check_fields.py が検証する。",
+  "description": "ファイル入出力の形（根。版2）。仕様は docs/specifications/song-file.md §4。プロファイルのストア（localStorage の値）は #/$defs/profileStore で検証する（ファイルから exportType と exportedAt を除いた形）。版1 のファイル・ストアは #/$defs/exportFileV1・#/$defs/profileStoreV1 で検証してから、版2 に移行する（§6-2）。プロファイルの data は song.schema.json を参照する。名前・id の一意、フォルダの参照と循環（F5・F14〜F17）は JSON Schema では表現できないため、tools/check-fields/check_fields.py が検証する。",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "exportType", "exportedAt", "profiles"],
+  "required": ["schemaVersion", "exportType", "exportedAt", "folders", "profiles"],
   "properties": {
     "schemaVersion": {
       "description": "この外側の形（ファイル）の版。data の版とは別。",
-      "const": 1
+      "const": 2
     },
-    "exportType": {
-      "description": "ファイルの内容の種類。単一・一括の区別ではない（単一は profiles が1要素）。",
-      "const": "profiles"
-    },
+    "exportType": { "$ref": "#/$defs/exportType" },
     "exportedAt": { "$ref": "#/$defs/timestamp" },
+    "folders": {
+      "description": "入れたプロファイルが属するフォルダ（祖先を含む）。0件以上。",
+      "type": "array",
+      "items": { "$ref": "#/$defs/folder" }
+    },
     "profiles": {
       "description": "プロファイルの配列。ファイルは1件以上。",
       "type": "array",
       "minItems": 1,
-      "items": { "$ref": "#/$defs/profile" }
+      "items": { "$ref": "#/$defs/userProfile" }
     }
   },
   "$defs": {
@@ -30,8 +32,21 @@
       "format": "date-time",
       "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]\\d{2}:\\d{2})$"
     },
+    "exportType": {
+      "description": "ファイルの内容の種類。単一・一括の区別ではない（単一は profiles が1要素）。",
+      "const": "profiles"
+    },
+    "id": {
+      "description": "フォルダ・プロファイルの id。作るときは UUID だが、形式は縛らない（空でない文字列。判断ポイント68）。",
+      "type": "string",
+      "minLength": 1
+    },
+    "folderRef": {
+      "description": "フォルダの id、または null（ルート）。",
+      "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }]
+    },
     "profile": {
-      "description": "名前を付けて保存した楽曲データ。ユーザープロファイルとファクトリープロファイルは同じ形。",
+      "description": "名前を付けて保存した楽曲データ。ファクトリープロファイルと、版1 のプロファイルの形（id・folderId を持たない）。",
       "type": "object",
       "additionalProperties": false,
       "required": ["name", "updatedAt", "data"],
@@ -41,8 +56,65 @@
         "data": { "$ref": "song.schema.json" }
       }
     },
+    "userProfile": {
+      "description": "版2 のユーザープロファイル。id と、所属するフォルダ（folderId）を持つ。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "folderId", "name", "updatedAt", "data"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "folderId": { "$ref": "#/$defs/folderRef" },
+        "name": { "type": "string", "minLength": 1 },
+        "updatedAt": { "$ref": "#/$defs/timestamp" },
+        "data": { "$ref": "song.schema.json" }
+      }
+    },
+    "folder": {
+      "description": "フォルダ（song-file.md §4-6）。name の前後の空白を除いて空でないこと、同じ親の中での一意は check_fields.py（F17）が検証する。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "parentId", "name"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "parentId": { "$ref": "#/$defs/folderRef" },
+        "name": { "type": "string", "minLength": 1 }
+      }
+    },
     "profileStore": {
-      "description": "プロファイルのストア（localStorage の値）。プロファイルは0件でもよい。",
+      "description": "プロファイルのストア（localStorage の値。版2）。フォルダ・プロファイルは0件でもよい。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "folders", "profiles"],
+      "properties": {
+        "schemaVersion": { "const": 2 },
+        "folders": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/folder" }
+        },
+        "profiles": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/userProfile" }
+        }
+      }
+    },
+    "exportFileV1": {
+      "description": "版1 のエクスポートファイル（フォルダなし。プロファイルは id・folderId を持たない）。同梱のファクトリープロファイル（factory-profiles.json）もこの形。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "exportType", "exportedAt", "profiles"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "exportType": { "$ref": "#/$defs/exportType" },
+        "exportedAt": { "$ref": "#/$defs/timestamp" },
+        "profiles": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/profile" }
+        }
+      }
+    },
+    "profileStoreV1": {
+      "description": "版1 のプロファイルのストア。",
       "type": "object",
       "additionalProperties": false,
       "required": ["schemaVersion", "profiles"],

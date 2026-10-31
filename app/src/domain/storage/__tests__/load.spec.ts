@@ -42,7 +42,7 @@ describe('書き出し→読み込みの往復', () => {
       { name: 'song.example', data: songExample },
       ...exampleInputs,
     ]
-    for (const s of songs) store = saveProfile(store, s.name, s.data, NOW)
+    for (const s of songs) store = saveProfile(store, null, s.name, s.data, NOW).store
     const text = toJsonText(buildExportFile(store.profiles, NOW))
     const r = loadSaved(text, 'file', checkSaved)
     if (!r.ok) throw new Error(r.errors.join('\n'))
@@ -52,16 +52,17 @@ describe('書き出し→読み込みの往復', () => {
   })
 
   it('1件の書き出しも、同じ読み込みで扱える', () => {
-    const store = saveProfile(emptyStore(), '単一', songExample, NOW)
+    const store = saveProfile(emptyStore(), null, '単一', songExample, NOW).store
     const r = loadSaved(toJsonText(buildExportFile(store.profiles, NOW)), 'file', checkSaved)
     expect(r.ok && r.value.profiles.length).toBe(1)
     expect(r.ok && r.value.profiles[0]!.data).toEqual(songExample)
   })
 
   it('ストアそのもの（localStorage の値）も往復する', () => {
-    const store = saveProfile(emptyStore(), 'a', songExample, NOW)
+    const store = saveProfile(emptyStore(), null, 'a', songExample, NOW).store
     const r = loadSaved(toJsonText(store), 'store', checkSaved)
     expect(r.ok && r.value).toEqual(store)
+    expect(r.ok && r.migratedFrom).toBeUndefined()
   })
 
   it('空のストアは有効（補完・仮定9）', () => {
@@ -78,7 +79,7 @@ describe('読み込みの拒否（§6-2）', () => {
 
   it('1. 新しい版は拒否する（外側・data のそれぞれ）', () => {
     for (const text of [
-      fileWith((f) => (f.schemaVersion = 2)),
+      fileWith((f) => (f.schemaVersion = 3)),
       fileWith((f) => (f.profiles[0]!.data.schemaVersion = 2)),
     ]) {
       const r = loadSaved(text, 'file', checkSaved)
@@ -156,7 +157,7 @@ describe('読み込みの拒否（§6-2）', () => {
   })
 
   it('期待と違う形は拒否する', () => {
-    const store = toJsonText(saveProfile(emptyStore(), 'a', songExample, NOW))
+    const store = toJsonText(saveProfile(emptyStore(), null, 'a', songExample, NOW).store)
     const cases: [string, 'song' | 'store' | 'file'][] = [
       [JSON.stringify(songExample), 'file'],
       [store, 'file'],
@@ -170,6 +171,70 @@ describe('読み込みの拒否（§6-2）', () => {
       expect(r.ok).toBe(false)
       expect(!r.ok && r.errors[0]).toMatch(/^形が違う: /)
     }
+  })
+})
+
+describe('版1 → 2 の移行（§6-2 の 2。判断ポイント68）', () => {
+  /** 版2 のファイルを、版1 の形（folders なし、プロファイルに id・folderId なし）にする */
+  const v1Text = (mutate: (f: Record<string, unknown>) => void = () => {}) => {
+    const f = structuredClone(exportExample) as unknown as Record<string, unknown>
+    f.schemaVersion = 1
+    delete f.folders
+    for (const p of f.profiles as Record<string, unknown>[]) {
+      delete p.id
+      delete p.folderId
+    }
+    mutate(f)
+    return JSON.stringify(f)
+  }
+  const seq = () => {
+    let n = 0
+    return () => `n${++n}`
+  }
+
+  it('版1 のファイルは、各プロファイルに新しい id、folderId を null、folders を空にして読む', () => {
+    const r = loadSaved(v1Text(), 'file', checkSaved, seq())
+    if (!r.ok) throw new Error(r.errors.join('\n'))
+    expect(r.migratedFrom).toBe(1)
+    expect(r.value.schemaVersion).toBe(2)
+    expect(r.value.folders).toEqual([])
+    expect(r.value.profiles.map((p) => [p.id, p.folderId, p.name])).toEqual([
+      ['n1', null, '和風戦闘BGM'],
+    ])
+    expect(r.value.profiles[0]!.data).toEqual(exportExample.profiles[0]!.data)
+    // 移行した結果は、版2 として検証を通る
+    expect(checkSaved(JSON.stringify(r.value)).errors).toEqual([])
+  })
+
+  it('版1 のストアも移行して読む（id は UUID）', () => {
+    const v1 = JSON.parse(v1Text()) as Record<string, unknown>
+    delete v1.exportType
+    delete v1.exportedAt
+    v1.profiles = [...(v1.profiles as object[]), { ...(v1.profiles as object[])[0]!, name: '二' }]
+    const r = loadSaved(JSON.stringify(v1), 'store', checkSaved)
+    if (!r.ok) throw new Error(r.errors.join('\n'))
+    expect(r.migratedFrom).toBe(1)
+    const ids = r.value.profiles.map((p) => p.id)
+    expect(new Set(ids).size).toBe(2)
+    for (const id of ids) expect(id).toMatch(/^[0-9a-f-]{36}$/)
+  })
+
+  it('版1 のファイルは、版1 の形として検証する（folders を持つ版1 は拒否）', () => {
+    const r = loadSaved(
+      v1Text((f) => (f.folders = [])),
+      'file',
+      checkSaved,
+    )
+    expect(!r.ok && r.errors.some((e) => e.includes('F1 スキーマ違反'))).toBe(true)
+  })
+
+  it('同梱のファクトリープロファイル（版1 のまま）も、移行すれば検証を通る', () => {
+    const r = loadSaved(
+      readFileSync(resolve(SPEC, 'factory-profiles.json'), 'utf8'),
+      'file',
+      checkSaved,
+    )
+    expect(r).toMatchObject({ ok: true, warnings: [], migratedFrom: 1 })
   })
 })
 
