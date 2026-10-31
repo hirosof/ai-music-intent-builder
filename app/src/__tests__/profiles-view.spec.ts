@@ -1,11 +1,13 @@
 // プロファイル管理の画面（ui-and-nonfunctional.md 判断ポイント67。jsdom で構造と操作だけ）。
 // パンくず＋一覧、検索、行の操作（開く・上書き保存・書き出す・名前の変更・移動・削除）、複数選択、新しいフォルダ、読込。
+// 一覧の選択の操作（判断ポイント71）: 行の押下、一括選択、Shift の範囲選択、選択を外すタイミング。
 // ダウンロードは URL.createObjectURL とリンクのクリックを捕まえて、中身とファイル名を確かめる
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 import ui from '@nuxt/ui/vue-plugin'
 import USelect from '@nuxt/ui/components/Select.vue'
+import UDropdownMenu from '@nuxt/ui/components/DropdownMenu.vue'
 import { useToast } from '@nuxt/ui/composables'
 
 import App from '../App.vue'
@@ -125,6 +127,13 @@ async function act(kind: 'folder' | 'profile', name: string, action: string) {
 }
 async function select(kind: 'folder' | 'profile', name: string) {
   await click('pm-select', row(kind, name))
+}
+/** 一括選択の ▼ のメニューの項目を選ぶ（開いた中身は jsdom で描けないので、項目の onSelect を呼ぶ） */
+async function bulk(label: string) {
+  const menu = wrapper!.findComponent(UDropdownMenu)
+  const items = (menu.props() as { items: { label: string; onSelect: () => void }[] }).items
+  items.find((i) => i.label === label)!.onSelect()
+  await flushPromises()
 }
 const where = (name: string) => {
   const s = stored()!
@@ -450,7 +459,7 @@ describe('複数選択', () => {
     expect($('pm-selection')).toBeNull()
     await select('folder', 'ゲーム')
     await select('folder', '作業用')
-    await click('pm-sel-clear')
+    await bulk('選択を外す')
     expect($('pm-selection')).toBeNull()
     await select('folder', 'ゲーム')
     await select('folder', '作業用')
@@ -703,5 +712,262 @@ describe('サイドメニュー（細部 (j)）', () => {
       (a) => a.getAttribute('aria-current') === 'page',
     )
     expect(home.map((a) => a.textContent!.trim())).toEqual(['依頼文の組み立て'])
+  })
+})
+
+describe('一覧の選択の操作（判断ポイント71）', () => {
+  /** 選んでいる行（種類・名前）。並びのまま */
+  const chosen = () =>
+    [...document.querySelectorAll('[data-selected="true"]')].map((e) =>
+      e.getAttribute('data-testid')!.replace(/^pm-/, ''),
+    )
+  const allState = () => $('pm-select-all')!.getAttribute('aria-checked')
+  /** 要素を押す（Shift の有無） */
+  async function press(el: Element | null, shiftKey = false) {
+    if (!el) throw new Error('見つからない')
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, shiftKey }))
+    await flushPromises()
+  }
+  /** 行の、ボタンでない場所（名前の文字）を押す */
+  const rowText = (kind: 'folder' | 'profile', name: string) =>
+    [...row(kind, name)!.querySelectorAll('div')].find((d) => d.textContent?.trim() === name) ??
+    null
+  /** 選択欄（items の先頭の値で見分ける）を選ぶ */
+  async function chooseSelect(first: string, value: string) {
+    const sel = wrapper!
+      .findAllComponents(USelect)
+      .find(
+        (c) => ((c.props() as { items?: { value?: string }[] }).items ?? [])[0]?.value === first,
+      )!
+    sel.vm.$emit('update:modelValue', value)
+    await flushPromises()
+  }
+
+  it('行の押下で選択を切り替える（名前の文字・アイコン・余白）。プロファイルの名前を押しても開かない', async () => {
+    putStore(sample())
+    await mountApp()
+    await press(rowText('profile', '古い曲'))
+    expect(chosen()).toEqual(['profile-古い曲'])
+    expect($('pm-selection')!.textContent).toContain('1 件を選択')
+    expect(document.body.textContent).not.toContain('を開きますか')
+    expect(router.currentRoute.value.path).toBe('/profiles')
+    await press(row('profile', '古い曲')!.querySelector('.text-muted'))
+    expect(chosen()).toEqual([])
+    await press(row('folder', '作業用'))
+    expect(chosen()).toEqual(['folder-作業用'])
+    // チェックボックスの押下も1回だけ切り替わる
+    await select('folder', '作業用')
+    expect(chosen()).toEqual([])
+    await select('profile', 'ルートの曲')
+    expect(chosen()).toEqual(['profile-ルートの曲'])
+    expect($('pm-select', row('profile', 'ルートの曲'))!.getAttribute('aria-checked')).toBe('true')
+  })
+
+  it('ボタン（［操作］・行の操作）とフォルダの名前を押しても、選択は切り替わらない', async () => {
+    putStore(sample())
+    await mountApp()
+    await click('pm-actions', row('profile', '古い曲'))
+    expect(chosen()).toEqual([])
+    await click('pm-rename', row('profile', '古い曲'))
+    await click('pm-dialog-cancel')
+    expect(chosen()).toEqual([])
+    await click('pm-actions', row('folder', 'ゲーム'))
+    await click('pm-actions', row('folder', 'ゲーム'))
+    expect(chosen()).toEqual([])
+    await click('pm-enter', row('folder', 'ゲーム'))
+    expect(rows()).toEqual(['folder-ボス戦', 'profile-村'])
+    expect(chosen()).toEqual([])
+  })
+
+  it('一括選択のチェックボックス: なし／一部／すべて。すべて選ばれていれば外す', async () => {
+    putStore(sample())
+    await mountApp()
+    expect(allState()).toBe('false')
+    await press(row('profile', '古い曲'))
+    expect(allState()).toBe('mixed')
+    await click('pm-select-all')
+    expect(allState()).toBe('true')
+    expect(chosen()).toEqual(rows())
+    expect($('pm-selection')!.textContent).toContain('4 件を選択')
+    await click('pm-select-all')
+    expect(allState()).toBe('false')
+    expect($('pm-selection')).toBeNull()
+  })
+
+  it('▼ のメニュー: すべて／フォルダだけ／プロファイルだけ（ほかは外す）／選択を外す', async () => {
+    putStore(sample())
+    await mountApp()
+    expect(
+      (wrapper!.findComponent(UDropdownMenu).props() as { items: { label: string }[] }).items.map(
+        (i) => i.label,
+      ),
+    ).toEqual(['すべて', 'フォルダだけ', 'プロファイルだけ', '選択を外す'])
+    await press(row('profile', '古い曲'))
+    await bulk('フォルダだけ')
+    expect(chosen()).toEqual(['folder-ゲーム', 'folder-作業用'])
+    expect(allState()).toBe('mixed')
+    await bulk('プロファイルだけ')
+    expect(chosen()).toEqual(['profile-ルートの曲', 'profile-古い曲'])
+    await bulk('すべて')
+    expect(chosen()).toEqual(rows())
+    expect(allState()).toBe('true')
+    await bulk('選択を外す')
+    expect(chosen()).toEqual([])
+  })
+
+  it('検索中は、検索の結果が表示中の行（一括選択はその中だけ）', async () => {
+    putStore(sample())
+    await mountApp()
+    await type('profiles-search', '曲')
+    expect(rows()).toEqual(['profile-ルートの曲', 'profile-古い曲'])
+    await click('pm-select-all')
+    expect(chosen()).toEqual(['profile-ルートの曲', 'profile-古い曲'])
+    await click('pm-sel-move')
+    await click('pm-move-option-w')
+    await click('pm-dialog-ok')
+    expect([where('ルートの曲'), where('古い曲'), where('村')]).toEqual([
+      'ルート/作業用',
+      'ルート/作業用',
+      'ルート/ゲーム',
+    ])
+    await bulk('フォルダだけ')
+    expect(chosen()).toEqual([])
+  })
+
+  it('ファクトリーのタブには一括選択を出さない', async () => {
+    putStore(sample())
+    await mountApp()
+    expect($('pm-select-all')).not.toBeNull()
+    await factoryTab()
+    expect($('pm-select-all')).toBeNull()
+    expect($('pm-select-menu')).toBeNull()
+  })
+
+  it('Shift＋押下: 起点から押した行までを、起点と同じ状態にそろえる（選ぶ・外す）', async () => {
+    putStore(sample())
+    await mountApp()
+    // 並び: ゲーム、作業用、ルートの曲、古い曲
+    await press(row('folder', 'ゲーム'))
+    await press(rowText('profile', 'ルートの曲'), true)
+    expect(chosen()).toEqual(['folder-ゲーム', 'folder-作業用', 'profile-ルートの曲'])
+    // 起点を外した行にして、Shift で下から上へ外す
+    await press(row('profile', '古い曲'))
+    await press(row('profile', '古い曲'))
+    await press(row('folder', '作業用'), true)
+    expect(chosen()).toEqual(['folder-ゲーム'])
+  })
+
+  it('チェックボックスの Shift＋押下も同じ。起点がなければ通常の押下。Shift では文字を選ばない', async () => {
+    putStore(sample())
+    await mountApp()
+    await press($('pm-select', row('folder', '作業用')), true)
+    expect(chosen()).toEqual(['folder-作業用'])
+    await press($('pm-select', row('profile', '古い曲')), true)
+    expect(chosen()).toEqual(['folder-作業用', 'profile-ルートの曲', 'profile-古い曲'])
+    const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true, shiftKey: true })
+    row('profile', '古い曲')!.dispatchEvent(down)
+    expect(down.defaultPrevented).toBe(true)
+    const plain = new MouseEvent('mousedown', { bubbles: true, cancelable: true })
+    row('profile', '古い曲')!.dispatchEvent(plain)
+    expect(plain.defaultPrevented).toBe(false)
+  })
+
+  it('一括選択のあとは起点がない（Shift＋押下は通常の押下）', async () => {
+    putStore(sample())
+    await mountApp()
+    await press(row('folder', 'ゲーム'))
+    await bulk('プロファイルだけ')
+    await press(row('folder', '作業用'), true)
+    expect(chosen()).toEqual(['folder-作業用', 'profile-ルートの曲', 'profile-古い曲'])
+    // 「選択を外す」のあとも起点はない
+    await bulk('選択を外す')
+    await press(row('profile', '古い曲'), true)
+    expect(chosen()).toEqual(['profile-古い曲'])
+  })
+
+  describe('選択を外すタイミング', () => {
+    it('別のフォルダに移ったとき（中に入る・パンくず）', async () => {
+      putStore(sample())
+      await mountApp()
+      await press(row('profile', '古い曲'))
+      await click('pm-enter', row('folder', 'ゲーム'))
+      expect($('pm-selection')).toBeNull()
+      await press(row('profile', '村'))
+      await click('pm-crumb-root')
+      expect($('pm-selection')).toBeNull()
+      expect(chosen()).toEqual([])
+    })
+
+    it('検索語を変えたとき', async () => {
+      putStore(sample())
+      await mountApp()
+      await press(row('profile', '古い曲'))
+      await type('profiles-search', '曲')
+      expect($('pm-selection')).toBeNull()
+      await press(row('profile', '古い曲'))
+      await type('profiles-search', '古')
+      expect($('pm-selection')).toBeNull()
+      await press(row('profile', '古い曲'))
+      await type('profiles-search', '')
+      expect($('pm-selection')).toBeNull()
+    })
+
+    it('検索の対象を変えたとき', async () => {
+      putStore(sample())
+      await mountApp()
+      await press(row('profile', '古い曲'))
+      await chooseSelect('both', 'profile')
+      expect($('pm-selection')).toBeNull()
+    })
+
+    it('タブを切り替えたとき', async () => {
+      putStore(sample())
+      await mountApp()
+      await press(row('profile', '古い曲'))
+      await factoryTab()
+      const tab = [...document.querySelectorAll('button[role="tab"]')].find((b) =>
+        b.textContent?.includes('ユーザー'),
+      ) as HTMLElement
+      tab.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))
+      await flushPromises()
+      expect($('profiles-user')).not.toBeNull()
+      expect($('pm-selection')).toBeNull()
+      expect(chosen()).toEqual([])
+    })
+
+    it('一覧から消えた行は、選択からも外す（取り込みの置換で入れ替わったとき）', async () => {
+      putStore(sample())
+      const w = await mountApp()
+      await press(row('profile', '古い曲'))
+      await press(row('profile', 'ルートの曲'))
+      // 置換で入るプロファイルには新しい id が振られるので、名前が同じでも別の行
+      const text = toJsonText(
+        buildExportFile(
+          [prof('p-root', 'ルートの曲', null, '2026-10-03T00:00:00+09:00', f2.data)],
+          new Date('2026-10-19T00:00:00Z'),
+        ),
+      )
+      const view = w.findComponent(ProfilesView).vm as unknown as {
+        receiveFile(n: string, t: string): Promise<void>
+      }
+      await view.receiveFile('a.json', text)
+      await flushPromises()
+      await click('import-replace')
+      await click('import-replace-ok')
+      expect(rows()).toEqual(['profile-ルートの曲'])
+      expect($('pm-selection')).toBeNull()
+      expect(chosen()).toEqual([])
+    })
+
+    it('並び替え・名前の変更では外さない', async () => {
+      putStore(sample())
+      await mountApp()
+      await press(row('profile', '古い曲'))
+      await chooseSelect('updated', 'name')
+      await act('folder', 'ゲーム', 'pm-rename')
+      await type('pm-name-input', 'ゲーム曲')
+      await click('pm-dialog-ok')
+      expect(chosen()).toEqual(['profile-古い曲'])
+    })
   })
 })

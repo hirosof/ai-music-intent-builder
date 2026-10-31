@@ -2,6 +2,7 @@
 // プロファイル管理の画面（ui-and-nonfunctional.md 判断ポイント67。プロファイルのポップアップを置き換える）。
 // タブ「ユーザー／ファクトリー」。ユーザーは、パンくず＋今のフォルダの中身（サブフォルダが先、プロファイルが後）。
 // 検索語があれば全フォルダから探し、パスの列を出す（対象は 両方／フォルダ／プロファイル から選べる。細部 (i)）。各行にチェックボックス（複数選択で 書き出す／移動／削除）と操作。
+// 選択は行全体の押下・一括選択・Shift の範囲選択でも切り替える（判断ポイント71）。
 // 確認・入力は1つのダイアログの中で切り替える（モーダルを重ねない。判断ポイント8）。開くは、判断ポイント52 の確認のあと組み立ての画面へ
 import { useToast } from '@nuxt/ui/composables'
 import { useFileDialog } from '@vueuse/core'
@@ -152,21 +153,75 @@ const rows = computed<Row[]>(() => {
 function enter(id: string | null) {
   current.value = id
   query.value = ''
-  selected.value = new Set()
+  clearSelection()
   expanded.value = null
 }
 
 // ---------------------------------------------------------------------------
-// 選択と、行の操作の開閉
+// 選択と、行の操作の開閉（判断ポイント71）
 // ---------------------------------------------------------------------------
 const selected = ref(new Set<string>())
+/** 範囲選択の起点（直前に切り替えた行の key） */
+const anchor = ref<string | null>(null)
 const expanded = ref<string | null>(null)
-function toggleSelect(key: string, on: boolean) {
-  const next = new Set(selected.value)
-  if (on) next.add(key)
-  else next.delete(key)
-  selected.value = next
+function clearSelection() {
+  selected.value = new Set()
+  anchor.value = null
 }
+// 見えていない行を選んだままにしない: 検索語・検索の対象・タブが変わったら外す（フォルダの移動は enter）
+watch([query, searchTarget, tab], clearSelection)
+// 一覧から消えた行（取り込みの置換など）は、選択からも外す
+watch(rows, (rs) => {
+  const keys = new Set(rs.map((r) => r.key))
+  if ([...selected.value].some((k) => !keys.has(k)))
+    selected.value = new Set([...selected.value].filter((k) => keys.has(k)))
+})
+/**
+ * 行（とそのチェックボックス）の押下。ボタン（［操作］・行の操作）とフォルダの名前は除く。
+ * Shift＋押下は、起点から押した行までを起点と同じ状態にそろえる（起点がなければ通常の押下）
+ */
+function onRowClick(r: Row, e: MouseEvent) {
+  const hit = (e.target as Element).closest('button, a, input')
+  if (hit && hit.getAttribute('role') !== 'checkbox') return
+  const keys = rows.value.map((x) => x.key)
+  const from = anchor.value === null ? -1 : keys.indexOf(anchor.value)
+  const to = keys.indexOf(r.key)
+  const next = new Set(selected.value)
+  if (e.shiftKey && from >= 0) {
+    const on = selected.value.has(anchor.value!)
+    for (const k of keys.slice(Math.min(from, to), Math.max(from, to) + 1)) {
+      if (on) next.add(k)
+      else next.delete(k)
+    }
+  } else if (next.has(r.key)) next.delete(r.key)
+  else next.add(r.key)
+  selected.value = next
+  anchor.value = r.key
+}
+/** Shift＋押下で、ブラウザが文字を選択しないようにする */
+function onRowMouseDown(e: MouseEvent) {
+  if (e.shiftKey) e.preventDefault()
+}
+
+// 一括選択（表示中の行が対象。検索中は検索の結果）
+const allState = computed<boolean | 'indeterminate'>(() => {
+  const n = rows.value.filter((r) => selected.value.has(r.key)).length
+  return n === 0 ? false : n === rows.value.length ? true : 'indeterminate'
+})
+function selectOnly(kind?: Row['kind']) {
+  selected.value = new Set(rows.value.filter((r) => !kind || r.kind === kind).map((r) => r.key))
+  anchor.value = null
+}
+function toggleAll() {
+  if (allState.value === true) clearSelection()
+  else selectOnly()
+}
+const bulkItems = [
+  { label: 'すべて', onSelect: () => selectOnly() },
+  { label: 'フォルダだけ', onSelect: () => selectOnly('folder') },
+  { label: 'プロファイルだけ', onSelect: () => selectOnly('profile') },
+  { label: '選択を外す', onSelect: () => clearSelection() },
+]
 const selectionOf = (keys: Iterable<string>): Selection => {
   const ks = [...keys]
   return {
@@ -318,7 +373,7 @@ function confirm() {
     toast.add({ title: `フォルダ「${name}」を作りました`, color: 'success' })
   } else if (p.kind === 'move') {
     if (!commit(moveItems(s, p.sel, moveTarget.value))) return
-    selected.value = new Set()
+    clearSelection()
     toast.add({
       title: `「${folderPathLabel(folders.value, moveTarget.value)}」に移動しました`,
       color: 'success',
@@ -328,7 +383,7 @@ function confirm() {
     if (!commit(deleteItems(s, p.sel))) return
     if (editor.currentProfileId.value !== null && gone.includes(editor.currentProfileId.value))
       editor.currentProfileId.value = null
-    selected.value = new Set()
+    clearSelection()
     toast.add({ title: '削除しました', color: 'success' })
   }
   expanded.value = null
@@ -503,46 +558,6 @@ defineExpose({ receiveFile })
                 <p v-else class="text-sm text-muted" data-testid="pm-search-note">
                   検索の結果（全フォルダ）: {{ rows.length }} 件
                 </p>
-                <!-- 複数選択の操作 -->
-                <div
-                  v-if="selected.size"
-                  class="flex flex-wrap items-center gap-2 rounded-md bg-elevated p-2 text-sm"
-                  data-testid="pm-selection"
-                >
-                  <span>{{ selected.size }} 件を選択</span>
-                  <UButton
-                    size="xs"
-                    label="書き出す"
-                    color="neutral"
-                    variant="outline"
-                    data-testid="pm-sel-export"
-                    @click="exportSelection(selectionOf(selected), '選んだもの')"
-                  />
-                  <UButton
-                    size="xs"
-                    label="移動"
-                    color="neutral"
-                    variant="outline"
-                    data-testid="pm-sel-move"
-                    @click="ask({ kind: 'move', sel: selectionOf(selected) })"
-                  />
-                  <UButton
-                    size="xs"
-                    label="削除"
-                    color="error"
-                    variant="outline"
-                    data-testid="pm-sel-delete"
-                    @click="ask({ kind: 'delete', sel: selectionOf(selected) })"
-                  />
-                  <UButton
-                    size="xs"
-                    label="選択を解除"
-                    color="neutral"
-                    variant="ghost"
-                    data-testid="pm-sel-clear"
-                    @click="selected = new Set()"
-                  />
-                </div>
                 <p v-if="rows.length === 0" class="text-sm text-muted" data-testid="pm-empty">
                   {{
                     searching
@@ -552,117 +567,177 @@ defineExpose({ receiveFile })
                         : 'ユーザープロファイルはありません。組み立ての画面の「保存」で、編集中の内容を名前を付けて保存できます。'
                   }}
                 </p>
-                <ul v-else class="divide-y divide-default rounded-md border border-default">
-                  <li
-                    v-for="r in rows"
-                    :key="r.key"
-                    class="space-y-2 p-2"
-                    :data-testid="`pm-${r.kind}-${r.name}`"
+                <div v-else class="rounded-md border border-default">
+                  <!-- 一括選択（表示中の行）と、複数選択の操作。「選択を外す」は ▼ のメニューに置く -->
+                  <div
+                    class="flex flex-wrap items-center gap-2 border-b border-default bg-elevated p-2 text-sm"
+                    data-testid="pm-selection-bar"
                   >
-                    <div class="flex items-center gap-2">
-                      <UCheckbox
-                        :model-value="selected.has(r.key)"
-                        :aria-label="`${r.name} を選ぶ`"
-                        data-testid="pm-select"
-                        @update:model-value="(v: unknown) => toggleSelect(r.key, v === true)"
-                      />
-                      <UIcon
-                        :name="r.kind === 'folder' ? 'i-lucide-folder' : 'i-lucide-file-music'"
-                        class="size-4 shrink-0 text-muted"
-                      />
-                      <div class="min-w-0 flex-1">
-                        <button
-                          v-if="r.kind === 'folder'"
-                          type="button"
-                          class="text-left font-medium break-all hover:underline"
-                          data-testid="pm-enter"
-                          @click="enter(r.id)"
-                        >
-                          {{ r.name }}
-                        </button>
-                        <div v-else class="font-medium break-all">{{ r.name }}</div>
-                        <div class="flex flex-wrap gap-x-3 text-xs text-muted">
-                          <span v-if="r.profile">{{
-                            formatDisplayTimestamp(r.profile.updatedAt)
-                          }}</span>
-                          <span v-if="r.path !== undefined" data-testid="pm-path">{{
-                            r.path
-                          }}</span>
-                        </div>
-                      </div>
+                    <UCheckbox
+                      :model-value="allState"
+                      aria-label="表示中の行をすべて選ぶ"
+                      data-testid="pm-select-all"
+                      @update:model-value="toggleAll"
+                    />
+                    <UDropdownMenu :items="bulkItems" :content="{ align: 'start' }">
                       <UButton
+                        icon="i-lucide-chevron-down"
                         size="xs"
-                        :label="expanded === r.key ? '閉じる' : '操作'"
                         color="neutral"
                         variant="ghost"
-                        data-testid="pm-actions"
-                        @click="expanded = expanded === r.key ? null : r.key"
+                        aria-label="選び方"
+                        data-testid="pm-select-menu"
                       />
-                    </div>
-                    <!-- 行の操作 -->
-                    <div
-                      v-if="expanded === r.key"
-                      class="flex flex-wrap gap-1 pl-8"
-                      data-testid="pm-row-actions"
-                    >
-                      <template v-if="r.profile">
-                        <UButton
-                          size="xs"
-                          label="開く"
-                          data-testid="pm-open"
-                          @click="askOpen(r.profile, r.id)"
-                        />
-                        <UButton
-                          size="xs"
-                          label="上書き保存"
-                          color="neutral"
-                          variant="outline"
-                          data-testid="pm-overwrite"
-                          @click="ask({ kind: 'overwrite', profile: r.profile })"
-                        />
-                        <UButton
-                          size="xs"
-                          label="書き出す"
-                          color="neutral"
-                          variant="outline"
-                          data-testid="pm-export"
-                          @click="exportSelection(rowSelection(r), `「${r.name}」`)"
-                        />
-                      </template>
-                      <UButton
-                        v-else
-                        size="xs"
-                        label="開く"
-                        data-testid="pm-open-folder"
-                        @click="enter(r.id)"
-                      />
+                    </UDropdownMenu>
+                    <template v-if="selected.size">
+                      <span data-testid="pm-selection">{{ selected.size }} 件を選択</span>
                       <UButton
                         size="xs"
-                        label="名前を変更"
+                        label="書き出す"
                         color="neutral"
                         variant="outline"
-                        data-testid="pm-rename"
-                        @click="ask({ kind: 'rename', row: r })"
+                        data-testid="pm-sel-export"
+                        @click="exportSelection(selectionOf(selected), '選んだもの')"
                       />
                       <UButton
                         size="xs"
                         label="移動"
                         color="neutral"
                         variant="outline"
-                        data-testid="pm-move"
-                        @click="ask({ kind: 'move', sel: rowSelection(r) })"
+                        data-testid="pm-sel-move"
+                        @click="ask({ kind: 'move', sel: selectionOf(selected) })"
                       />
                       <UButton
                         size="xs"
                         label="削除"
                         color="error"
                         variant="outline"
-                        data-testid="pm-delete"
-                        @click="ask({ kind: 'delete', sel: rowSelection(r) })"
+                        data-testid="pm-sel-delete"
+                        @click="ask({ kind: 'delete', sel: selectionOf(selected) })"
                       />
-                    </div>
-                  </li>
-                </ul>
+                    </template>
+                  </div>
+                  <ul class="divide-y divide-default">
+                    <!-- 行全体で選択を切り替える。選んだ行に背景色、PC では重ねると背景を薄く変える -->
+                    <li
+                      v-for="r in rows"
+                      :key="r.key"
+                      class="cursor-pointer space-y-2 p-2"
+                      :class="
+                        selected.has(r.key)
+                          ? 'bg-primary/10 hover:bg-primary/15'
+                          : 'hover:bg-elevated/60'
+                      "
+                      :data-selected="selected.has(r.key)"
+                      :data-testid="`pm-${r.kind}-${r.name}`"
+                      @click="onRowClick(r, $event)"
+                      @mousedown="onRowMouseDown"
+                    >
+                      <div class="flex items-center gap-2">
+                        <!-- 押下は行で受ける（Shift の範囲選択も同じ）。キーボード・読み上げのために残す -->
+                        <UCheckbox
+                          :model-value="selected.has(r.key)"
+                          :aria-label="`${r.name} を選ぶ`"
+                          data-testid="pm-select"
+                        />
+                        <UIcon
+                          :name="r.kind === 'folder' ? 'i-lucide-folder' : 'i-lucide-file-music'"
+                          class="size-4 shrink-0 text-muted"
+                        />
+                        <div class="min-w-0 flex-1">
+                          <button
+                            v-if="r.kind === 'folder'"
+                            type="button"
+                            class="text-left font-medium break-all hover:underline"
+                            data-testid="pm-enter"
+                            @click="enter(r.id)"
+                          >
+                            {{ r.name }}
+                          </button>
+                          <div v-else class="font-medium break-all">{{ r.name }}</div>
+                          <div class="flex flex-wrap gap-x-3 text-xs text-muted">
+                            <span v-if="r.profile">{{
+                              formatDisplayTimestamp(r.profile.updatedAt)
+                            }}</span>
+                            <span v-if="r.path !== undefined" data-testid="pm-path">{{
+                              r.path
+                            }}</span>
+                          </div>
+                        </div>
+                        <UButton
+                          size="xs"
+                          :label="expanded === r.key ? '閉じる' : '操作'"
+                          color="neutral"
+                          variant="ghost"
+                          data-testid="pm-actions"
+                          @click="expanded = expanded === r.key ? null : r.key"
+                        />
+                      </div>
+                      <!-- 行の操作 -->
+                      <div
+                        v-if="expanded === r.key"
+                        class="flex flex-wrap gap-1 pl-8"
+                        data-testid="pm-row-actions"
+                      >
+                        <template v-if="r.profile">
+                          <UButton
+                            size="xs"
+                            label="開く"
+                            data-testid="pm-open"
+                            @click="askOpen(r.profile, r.id)"
+                          />
+                          <UButton
+                            size="xs"
+                            label="上書き保存"
+                            color="neutral"
+                            variant="outline"
+                            data-testid="pm-overwrite"
+                            @click="ask({ kind: 'overwrite', profile: r.profile })"
+                          />
+                          <UButton
+                            size="xs"
+                            label="書き出す"
+                            color="neutral"
+                            variant="outline"
+                            data-testid="pm-export"
+                            @click="exportSelection(rowSelection(r), `「${r.name}」`)"
+                          />
+                        </template>
+                        <UButton
+                          v-else
+                          size="xs"
+                          label="開く"
+                          data-testid="pm-open-folder"
+                          @click="enter(r.id)"
+                        />
+                        <UButton
+                          size="xs"
+                          label="名前を変更"
+                          color="neutral"
+                          variant="outline"
+                          data-testid="pm-rename"
+                          @click="ask({ kind: 'rename', row: r })"
+                        />
+                        <UButton
+                          size="xs"
+                          label="移動"
+                          color="neutral"
+                          variant="outline"
+                          data-testid="pm-move"
+                          @click="ask({ kind: 'move', sel: rowSelection(r) })"
+                        />
+                        <UButton
+                          size="xs"
+                          label="削除"
+                          color="error"
+                          variant="outline"
+                          data-testid="pm-delete"
+                          @click="ask({ kind: 'delete', sel: rowSelection(r) })"
+                        />
+                      </div>
+                    </li>
+                  </ul>
+                </div>
               </template>
             </div>
           </template>
