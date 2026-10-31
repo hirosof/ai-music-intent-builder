@@ -12,6 +12,7 @@ import App from '../App.vue'
 import EditorView from '@/views/EditorView.vue'
 import ProfilesView from '@/views/ProfilesView.vue'
 import { resetProfileStore } from '@/composables/useProfileStore'
+import { resetProfilesView, useProfilesView } from '@/composables/useProfilesView'
 import { resetSongEditor, useSongEditor } from '@/composables/useSongEditor'
 import { resetUiSettings } from '@/composables/useUiSettings'
 import { factoryProfiles } from '@/data/factory'
@@ -44,6 +45,7 @@ afterEach(() => {
   resetSongEditor()
   resetProfileStore()
   resetUiSettings()
+  resetProfilesView()
   vi.restoreAllMocks()
   localStorage.clear()
   document.body.innerHTML = ''
@@ -534,5 +536,172 @@ describe('ストア拒否中・ダイアログのボタン', () => {
         b.getAttribute('data-testid'),
       ),
     ).toEqual(['pm-dialog-ok', 'pm-dialog-cancel'])
+  })
+})
+
+describe('検索の対象（細部 (i)）', () => {
+  /** 対象の選択欄（「両方」「フォルダ」「プロファイル」）を選ぶ */
+  async function chooseTarget(value: 'both' | 'folder' | 'profile') {
+    const sel = wrapper!
+      .findAllComponents(USelect)
+      .find(
+        (c) => ((c.props() as { items?: { value?: string }[] }).items ?? [])[0]?.value === 'both',
+      )!
+    sel.vm.$emit('update:modelValue', value)
+    await flushPromises()
+  }
+  const placeholder = () => $<HTMLInputElement>('profiles-search')!.placeholder
+
+  it('初期値は「両方」で、閉じた状態でも「対象: 両方」と出す。検索欄とひとまとまり（UFieldGroup）', async () => {
+    putStore(sample())
+    await mountApp()
+    const group = $('pm-search-group')!
+    expect(group.contains($('pm-search-target'))).toBe(true)
+    expect(group.contains($('profiles-search'))).toBe(true)
+    expect(group.contains($('profiles-sort'))).toBe(false)
+    expect($('pm-search-target')!.textContent).toContain('対象: 両方')
+    expect(placeholder()).toBe('フォルダ名・プロファイル名で検索（全フォルダ）')
+  })
+
+  it('対象で絞り込む（フォルダだけ・プロファイルだけ）。案内の文も対象に合わせる', async () => {
+    const s = sample()
+    s.profiles.push(prof('p-x', 'ボスの曲', null, '2026-10-05T00:00:00+09:00'))
+    putStore(s)
+    await mountApp()
+    await type('profiles-search', 'ボス')
+    expect(rows()).toEqual(['folder-ボス戦', 'profile-ボスの曲'])
+    await chooseTarget('folder')
+    expect(rows()).toEqual(['folder-ボス戦'])
+    expect(placeholder()).toBe('フォルダ名で検索（全フォルダ）')
+    expect($('pm-search-target')!.textContent).toContain('対象: フォルダ')
+    await chooseTarget('profile')
+    expect(rows()).toEqual(['profile-ボスの曲'])
+    expect(placeholder()).toBe('プロファイル名で検索（全フォルダ）')
+    expect($('pm-path', row('profile', 'ボスの曲'))!.textContent).toBe('ルート')
+  })
+
+  it('検索語が空なら、対象に関わらず今のフォルダの中身', async () => {
+    putStore(sample())
+    await mountApp()
+    await chooseTarget('profile')
+    expect(rows()).toEqual([
+      'folder-ゲーム',
+      'folder-作業用',
+      'profile-ルートの曲',
+      'profile-古い曲',
+    ])
+    expect($('pm-breadcrumb')).not.toBeNull()
+  })
+
+  it('画面の中でだけ覚える（管理画面を離れて戻っても保つ。保存はしない）', async () => {
+    putStore(sample())
+    await mountApp()
+    await chooseTarget('folder')
+    const before = { ...localStorage }
+    await router.push('/')
+    await flushPromises()
+    await router.push('/profiles')
+    await flushPromises()
+    expect($('pm-search-target')!.textContent).toContain('対象: フォルダ')
+    expect(useProfilesView().searchTarget.value).toBe('folder')
+    expect(Object.keys(localStorage).sort()).toEqual(Object.keys(before).sort())
+    expect(JSON.stringify(localStorage)).not.toContain('folder"')
+  })
+})
+
+describe('空のフォルダの書き出し（細部 (k)）', () => {
+  // sample に、ゲーム ＞ 空 ＞ 空の下 を足す
+  const withEmpty = (): ProfileStore => {
+    const s = sample()
+    s.folders.push(
+      { id: 'e', parentId: 'g', name: '空' },
+      { id: 'e2', parentId: 'e', name: '空の下' },
+    )
+    return s
+  }
+
+  it('フォルダを選んで書き出すと、配下の空のフォルダも入る。取り込むと構成が戻る', async () => {
+    putStore(withEmpty())
+    let w = await mountApp()
+    await select('folder', 'ゲーム')
+    await click('pm-sel-export')
+    const text = await downloads[0]!.blob.text()
+    const file = JSON.parse(text) as ExportFile
+    expect(file.folders.map((f) => f.name)).toEqual(['ゲーム', 'ボス戦', '空', '空の下'])
+    expect(file.profiles.map((p) => p.name).sort()).toEqual(['村', '第1形態'].sort())
+
+    // 別のストアへ、構成を保って取り込む
+    w.unmount()
+    resetProfileStore()
+    putStore({ ...emptyStore(), folders: [{ id: 'x', parentId: null, name: '別' }] })
+    w = await mountApp()
+    wrapper = w
+    const view = w.findComponent(ProfilesView).vm as unknown as {
+      receiveFile(n: string, t: string): Promise<void>
+    }
+    await view.receiveFile('a.json', text)
+    await flushPromises()
+    await click('import-add')
+    const s = stored()!
+    const path = (id: string | null): string => {
+      const f = s.folders.find((x) => x.id === id)
+      return f ? `${path(f.parentId)}/${f.name}` : 'ルート'
+    }
+    expect(s.folders.map((f) => path(f.id)).sort()).toEqual(
+      [
+        'ルート/別',
+        'ルート/ゲーム',
+        'ルート/ゲーム/ボス戦',
+        'ルート/ゲーム/空',
+        'ルート/ゲーム/空/空の下',
+      ].sort(),
+    )
+    expect(s.profiles.map((p) => `${path(p.folderId)}/${p.name}`).sort()).toEqual(
+      ['ルート/ゲーム/村', 'ルート/ゲーム/ボス戦/第1形態'].sort(),
+    )
+  })
+
+  it('プロファイルを1件ずつ書き出すときは、空のフォルダは入らない（通り道だけ）', async () => {
+    putStore(withEmpty())
+    await mountApp()
+    await click('pm-enter', row('folder', 'ゲーム'))
+    await act('profile', '村', 'pm-export')
+    const file = JSON.parse(await downloads[0]!.blob.text()) as ExportFile
+    expect(file.folders.map((f) => f.name)).toEqual(['ゲーム'])
+  })
+
+  it('空のフォルダだけを選んだときは、今のとおり書き出さない', async () => {
+    putStore(withEmpty())
+    await mountApp()
+    await click('pm-enter', row('folder', 'ゲーム'))
+    await select('folder', '空')
+    await click('pm-sel-export')
+    expect(downloads).toHaveLength(0)
+    expect($('pm-failure')!.textContent).toContain(
+      '書き出すプロファイルがありません（空のフォルダは書き出せません）',
+    )
+  })
+})
+
+describe('サイドメニュー（細部 (j)）', () => {
+  it('並びは「依頼文の組み立て」「プロファイル管理」、区切り線、「辞典設定」。管理画面では「プロファイル管理」が選ばれる', async () => {
+    await mountApp()
+    const nav = $('side-nav')!
+    const lists = [...nav.querySelectorAll('ul')].filter((u) => u.parentElement === nav)
+    expect(
+      lists.map((u) => [...u.querySelectorAll('a')].map((a) => a.textContent!.trim())),
+    ).toEqual([['依頼文の組み立て', 'プロファイル管理'], ['辞典設定']])
+    // まとまりの間に区切り線（1つ目と2つ目のまとまりの間の要素）
+    expect(lists[0]!.nextElementSibling).not.toBe(lists[1])
+    const current = [...nav.querySelectorAll('a')].filter(
+      (a) => a.getAttribute('aria-current') === 'page',
+    )
+    expect(current.map((a) => a.textContent!.trim())).toEqual(['プロファイル管理'])
+    await router.push('/')
+    await flushPromises()
+    const home = [...nav.querySelectorAll('a')].filter(
+      (a) => a.getAttribute('aria-current') === 'page',
+    )
+    expect(home.map((a) => a.textContent!.trim())).toEqual(['依頼文の組み立て'])
   })
 })

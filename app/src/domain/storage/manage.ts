@@ -157,20 +157,30 @@ export type SearchHit =
   | { kind: 'folder'; folder: Folder; path: string }
   | { kind: 'profile'; profile: UserProfile; path: string }
 
-/** 全フォルダから、名前に検索語を含むフォルダとプロファイルを探す（判断ポイント67。表記の揺れは norm でそろえる） */
-export function searchAll(store: ProfileStore, query: string): SearchHit[] {
+/** 検索の対象（判断ポイント67 の細部 (i)） */
+export type SearchTarget = 'both' | 'folder' | 'profile'
+
+/**
+ * 全フォルダから、名前に検索語を含むフォルダとプロファイルを探す（判断ポイント67。表記の揺れは norm でそろえる）。
+ * target で、フォルダだけ・プロファイルだけに絞れる
+ */
+export function searchAll(
+  store: ProfileStore,
+  query: string,
+  target: SearchTarget = 'both',
+): SearchHit[] {
   const q = norm(query)
   if (!q) return []
   return [
     ...store.folders
-      .filter((f) => norm(f.name).includes(q))
+      .filter((f) => target !== 'profile' && norm(f.name).includes(q))
       .map((folder) => ({
         kind: 'folder' as const,
         folder,
         path: folderPathLabel(store.folders, folder.parentId),
       })),
     ...store.profiles
-      .filter((p) => norm(p.name).includes(q))
+      .filter((p) => target !== 'folder' && norm(p.name).includes(q))
       .map((profile) => ({
         kind: 'profile' as const,
         profile,

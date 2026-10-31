@@ -278,7 +278,37 @@ describe('取り込みの「追加」', () => {
         () => ({ action: 'skip' }),
         { targetFolderId: 't', newId: ids('n') },
       )
-      expect(r2.store).toEqual(s0)
+      // q は取り込まない。ファイルの B（この取り込みではプロファイルを含まない）は、空のフォルダとして再現する（細部 (k)）
+      expect(r2.store.profiles).toEqual(s0.profiles)
+      expect(r2.store.folders.map((f) => [f.name, f.parentId])).toEqual([
+        ['取込先', null],
+        ['A', 't'],
+        ['B', 'ea'],
+      ])
+    })
+
+    it('空のフォルダ（どのプロファイルからも参照されない）も、構成を保つなら再現する。保たないなら作らない（細部 (k)）', async () => {
+      const file: ExportFile = {
+        ...structured(),
+        folders: [...structured().folders, folder('fe', '空', 'fa'), folder('fe2', '空の下', 'fe')],
+      }
+      const r = await importAdd(target, file, never, { targetFolderId: 't', newId: ids('n') })
+      const byId = new Map(r.store.folders.map((f) => [f.id, f]))
+      expect(
+        r.store.folders.map((f) => [f.name, f.parentId && byId.get(f.parentId)!.name]),
+      ).toEqual([
+        ['取込先', null],
+        ['A', '取込先'],
+        ['B', 'A'],
+        ['空', 'A'],
+        ['空の下', '空'],
+      ])
+      const flat = await importAdd(target, file, never, {
+        targetFolderId: 't',
+        keepStructure: false,
+        newId: ids('n'),
+      })
+      expect(flat.store.folders).toEqual(target.folders)
     })
 
     it('取り込み先の中の、別のフォルダへの「上書き」も id と位置を保つ（細部 (b)）', async () => {
@@ -465,6 +495,43 @@ describe('取り込むプロファイルの選択（判断ポイント65）', ()
       profiles: [user(f1, 'p', 'b'), user(f2, 'q', 'c')],
     }
     expect(selectFromFile(file, new Set([0])).folders.map((f) => f.id)).toEqual(['a', 'b'])
+  })
+
+  it('プロファイルを含まないフォルダ（空のフォルダ）は、親が残るかルート直下なら残す（細部 (k)）', () => {
+    // A ＞ B に p、A ＞ 空 ＞ 空の下、C に q、ルート直下に 空2
+    const file: ExportFile = {
+      ...fileOf(f1),
+      folders: [
+        folder('a', 'A'),
+        folder('b', 'B', 'a'),
+        folder('e', '空', 'a'),
+        folder('e2', '空の下', 'e'),
+        folder('c', 'C'),
+        folder('r', '空2'),
+      ],
+      profiles: [user(f1, 'p', 'b'), user(f2, 'q', 'c')],
+    }
+    // p だけ選ぶ: A・B と、A の下の空・空の下、ルート直下の空2。C（q を含むが選んでいない）は外す
+    expect(selectFromFile(file, new Set([0])).folders.map((f) => f.id)).toEqual([
+      'a',
+      'b',
+      'e',
+      'e2',
+      'r',
+    ])
+    // q だけ選ぶ: A は外れるので、その下の空のフォルダも外れる
+    expect(selectFromFile(file, new Set([1])).folders.map((f) => f.id)).toEqual(['c', 'r'])
+  })
+
+  it('書き出しは、指定したフォルダ（空でも）とその祖先も入れる（細部 (k)）', () => {
+    const folders = [
+      folder('a', 'A'),
+      folder('b', 'B', 'a'),
+      folder('e', '空', 'b'),
+      folder('z', 'Z'),
+    ]
+    const f = buildExportFile([user(f1, 'p', 'a')], NOW, folders, ['b', 'e'])
+    expect(f.folders.map((x) => x.id)).toEqual(['a', 'b', 'e'])
   })
 
   it('選んだものだけで置換・追加する', async () => {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // プロファイル管理の画面（ui-and-nonfunctional.md 判断ポイント67。プロファイルのポップアップを置き換える）。
 // タブ「ユーザー／ファクトリー」。ユーザーは、パンくず＋今のフォルダの中身（サブフォルダが先、プロファイルが後）。
-// 検索語があれば全フォルダから探し、パスの列を出す。各行にチェックボックス（複数選択で 書き出す／移動／削除）と操作。
+// 検索語があれば全フォルダから探し、パスの列を出す（対象は 両方／フォルダ／プロファイル から選べる。細部 (i)）。各行にチェックボックス（複数選択で 書き出す／移動／削除）と操作。
 // 確認・入力は1つのダイアログの中で切り替える（モーダルを重ねない。判断ポイント8）。開くは、判断ポイント52 の確認のあと組み立ての画面へ
 import { useToast } from '@nuxt/ui/composables'
 import { useFileDialog } from '@vueuse/core'
@@ -11,6 +11,7 @@ import ConfirmReplaceDialog from '@/components/ConfirmReplaceDialog.vue'
 import FolderPicker from '@/components/storage/FolderPicker.vue'
 import ImportDialog from '@/components/storage/ImportDialog.vue'
 import { useProfileStore } from '@/composables/useProfileStore'
+import { useProfilesView } from '@/composables/useProfilesView'
 import { useSongEditor } from '@/composables/useSongEditor'
 import { factoryProfiles } from '@/data/factory'
 import { downloadJson, loadImportFile, prepareForSave } from '@/data/storage'
@@ -29,6 +30,7 @@ import {
   renameFolder,
   searchAll,
   unmovableTargets,
+  type SearchTarget,
   type Selection,
 } from '@/domain/storage/manage'
 import { buildExportFile, renameError, renameProfile, saveProfile } from '@/domain/storage/profiles'
@@ -70,6 +72,22 @@ const crumbs = computed(() => {
   return names.map((name, i) => ({ id: ids[i]!, name }))
 })
 const query = ref('')
+// 検索の対象（細部 (i)。画面の中でだけ覚える。検索語があるときだけ効く）
+const { searchTarget } = useProfilesView()
+const searchTargetItems: { label: string; value: SearchTarget }[] = [
+  { label: '両方', value: 'both' },
+  { label: 'フォルダ', value: 'folder' },
+  { label: 'プロファイル', value: 'profile' },
+]
+const targetLabel = (v: unknown) => searchTargetItems.find((x) => x.value === v)?.label ?? ''
+const searchPlaceholder = computed(
+  () =>
+    ({
+      both: 'フォルダ名・プロファイル名で検索（全フォルダ）',
+      folder: 'フォルダ名で検索（全フォルダ）',
+      profile: 'プロファイル名で検索（全フォルダ）',
+    })[searchTarget.value],
+)
 const searching = computed(() => query.value.trim() !== '')
 const sort = ref<'name' | 'updated'>('updated')
 const sortItems = [
@@ -112,7 +130,7 @@ const rows = computed<Row[]>(() => {
     path,
   })
   if (searching.value) {
-    const hits = searchAll(s, query.value)
+    const hits = searchAll(s, query.value, searchTarget.value)
     const fs = hits.flatMap((h) => (h.kind === 'folder' ? [h] : []))
     const ps = hits.flatMap((h) => (h.kind === 'profile' ? [h] : []))
     const pathOf = new Map(ps.map((h) => [h.profile.id, h.path]))
@@ -177,13 +195,14 @@ function commit(next: ProfileStore): boolean {
 function exportSelection(sel: Selection, label: string) {
   const s = store.value
   if (!s) return
-  const list = expandSelection(s, sel).profiles
+  // フォルダを選んだときは、選んだフォルダと配下のすべて（空のフォルダを含む）を入れる（細部 (k)）
+  const { profiles: list, folderIds } = expandSelection(s, sel)
   if (list.length === 0) {
     failure.value = ['書き出すプロファイルがありません（空のフォルダは書き出せません）']
     return
   }
   const now = new Date()
-  downloadJson(exportFileName(list, now), buildExportFile(list, now, s.folders))
+  downloadJson(exportFileName(list, now), buildExportFile(list, now, s.folders, folderIds))
   failure.value = []
   toast.add({ title: `${label}（${list.length} 件）を書き出しました`, color: 'success' })
 }
@@ -424,14 +443,28 @@ defineExpose({ receiveFile })
                     "
                   />
                 </div>
-                <div class="flex flex-wrap items-center gap-2">
-                  <UInput
-                    v-model="query"
-                    icon="i-lucide-search"
-                    placeholder="名前で検索（全フォルダ）"
-                    class="w-full sm:w-64"
-                    data-testid="profiles-search"
-                  />
+                <!-- 検索のまとまり（対象＋検索欄。細部 (i)）と、並び替え。スマホ幅では並び替えを次の行に回す -->
+                <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+                  <UFieldGroup class="w-full sm:w-auto" data-testid="pm-search-group">
+                    <USelect
+                      v-model="searchTarget"
+                      :items="searchTargetItems"
+                      class="w-44 shrink-0"
+                      aria-label="検索の対象"
+                      data-testid="pm-search-target"
+                    >
+                      <template #default="{ modelValue }">
+                        <span class="truncate">対象: {{ targetLabel(modelValue) }}</span>
+                      </template>
+                    </USelect>
+                    <UInput
+                      v-model="query"
+                      icon="i-lucide-search"
+                      :placeholder="searchPlaceholder"
+                      class="min-w-0 flex-1 sm:w-96 sm:flex-none"
+                      data-testid="profiles-search"
+                    />
+                  </UFieldGroup>
                   <USelect
                     v-model="sort"
                     :items="sortItems"

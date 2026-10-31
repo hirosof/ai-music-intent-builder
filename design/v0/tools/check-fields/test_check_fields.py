@@ -261,6 +261,9 @@ case("F17: 同じ親の中でフォルダの name が重複", store([], [folder(
      has=["F17 フォルダの name が、同じ親の中で重複: 'ゲーム'（要素 #0, #1）"], counts=(1, 0))
 case("F17: 親が違えば同じ name でよい", store([], [folder("a", "ゲーム"), folder("b", "ゲーム", "a")]),
      rc=0, counts=(0, 0))
+case("F15: どのプロファイルからも参照されない空のフォルダがあってもよい（構成ごとの書き出し。判断ポイント69 の細部 (k)）",
+     export(lambda x: x["folders"].extend([folder("e1", "空", x["folders"][0]["id"]), folder("e2", "空の下", "e1")])),
+     rc=0, counts=(0, 0))
 case("F1: 版2 のファイルに folders がない", export(lambda x: x.pop("folders")), schema=True,
      has=["F1 スキーマ違反: : 'folders' is a required property"])
 case("F1: 版2 のプロファイルに id がない", export(lambda x: x["profiles"][0].pop("id")), schema=True,

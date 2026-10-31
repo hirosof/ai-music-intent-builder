@@ -114,18 +114,36 @@ export function withAncestors(
 
 /**
  * ファイルのうち、選んだプロファイルだけのファイル（取り込みの対象。判断ポイント65）。並びはファイルの順。
- * フォルダは、選んだプロファイルが属するもの（祖先を含む）だけを残す（判断ポイント69）
+ * フォルダは、選んだプロファイルが属するもの（祖先を含む）を残す（判断ポイント69）。
+ * 加えて、ファイルの中でプロファイルを1件も含まない（配下にも）フォルダは、書き出しで構成ごと入った空のフォルダなので残す
+ * （細部 (k)。親が残るか、ルート直下のものだけ）
  */
 export function selectFromFile(file: ExportFile, indexes: ReadonlySet<number>): ExportFile {
   const profiles = file.profiles.filter((_, i) => indexes.has(i))
-  return {
-    ...file,
-    folders: withAncestors(
+  const keep = new Set(
+    withAncestors(
       file.folders,
       profiles.map((p) => p.folderId),
-    ),
-    profiles,
+    ).map((f) => f.id),
+  )
+  // プロファイルを含むフォルダ（祖先を含む）。これ以外が「空のフォルダ」
+  const occupied = new Set(
+    withAncestors(
+      file.folders,
+      file.profiles.map((p) => p.folderId),
+    ).map((f) => f.id),
+  )
+  for (let changed = true; changed;) {
+    changed = false
+    for (const f of file.folders) {
+      if (keep.has(f.id) || occupied.has(f.id)) continue
+      if (f.parentId === null || keep.has(f.parentId)) {
+        keep.add(f.id)
+        changed = true
+      }
+    }
   }
+  return { ...file, folders: file.folders.filter((f) => keep.has(f.id)), profiles }
 }
 
 /** 「別名で追加」の候補名。名前（2）、名前（3）…のうち、使われていない最初のもの（U3 の決定 I6） */
@@ -212,6 +230,9 @@ export async function importAdd(
     profiles.push(p)
     storedIds.push(p.id)
   }
+  // プロファイルを含まないフォルダ（書き出しで入った空のフォルダ）も再現する（細部 (k)）。
+  // 構成を保たないときは、destOf が取り込み先を返すだけでフォルダを作らない
+  for (const f of file.folders) destOf(f.id)
   const dests = file.profiles.map((p) => destOf(p.folderId))
   for (const [i, incoming] of file.profiles.entries()) {
     const folderId = dests[i]!
@@ -273,24 +294,21 @@ export function importReplace(
 
 /**
  * エクスポートファイルを組み立てる（§4-2）。単一は1件、一括は N 件。ファイルは1件以上。
- * フォルダは、入れたプロファイルが属するもの（祖先を含む）だけを folders から選んで入れる（判断ポイント69）
+ * フォルダは、入れたプロファイルが属するもの（祖先を含む）を folders から選んで入れる（判断ポイント69）。
+ * withFolderIds は、プロファイルがなくても入れるフォルダ（フォルダを選んで書き出すときの、選んだフォルダと配下。細部 (k)。祖先も入る）
  */
 export function buildExportFile(
   profiles: readonly UserProfile[],
   now: Date,
   folders: readonly Folder[] = [],
+  withFolderIds: Iterable<string> = [],
 ): ExportFile {
   if (profiles.length === 0) throw new Error('書き出すプロファイルがない')
   return {
     schemaVersion: STORE_SCHEMA_VERSION,
     exportType: 'profiles',
     exportedAt: formatTimestamp(now),
-    folders: clone(
-      withAncestors(
-        folders,
-        profiles.map((p) => p.folderId),
-      ),
-    ),
+    folders: clone(withAncestors(folders, [...profiles.map((p) => p.folderId), ...withFolderIds])),
     profiles: clone([...profiles]),
   }
 }

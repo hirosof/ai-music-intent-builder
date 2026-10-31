@@ -1,6 +1,6 @@
 {
  "note": "生成物（design/v0/tools/check-fields/export_parity_cases.py）。手で編集しない",
- "count": 166,
+ "count": 167,
  "cases": [
   {
    "name": "正例: song.example.json",
@@ -891,6 +891,24 @@
    "warnings": [],
    "notes": [
     "[プロファイルのストア] 形: プロファイルのストア（プロファイル 0 件）"
+   ],
+   "expect": {
+    "has": [],
+    "lacks": [],
+    "counts": [
+     0,
+     0
+    ],
+    "once": null
+   }
+  },
+  {
+   "name": "F15: どのプロファイルからも参照されない空のフォルダがあってもよい（構成ごとの書き出し。判断ポイント69 の細部 (k)）",
+   "input": "{\n \"schemaVersion\": 2,\n \"exportType\": \"profiles\",\n \"exportedAt\": \"2026-09-21T10:00:00+09:00\",\n \"folders\": [\n  {\n   \"id\": \"5f0c2a8e-3b1d-4c6a-9e7f-1a2b3c4d5e6f\",\n   \"parentId\": null,\n   \"name\": \"ゲーム\"\n  },\n  {\n   \"id\": \"e1\",\n   \"parentId\": \"5f0c2a8e-3b1d-4c6a-9e7f-1a2b3c4d5e6f\",\n   \"name\": \"空\"\n  },\n  {\n   \"id\": \"e2\",\n   \"parentId\": \"e1\",\n   \"name\": \"空の下\"\n  }\n ],\n \"profiles\": [\n  {\n   \"id\": \"9d8e7f60-1a2b-4c3d-8e5f-6a7b8c9d0e1f\",\n   \"folderId\": \"5f0c2a8e-3b1d-4c6a-9e7f-1a2b3c4d5e6f\",\n   \"name\": \"和風戦闘BGM\",\n   \"updatedAt\": \"2026-09-21T09:30:00+09:00\",\n   \"data\": {\n    \"schemaVersion\": 1,\n    \"requests\": [\n     {\n      \"id\": \"r1\",\n      \"toolId\": \"suno\",\n      \"toolVersion\": \"v6\",\n      \"generationType\": \"new\",\n      \"vocalMode\": \"instrumental\",\n      \"lyricsAuthor\": null,\n      \"derivedFrom\": null,\n      \"axes\": {\n       \"purpose\": {\n        \"state\": \"specified\",\n        \"value\": \"boss-battle-theme\"\n       },\n       \"purposeDetail\": {\n        \"state\": \"delegated\"\n       },\n       \"listeningEnvironment\": {\n        \"state\": \"specified\",\n        \"value\": \"loop\"\n       },\n       \"mainGenre\": {\n        \"state\": \"specified\",\n        \"value\": \"orchestral\"\n       },\n       \"subGenres\": {\n        \"state\": \"delegated\"\n       },\n       \"regionStyles\": {\n        \"state\": \"specified\",\n        \"choices\": {\n         \"japanese\": \"use\",\n         \"celtic\": \"exclude\"\n        }\n       },\n       \"styleLean\": {\n        \"state\": \"specified\",\n        \"value\": \"traditional\"\n       },\n       \"era\": {\n        \"state\": \"delegated\"\n       },\n       \"mood\": {\n        \"state\": \"specified\",\n        \"choices\": {\n         \"tense\": \"use\",\n         \"valiant\": \"use\",\n         \"nostalgic\": \"exclude\"\n        }\n       },\n       \"intensity\": {\n        \"state\": \"defaulted\"\n       },\n       \"brightness\": {\n        \"state\": \"delegated\"\n       },\n       \"leadInstruments\": {\n        \"state\": \"specified\",\n        \"choices\": {\n         \"shakuhachi\": \"use\",\n         \"guitar\": \"exclude\"\n        },\n        \"freeText\": \"尺八が旋律をとる\"\n       },\n       \"accompanimentInstruments\": {\n        \"state\": \"specified\",\n        \"choices\": {\n         \"taiko\": \"use\",\n         \"strings\": \"use\",\n         \"guitar\": \"exclude\"\n        }\n       },\n       \"rhythmInstruments\": {\n        \"state\": \"delegated\"\n       },\n       \"voiceTreatment\": {\n        \"state\": \"specified\",\n        \"value\": \"wordless-choir\"\n       },\n       \"ensembleSize\": {\n        \"state\": \"delegated\"\n       },\n       \"length\": {\n        \"state\": \"toolManaged\"\n       },\n       \"tempoFeel\": {\n        \"state\": \"delegated\"\n       },\n       \"bpm\": {\n        \"state\": \"specified\",\n        \"value\": {\n         \"min\": 120,\n         \"max\": 140\n        }\n       },\n       \"developmentShape\": {\n        \"state\": \"specified\",\n        \"value\": \"steady\"\n       },\n       \"structure\": {\n        \"state\": \"specified\",\n        \"value\": [\n         \"intro\",\n         \"theme\",\n         \"climax\",\n         \"outro\"\n        ]\n       },\n       \"exclusions\": {\n        \"state\": \"specified\",\n        \"value\": \"歪んだ音色を避けたい\"\n       },\n       \"notes\": {\n        \"state\": \"delegated\"\n       }\n      },\n      \"output\": {\n       \"variantCount\": 3,\n       \"granularity\": [\n        \"basic\",\n        \"detailed\"\n       ],\n       \"outputLanguage\": \"mixed\"\n      }\n     }\n    ]\n   }\n  }\n ]\n}",
+   "errors": [],
+   "warnings": [],
+   "notes": [
+    "[エクスポートファイル] 形: エクスポートファイル（プロファイル 1 件）"
    ],
    "expect": {
     "has": [],

@@ -27,9 +27,14 @@ onMounted(() => {
   }
 })
 
+// 並びは「依頼文の組み立て」「プロファイル管理」、区切り線、「辞典設定」（判断ポイント67 の細部 (j)）。
+// 配列を分けると、UNavigationMenu がまとまりの間に区切り線を引く
 const navItems = [
-  { label: '依頼文の組み立て', to: '/' },
-  { label: '辞典設定', to: '/dictionary' },
+  [
+    { label: '依頼文の組み立て', to: '/' },
+    { label: 'プロファイル管理', to: '/profiles' },
+  ],
+  [{ label: '辞典設定', to: '/dictionary' }],
 ]
 </script>
 
