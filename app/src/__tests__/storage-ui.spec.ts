@@ -779,3 +779,179 @@ describe('ボタンの並び（利用者の判断 (a): 実行するボタンを�
     expect(order()).toEqual(['import-overwrite', 'import-rename-ok', 'import-skip'])
   })
 })
+
+describe('保存先・取り込み先のフォルダ（判断ポイント69・70）', () => {
+  // ストア: ゲーム ＞ ボス戦、作業用。ゲームに「曲」
+  const folders = [
+    { id: 'g', parentId: null, name: 'ゲーム' },
+    { id: 'b', parentId: 'g', name: 'ボス戦' },
+    { id: 'w', parentId: null, name: '作業用' },
+  ]
+  const storeWithFolders = (): ProfileStore => ({
+    ...emptyStore(),
+    folders: structuredClone(folders),
+    profiles: [{ id: 'in-g', folderId: 'g', name: '曲', updatedAt: f1.updatedAt, data: f1.data }],
+  })
+  const pressed = (testid: string) => $(testid)!.getAttribute('aria-checked') === 'true'
+  // 版2 のファイル: A ＞ B に p、ルートに r
+  const structuredFile = () =>
+    toJsonText({
+      ...buildExportFile(
+        asUser([
+          { ...f1, name: 'p' },
+          { ...f2, name: 'r' },
+        ]),
+        NOW,
+      ),
+      folders: [
+        { id: 'fa', parentId: null, name: 'A' },
+        { id: 'fb', parentId: 'fa', name: 'B' },
+      ],
+      profiles: asUser([
+        { ...f1, name: 'p' },
+        { ...f2, name: 'r' },
+      ]).map((p, i) => (i === 0 ? { ...p, folderId: 'fb' } : p)),
+    })
+  const folderOf = (name: string) => {
+    const s = stored()!
+    const p = s.profiles.find((x) => x.name === name)!
+    return ['ルート', ...pathNames(s, p.folderId)].join('/')
+  }
+  const pathNames = (s: ProfileStore, id: string | null): string[] => {
+    const f = s.folders.find((x) => x.id === id)
+    return f ? [...pathNames(s, f.parentId), f.name] : []
+  }
+
+  it('保存: 木の形で保存先を選べる。初期値はルート（対応するプロファイルがないとき）。選んだフォルダに保存する', async () => {
+    putStore(storeWithFolders())
+    await mountApp()
+    await click('save-song')
+    expect(pressed('save-folder-option-root')).toBe(true)
+    // 木の順（親の次に子。兄弟は名前順）
+    const options = [...document.querySelectorAll('[data-testid^="save-folder-option-"]')].map(
+      (e) => e.textContent!.trim(),
+    )
+    expect(options).toEqual(['ルート', 'ゲーム', 'ボス戦', '作業用'])
+    await click('save-folder-option-b')
+    expect(pressed('save-folder-option-b')).toBe(true)
+    await type('save-name', '曲')
+    // ボス戦には「曲」がないので、上書きの確認なしで保存する
+    await click('save-submit')
+    expect($('save-confirm-overwrite')).toBeNull()
+    expect(folderOf('曲')).toBe('ルート/ゲーム')
+    const saved = stored()!.profiles.filter((p) => p.name === '曲')
+    expect(saved.map((p) => p.folderId)).toEqual(['g', 'b'])
+    expect(editor().currentProfileId.value).toBe(saved[1]!.id)
+  })
+
+  it('保存: 同名の判定は保存先の中（確認から戻って保存先を変えれば、確認なしで保存する）', async () => {
+    putStore(storeWithFolders())
+    await mountApp()
+    editor().replaceSong(f2.data, 'in-g')
+    await click('save-song')
+    expect(pressed('save-folder-option-g')).toBe(true)
+    await click('save-submit')
+    expect($('save-confirm-overwrite')!.textContent).toContain(
+      '「ルート ＞ ゲーム」にすでにあります',
+    )
+    await click('save-cancel')
+    await click('save-folder-option-w')
+    await click('save-submit')
+    expect($('save-confirm-overwrite')).toBeNull()
+    expect(stored()!.profiles.map((p) => p.folderId)).toEqual(['g', 'w'])
+    expect(stored()!.profiles[0]!.data).toEqual(f1.data)
+  })
+
+  it('書き出す: 保存先は「プロファイルにも保存する」がオンのときだけ選ぶ。ファイルには祖先のフォルダだけを入れる', async () => {
+    putStore(storeWithFolders())
+    await mountApp()
+    await click('export-song')
+    expect($('save-folder')).toBeNull()
+    await click('save-also-store')
+    expect($('save-folder')).not.toBeNull()
+    await click('save-folder-option-b')
+    await type('save-name', '新曲')
+    await click('save-submit')
+    const file = JSON.parse(await downloads[0]!.blob.text()) as ExportFile
+    expect(file.folders.map((f) => f.name)).toEqual(['ゲーム', 'ボス戦'])
+    expect(file.profiles.map((p) => [p.name, p.folderId])).toEqual([['新曲', 'b']])
+  })
+
+  it('取り込み: 取り込み先の初期値はルート（ヘッダーから）。選んだフォルダに入れる。版1 のファイルは構成の選択を出さない', async () => {
+    putStore(storeWithFolders())
+    const w = await mountApp()
+    const v1 = {
+      schemaVersion: 1,
+      exportType: 'profiles',
+      exportedAt: '2026-10-01T00:00:00+09:00',
+      profiles: [{ name: '版1', updatedAt: '2026-10-01T00:00:00+09:00', data: f2.data }],
+    }
+    await receive(w, 'v1.json', JSON.stringify(v1))
+    expect(pressed('import-target-option-root')).toBe(true)
+    expect($('import-keep-structure')).toBeNull()
+    await click('import-target-option-w')
+    await click('import-add')
+    expect(folderOf('版1')).toBe('ルート/作業用')
+  })
+
+  it('取り込み: 版2 のファイルは「フォルダ構成を保つ」（初期値オン）。取り込み先の下に再現し、同じ名前に合流する', async () => {
+    putStore({
+      ...storeWithFolders(),
+      folders: [...folders, { id: 'ea', parentId: 'w', name: 'A' }],
+    })
+    const w = await mountApp()
+    await receive(w, 'v2.json', structuredFile())
+    expect($<HTMLButtonElement>('import-keep-structure')!.getAttribute('aria-checked')).toBe('true')
+    await click('import-target-option-w')
+    await click('import-add')
+    expect(folderOf('p')).toBe('ルート/作業用/A/B')
+    expect(folderOf('r')).toBe('ルート/作業用')
+    // 作業用 ＞ A は既存（合流）。B だけ作る
+    expect(
+      stored()!
+        .folders.filter((f) => f.name === 'A')
+        .map((f) => f.id),
+    ).toEqual(['ea'])
+    expect(stored()!.folders).toHaveLength(5)
+  })
+
+  it('取り込み: 「フォルダ構成を保つ」を外すと、全件を取り込み先に入れる', async () => {
+    putStore(storeWithFolders())
+    const w = await mountApp()
+    await receive(w, 'v2.json', structuredFile())
+    await click('import-keep-structure')
+    await click('import-target-option-g')
+    await click('import-add')
+    expect([folderOf('p'), folderOf('r')]).toEqual(['ルート/ゲーム', 'ルート/ゲーム'])
+    expect(stored()!.folders).toHaveLength(3)
+  })
+
+  it('取り込み: 衝突の確認に、入る先のフォルダを出す', async () => {
+    putStore(storeWithFolders())
+    const w = await mountApp()
+    await receive(w, 'a.json', toJsonText(buildExportFile(asUser([{ ...f2, name: '曲' }]), NOW)))
+    await click('import-target-option-g')
+    await click('import-add')
+    expect($('import-conflict')!.textContent).toContain('「ルート ＞ ゲーム」にあります')
+  })
+
+  it('置換: 選んだプロファイルと必要なフォルダだけで入れ替える（構成を保つ）', async () => {
+    putStore(storeWithFolders())
+    const w = await mountApp()
+    await receive(w, 'v2.json', structuredFile())
+    await click('import-select-1')
+    await click('import-replace')
+    await click('import-replace-ok')
+    expect(stored()!.folders.map((f) => f.name)).toEqual(['A', 'B'])
+    expect(folderOf('p')).toBe('ルート/A/B')
+    expect(stored()!.profiles).toHaveLength(1)
+  })
+
+  it('ストア拒否中は、取り込み先とフォルダ構成を出さない', async () => {
+    localStorage.setItem(STORAGE_KEYS.profiles, '{')
+    const w = await mountApp()
+    await receive(w, 'v2.json', structuredFile())
+    expect($('import-target')).toBeNull()
+    expect($('import-keep-structure')).toBeNull()
+  })
+})

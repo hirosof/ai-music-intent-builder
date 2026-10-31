@@ -4,12 +4,14 @@
 // 「書き出す」は、チェック「プロファイルにも保存する」（初期値オフ。判断ポイント64）がオンなら、保存したその1件を書き出す。
 // オフなら、ストアも覚えている名前も変えずに、入力した名前の1件をファイルに書き出すだけ（同名があっても確認しない）。
 // ストアが拒否されているときは、チェックを無効にしてオフのまま（保存せずにファイルにだけ書き出す）。
-// エラーが1件でもあれば保存できない（警告は許す）
+// エラーが1件でもあれば保存できない（警告は許す）。
+// 保存先のフォルダを選べる（判断ポイント70。初期値は対応するプロファイルのフォルダ、なければルート）。同名の判定は保存先の中で行う
 import { useToast } from '@nuxt/ui/composables'
 import { computed, ref, watch } from 'vue'
 import { useProfileStore } from '@/composables/useProfileStore'
 import { useSongEditor } from '@/composables/useSongEditor'
 import { downloadJson, prepareForSave } from '@/data/storage'
+import { folderPathLabel } from '@/domain/storage/folders'
 import { exportFileName } from '@/domain/storage/file-name'
 import {
   buildExportFile,
@@ -18,6 +20,7 @@ import {
   makeProfile,
   saveProfile,
 } from '@/domain/storage/profiles'
+import FolderPicker from './FolderPicker.vue'
 
 const open = defineModel<boolean>('open', { required: true })
 const props = defineProps<{ mode: 'save' | 'export' }>()
@@ -31,7 +34,7 @@ const confirmOverwrite = ref(false)
 const failure = ref<string[]>([])
 // 書き出すときにストアにも保存するか（判断ポイント64。開くたびにオフに戻す）
 const alsoStore = ref(false)
-// 保存先のフォルダ（null はルート）。編集中の内容に対応するプロファイルがあればそのフォルダ（判断ポイント70。選ぶ画面は段階2）
+// 保存先のフォルダ（null はルート）。編集中の内容に対応するプロファイルがあればそのフォルダ（判断ポイント70）
 const folderId = ref<string | null>(null)
 watch(open, (v) => {
   if (!v) return
@@ -59,6 +62,7 @@ const canSubmit = computed(
     prepared.value.errors.length === 0 &&
     !(props.mode === 'save' && rejected.value),
 )
+const folders = computed(() => profiles.store.value?.folders ?? [])
 const title = computed(() => (props.mode === 'save' ? 'ユーザープロファイルに保存' : '書き出す'))
 // ストアに保存するか（保存は常に。書き出しはチェックがオンのときだけ。拒否中は保存しない）
 const storing = computed(() => !rejected.value && (props.mode === 'save' || alsoStore.value))
@@ -111,7 +115,11 @@ function submit() {
   <UModal v-model:open="open" :title="title" data-testid="save-dialog">
     <template #body>
       <div v-if="confirmOverwrite" class="space-y-2" data-testid="save-confirm-overwrite">
-        <p>「{{ trimmed }}」はすでにあります。編集中の内容で上書きしますか？</p>
+        <p>
+          「{{ trimmed }}」は「{{
+            folderPathLabel(folders, folderId)
+          }}」にすでにあります。編集中の内容で上書きしますか？
+        </p>
       </div>
       <div v-else class="space-y-3">
         <UFormField label="名前" required>
@@ -138,6 +146,10 @@ function submit() {
             }}
           </p>
         </template>
+        <!-- 保存先のフォルダ（ストアに保存するときだけ。判断ポイント70） -->
+        <UFormField v-if="storing" label="保存先のフォルダ" data-testid="save-folder">
+          <FolderPicker v-model="folderId" :folders="folders" testid="save-folder" />
+        </UFormField>
         <UAlert
           v-if="rejected"
           color="warning"

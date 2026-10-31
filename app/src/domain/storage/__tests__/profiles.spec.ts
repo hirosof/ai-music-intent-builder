@@ -134,7 +134,7 @@ describe('取り込みの「追加」', () => {
       () => {
         throw new Error('呼ばれない')
       },
-      ids('n'),
+      { newId: ids('n') },
     )
     expect(r.store.profiles.map((p) => p.name)).toEqual(['x', f2.name, f3.name])
     expect(r.added).toEqual([f2.name, f3.name])
@@ -159,7 +159,7 @@ describe('取り込みの「追加」', () => {
         await Promise.resolve()
         return decisions[c.incoming.name]!
       },
-      ids('n'),
+      { newId: ids('n') },
     )
     expect(seen.map((c) => c.incoming.name)).toEqual([f1.name, f2.name, f3.name])
     expect(seen[0]!.existing.data).toEqual(f3.data)
@@ -177,7 +177,7 @@ describe('取り込みの「追加」', () => {
     expect(store.profiles[0]!.data).toEqual(f3.data)
   })
 
-  it('衝突はルートの中で判定する（別のフォルダの同じ名前は衝突しない）', async () => {
+  it('衝突は入る先のフォルダの中で判定する（既定の取り込み先はルート。別のフォルダの同じ名前は衝突しない）', async () => {
     const s0: ProfileStore = {
       ...emptyStore(),
       folders: [folder('g', 'ゲーム')],
@@ -189,12 +189,123 @@ describe('取り込みの「追加」', () => {
       () => {
         throw new Error('呼ばれない')
       },
-      ids('n'),
+      { newId: ids('n') },
     )
     expect(r.store.profiles.map((p) => [p.id, p.folderId])).toEqual([
       ['old', 'g'],
       ['n1', null],
     ])
+  })
+
+  describe('取り込み先とフォルダ構成（判断ポイント69）', () => {
+    // ファイル: A ＞ B に p、A に q、ルートに r
+    const structured = (): ExportFile => ({
+      ...fileOf(f1),
+      folders: [folder('fa', 'A'), folder('fb', 'B', 'fa')],
+      profiles: [
+        user({ ...f1, name: 'p' }, 'x1', 'fb'),
+        user({ ...f2, name: 'q' }, 'x2', 'fa'),
+        user({ ...f3, name: 'r' }, 'x3'),
+      ],
+    })
+    const never = () => {
+      throw new Error('呼ばれない')
+    }
+    const target: ProfileStore = { ...emptyStore(), folders: [folder('t', '取込先')] }
+
+    it('フォルダ構成を保つ: 取り込み先の下に再現し、フォルダとプロファイルに新しい id を振る', async () => {
+      const r = await importAdd(target, structured(), never, {
+        targetFolderId: 't',
+        newId: ids('n'),
+      })
+      const names = new Map(r.store.folders.map((f) => [f.id, f]))
+      expect(
+        r.store.folders.map((f) => [f.name, f.parentId && names.get(f.parentId)!.name]),
+      ).toEqual([
+        ['取込先', null],
+        ['A', '取込先'],
+        ['B', 'A'],
+      ])
+      const where = (n: string) => {
+        const p = r.store.profiles.find((x) => x.name === n)!
+        return p.folderId && names.get(p.folderId)!.name
+      }
+      expect([where('p'), where('q'), where('r')]).toEqual(['B', 'A', '取込先'])
+      expect(r.store.folders.map((f) => f.id)).not.toContain('fa')
+      expect(r.store.profiles.map((p) => p.id)).not.toContain('x1')
+    })
+
+    it('同じ親の中に同じ名前のフォルダがあれば合流する（作らない）', async () => {
+      const s0: ProfileStore = { ...target, folders: [...target.folders, folder('ea', 'A', 't')] }
+      const r = await importAdd(s0, structured(), never, { targetFolderId: 't', newId: ids('n') })
+      expect(r.store.folders.filter((f) => f.name === 'A').map((f) => f.id)).toEqual(['ea'])
+      expect(r.store.profiles.find((p) => p.name === 'q')!.folderId).toBe('ea')
+      expect(r.store.folders.find((f) => f.name === 'B')!.parentId).toBe('ea')
+    })
+
+    it('フォルダ構成を保たない: 全件を取り込み先に入れ、フォルダは作らない', async () => {
+      const r = await importAdd(target, structured(), never, {
+        targetFolderId: 't',
+        keepStructure: false,
+        newId: ids('n'),
+      })
+      expect(r.store.folders).toEqual(target.folders)
+      expect(r.store.profiles.map((p) => p.folderId)).toEqual(['t', 't', 't'])
+    })
+
+    it('衝突は入る先のフォルダの中で判定する。まだないフォルダに入るものは衝突しない', async () => {
+      const s0: ProfileStore = {
+        ...target,
+        folders: [...target.folders, folder('ea', 'A', 't')],
+        profiles: [user({ ...f1, name: 'q' }, 'old', 'ea'), user({ ...f1, name: 'p' }, 'root')],
+      }
+      const seen: string[] = []
+      const r = await importAdd(
+        s0,
+        { ...structured(), profiles: structured().profiles.slice(0, 2) },
+        (c) => {
+          seen.push(`${c.incoming.name}→${c.existing.id}`)
+          return { action: 'skip' }
+        },
+        { targetFolderId: 't', newId: ids('n') },
+      )
+      // p は B（まだない）に入るので、ルートの p とは衝突しない。q は既存の A の q と衝突する
+      expect(seen).toEqual(['q→old'])
+      expect(r.store.folders.map((f) => f.name)).toEqual(['取込先', 'A', 'B'])
+      const r2 = await importAdd(
+        s0,
+        { ...structured(), profiles: [structured().profiles[1]!] },
+        () => ({ action: 'skip' }),
+        { targetFolderId: 't', newId: ids('n') },
+      )
+      expect(r2.store).toEqual(s0)
+    })
+
+    it('取り込み先の中の、別のフォルダへの「上書き」も id と位置を保つ（細部 (b)）', async () => {
+      const s0: ProfileStore = {
+        ...target,
+        folders: [...target.folders, folder('ea', 'A', 't')],
+        profiles: [user({ ...f1, name: 'q' }, 'old', 'ea')],
+      }
+      const r = await importAdd(
+        s0,
+        { ...structured(), profiles: [structured().profiles[1]!] },
+        () => ({ action: 'overwrite' }),
+        { targetFolderId: 't', newId: ids('n') },
+      )
+      expect(r.store.profiles).toEqual([user({ ...f2, name: 'q' }, 'old', 'ea')])
+      expect(r.storedIds).toEqual(['old'])
+    })
+
+    it('置換でフォルダ構成を保たないときは、全件をルートに入れる', () => {
+      const s = importReplace(structured(), { keepStructure: false, newId: ids('n') })
+      expect(s.folders).toEqual([])
+      expect(s.profiles.map((p) => [p.id, p.folderId])).toEqual([
+        ['n1', null],
+        ['n2', null],
+        ['n3', null],
+      ])
+    })
   })
 
   it('候補名は、ストアにも、まだ取り込んでいないファイルの名前にもない', async () => {
@@ -220,7 +331,7 @@ describe('取り込みの「追加」', () => {
 
 describe('取り込みの「置換」と書き出し', () => {
   it('置換は、ストアをファイルの内容で入れ替え、id を振り直す', () => {
-    const s = importReplace(fileOf(f2, f3), ids('n'))
+    const s = importReplace(fileOf(f2, f3), { newId: ids('n') })
     expect(s).toEqual({ schemaVersion: 2, folders: [], profiles: [user(f2, 'n1'), user(f3, 'n2')] })
   })
 
@@ -230,7 +341,7 @@ describe('取り込みの「置換」と書き出し', () => {
       folders: [folder('a', 'A'), folder('b', 'B', 'a')],
       profiles: [user(f1, 'p', 'b')],
     }
-    const s = importReplace(file, ids('n'))
+    const s = importReplace(file, { newId: ids('n') })
     expect(s.folders).toEqual([folder('n1', 'A'), folder('n2', 'B', 'n1')])
     expect(s.profiles.map((p) => [p.id, p.folderId])).toEqual([['n3', 'n2']])
   })

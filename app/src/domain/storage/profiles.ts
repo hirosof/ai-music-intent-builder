@@ -160,39 +160,71 @@ export interface ImportSummary {
   storedIds: string[]
 }
 
+/** 取り込みの置き場所（判断ポイント69） */
+export interface ImportOptions {
+  /** 取り込み先のフォルダ（null はルート）。既定はルート */
+  targetFolderId?: string | null
+  /** ファイルのフォルダ構成を、取り込み先の下に再現する（同じ名前のフォルダがあれば合流）。既定はオン */
+  keepStructure?: boolean
+  newId?: NewId
+}
+
 /**
- * 取り込みの「追加」（§4-3）。ファイルのプロファイルを、ファイルの順にストアのルートへ加える（取り込み先の選択は段階2）。
- * 取り込んだプロファイルには新しい id を振る（判断ポイント69）。上書きは、ストアのプロファイルの id と位置を保って中身を入れ替える。
- * 名前が衝突するたびに resolve を呼び、答えを待つ（画面の衝突ダイアログ。「残りすべてに適用」は、呼び出し側が resolve の中で覚える）。
+ * 取り込みの「追加」（§4-3）。ファイルのプロファイルを、ファイルの順にストアへ加える。
+ * 入る先は取り込み先のフォルダ。フォルダ構成を保つときは、ファイルのフォルダ構成を取り込み先の下に再現し、
+ * 同じ親の中に同じ名前のフォルダがあれば合流する（判断ポイント69）。作るフォルダは、取り込むプロファイルが入るものだけ
+ * （まだないフォルダに入るプロファイルは衝突しないので、作ったフォルダが空のまま残ることはない）。
+ * 取り込んだプロファイルと、作ったフォルダには新しい id を振る。上書きは、ストアのプロファイルの id と位置を保って中身を入れ替える（細部 (b)）。
+ * 名前の衝突は入る先のフォルダの中で判定し、衝突するたびに resolve を呼んで答えを待つ
+ * （画面の衝突ダイアログ。「残りすべてに適用」は、呼び出し側が resolve の中で覚える）。
  * 取り込むプロファイルの updatedAt は、ファイルの値のまま（U3 の決定 I7）
  */
 export async function importAdd(
   store: ProfileStore,
   file: ExportFile,
   resolve: (conflict: NameConflict) => ConflictResolution | Promise<ConflictResolution>,
-  newId: NewId = randomId,
+  { targetFolderId = null, keepStructure = true, newId = randomId }: ImportOptions = {},
 ): Promise<ImportSummary> {
-  const folderId = null
+  const folders = [...store.folders]
   const profiles = [...store.profiles]
   const summary = { added: [] as string[], overwritten: [] as string[], skipped: [] as string[] }
   const storedIds: string[] = []
-  const inFolder = () => profiles.filter((p) => p.folderId === folderId)
-  const put = (incoming: UserProfile, name: string) => {
+  const fileFolders = new Map(file.folders.map((f) => [f.id, f]))
+  // ファイルのフォルダ → ストアのフォルダ（既存に合流、または作る）
+  const planned = new Map<string, string>()
+  const destOf = (fileFolderId: string | null): string | null => {
+    if (!keepStructure || fileFolderId === null) return targetFolderId
+    const known = planned.get(fileFolderId)
+    if (known !== undefined) return known
+    const f = fileFolders.get(fileFolderId)
+    if (!f) return targetFolderId
+    const parentId = destOf(f.parentId)
+    const existing = folders.find((x) => x.parentId === parentId && x.name === f.name)
+    const id = existing?.id ?? newId()
+    if (!existing) folders.push({ id, parentId, name: f.name })
+    planned.set(fileFolderId, id)
+    return id
+  }
+  const namesIn = (folderId: string | null) =>
+    profiles.filter((p) => p.folderId === folderId).map((p) => p.name)
+  const put = (incoming: UserProfile, folderId: string | null, name: string) => {
     const p = { ...clone(incoming), id: newId(), folderId, name }
     profiles.push(p)
     storedIds.push(p.id)
   }
+  const dests = file.profiles.map((p) => destOf(p.folderId))
   for (const [i, incoming] of file.profiles.entries()) {
+    const folderId = dests[i]!
     const existingIndex = profiles.findIndex(
       (p) => p.folderId === folderId && p.name === incoming.name,
     )
     if (existingIndex < 0) {
-      put(incoming, incoming.name)
+      put(incoming, folderId, incoming.name)
       summary.added.push(incoming.name)
       continue
     }
-    const later = file.profiles.slice(i + 1).map((p) => p.name)
-    const taken = new Set([...inFolder().map((p) => p.name), ...later])
+    const later = file.profiles.slice(i + 1).filter((_, j) => dests[i + 1 + j] === folderId)
+    const taken = new Set([...namesIn(folderId), ...later.map((p) => p.name)])
     const r = await resolve({
       incoming,
       existing: profiles[existingIndex]!,
@@ -212,25 +244,29 @@ export async function importAdd(
       summary.overwritten.push(incoming.name)
     } else {
       assertName(r.name)
-      if (inFolder().some((p) => p.name === r.name))
+      if (namesIn(folderId).includes(r.name))
         throw new Error(`別名がストアの名前と重複している: ${r.name}`)
-      put(incoming, r.name)
+      put(incoming, folderId, r.name)
       summary.added.push(r.name)
     }
   }
-  return { store: { ...store, profiles }, ...summary, storedIds }
+  return { store: { ...store, folders, profiles }, ...summary, storedIds }
 }
 
 /**
- * 取り込みの「置換」（§4-3）。ストアの内容を、ファイルのプロファイルとフォルダで入れ替える。自動保存には触れない。
- * プロファイルとフォルダには新しい id を振り、フォルダの参照も振り直す（判断ポイント69）
+ * 取り込みの「置換」（§4-3）。ストアの内容を、ファイルのプロファイルと必要なフォルダで入れ替える（判断ポイント69）。自動保存には触れない。
+ * プロファイルとフォルダには新しい id を振り、フォルダの参照も振り直す。フォルダ構成を保たないときは、全件をルートに入れる
  */
-export function importReplace(file: ExportFile, newId: NewId = randomId): ProfileStore {
-  const map = new Map(file.folders.map((f) => [f.id, newId()]))
+export function importReplace(
+  file: ExportFile,
+  { keepStructure = true, newId = randomId }: Omit<ImportOptions, 'targetFolderId'> = {},
+): ProfileStore {
+  const folders = keepStructure ? file.folders : []
+  const map = new Map(folders.map((f) => [f.id, newId()]))
   const ref = (id: string | null) => (id === null ? null : (map.get(id) ?? null))
   return {
     schemaVersion: STORE_SCHEMA_VERSION,
-    folders: file.folders.map((f) => ({ ...f, id: map.get(f.id)!, parentId: ref(f.parentId) })),
+    folders: folders.map((f) => ({ ...f, id: map.get(f.id)!, parentId: ref(f.parentId) })),
     profiles: file.profiles.map((p) => ({ ...clone(p), id: newId(), folderId: ref(p.folderId) })),
   }
 }

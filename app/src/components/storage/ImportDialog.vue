@@ -4,7 +4,8 @@
 // 選択とプレビュー、1件だけ選んだときの直接開く（判断ポイント65）。「追加」「置換」は選んだものだけが対象で、編集中の内容は変えない。
 // 「開く（保存しない）」はストアに入れずに編集中の内容として開き、「追加して開く」は追加のあとに開く。
 // どちらも、先に「新規」と同じ確認を出す（判断ポイント52。同じダイアログの中で切り替える）。
-// ストア拒否中は「開く（保存しない）」だけを使える（判断ポイント65 (5)。ストアを使わないため）
+// ストア拒否中は「開く（保存しない）」だけを使える（判断ポイント65 (5)。ストアを使わないため）。
+// 取り込み先のフォルダと「フォルダ構成を保つ」（版2 のファイルのとき。初期値オン）を選べる（判断ポイント69）
 import { useToast } from '@nuxt/ui/composables'
 import { computed, ref, watch } from 'vue'
 import { useProfileStore } from '@/composables/useProfileStore'
@@ -12,6 +13,7 @@ import { useSongEditor } from '@/composables/useSongEditor'
 import { spec } from '@/data/spec'
 import { checkSaved } from '@/data/validation'
 import type { LoadResult } from '@/domain/storage/load'
+import { folderPathLabel } from '@/domain/storage/folders'
 import { profilePreview } from '@/domain/storage/preview'
 import {
   findProfileById,
@@ -22,9 +24,18 @@ import {
   type NameConflict,
 } from '@/domain/storage/profiles'
 import type { ExportFile, Profile } from '@/domain/types/song'
+import FolderPicker from './FolderPicker.vue'
 
 const open = defineModel<boolean>('open', { required: true })
-const props = defineProps<{ fileName: string; result: LoadResult<ExportFile> | null }>()
+const props = withDefaults(
+  defineProps<{
+    fileName: string
+    result: LoadResult<ExportFile> | null
+    /** 取り込み先の初期値（null はルート。ヘッダーから開いたときはルート、管理画面からは今見ているフォルダ） */
+    initialFolderId?: string | null
+  }>(),
+  { initialFolderId: null },
+)
 
 const profiles = useProfileStore()
 const editor = useSongEditor()
@@ -43,6 +54,9 @@ const applyToRest = ref(false)
 let answer: ((r: ConflictResolution) => void) | null = null
 let remembered: ConflictResolution['action'] | null = null
 const failure = ref<string[]>([])
+// 取り込み先のフォルダと、フォルダ構成を保つか（判断ポイント69）
+const targetFolderId = ref<string | null>(null)
+const keepStructure = ref(true)
 
 watch(open, (v) => {
   if (!v) {
@@ -57,6 +71,10 @@ watch(open, (v) => {
   remembered = null
   applyToRest.value = false
   failure.value = []
+  const folders = profiles.store.value?.folders ?? []
+  const initial = props.initialFolderId
+  targetFolderId.value = initial !== null && folders.some((f) => f.id === initial) ? initial : null
+  keepStructure.value = true
 })
 
 const file = computed(() => (props.result?.ok ? props.result.value : null))
@@ -84,6 +102,15 @@ function toggle(set: 'selected' | 'expanded', i: number, on: boolean) {
   if (set === 'selected') selected.value = next
   else expanded.value = next
 }
+const storeFolders = computed(() => profiles.store.value?.folders ?? [])
+// フォルダ構成を保つかを選べるのは、版2 のファイル（版1 はフォルダを持たない）
+const structured = computed(
+  () => props.result?.ok === true && props.result.migratedFrom === undefined,
+)
+const placement = () => ({
+  targetFolderId: targetFolderId.value,
+  keepStructure: structured.value && keepStructure.value,
+})
 const rejectedStore = computed(() =>
   profiles.state.value.status === 'rejected' ? profiles.state.value.errors : null,
 )
@@ -101,14 +128,19 @@ function finish(summary: string) {
 async function addChosen() {
   const store = profiles.store.value
   if (!store || !chosen.value || chosenCount.value === 0) return null
-  const r = await importAdd(store, chosen.value, (c) => {
-    if (remembered === 'overwrite' || remembered === 'skip') return { action: remembered }
-    if (remembered === 'rename') return { action: 'rename', name: c.suggestedName }
-    conflict.value = c
-    renameTo.value = c.suggestedName
-    step.value = 'conflict'
-    return new Promise<ConflictResolution>((resolve) => (answer = resolve))
-  })
+  const r = await importAdd(
+    store,
+    chosen.value,
+    (c) => {
+      if (remembered === 'overwrite' || remembered === 'skip') return { action: remembered }
+      if (remembered === 'rename') return { action: 'rename', name: c.suggestedName }
+      conflict.value = c
+      renameTo.value = c.suggestedName
+      step.value = 'conflict'
+      return new Promise<ConflictResolution>((resolve) => (answer = resolve))
+    },
+    placement(),
+  )
   if (!open.value) return null
   const c = profiles.commit(r.store)
   if (!c.ok) {
@@ -186,7 +218,9 @@ const renameInvalid = computed(() => {
 
 function replace() {
   if (!chosen.value || chosenCount.value === 0 || rejectedStore.value) return
-  const c = profiles.commit(importReplace(chosen.value))
+  const c = profiles.commit(
+    importReplace(chosen.value, { keepStructure: placement().keepStructure }),
+  )
   if (!c.ok) {
     failure.value = c.errors
     step.value = 'choose'
@@ -290,6 +324,19 @@ function replace() {
             </div>
           </li>
         </ul>
+        <!-- 取り込み先とフォルダ構成（判断ポイント69）。ストアを使わない「開く（保存しない）」には関係しない -->
+        <template v-if="!rejectedStore">
+          <UFormField label="取り込み先のフォルダ（追加するとき）" data-testid="import-target">
+            <FolderPicker v-model="targetFolderId" :folders="storeFolders" testid="import-target" />
+          </UFormField>
+          <UCheckbox
+            v-if="structured"
+            v-model="keepStructure"
+            label="フォルダ構成を保つ"
+            description="ファイルのフォルダを取り込み先の下に作ります（同じ名前のフォルダがあれば、そこに入れます）。外すと、すべて取り込み先に入れます。"
+            data-testid="import-keep-structure"
+          />
+        </template>
         <UAlert
           v-if="result?.ok && result.warnings.length"
           color="warning"
@@ -333,7 +380,11 @@ function replace() {
         class="space-y-3"
         data-testid="import-conflict"
       >
-        <p>「{{ conflict.incoming.name }}」は、すでにユーザープロファイルにあります。</p>
+        <p>
+          「{{ conflict.incoming.name }}」は、すでにユーザープロファイルの「{{
+            folderPathLabel(storeFolders, conflict.existing.folderId)
+          }}」にあります。
+        </p>
         <UFormField label="別名で追加するときの名前" :error="renameInvalid || undefined">
           <UInput v-model="renameTo" class="w-full" data-testid="import-rename" />
         </UFormField>
