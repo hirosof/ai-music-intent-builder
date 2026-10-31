@@ -1,5 +1,5 @@
 {
-  "name": "ai-music-intent-builder-backup-instance",
+  "name": "ai-music-intent-builder",
   "compatibility_date": "2026-11-01",
   "assets": {
     "directory": "./dist",
