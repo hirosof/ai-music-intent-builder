@@ -750,6 +750,51 @@ describe('保存先・取り込み先のフォルダ（判断ポイント69・70
     expect(stored()!.folders).toHaveLength(3)
   })
 
+  // 版2 のファイルに、空のフォルダ（A の下の「空」、ルート直下の「空2」）を足したもの
+  const withEmpty = () => {
+    const f = JSON.parse(structuredFile()) as ExportFile
+    f.folders.push(
+      { id: 'fe', parentId: 'fa', name: '空' },
+      { id: 'fr', parentId: null, name: '空2' },
+    )
+    return toJsonText(f)
+  }
+
+  it('取り込み: 「フォルダ構成を保つ」なら、空のフォルダも作る（細部 (k)(l)）', async () => {
+    putStore(storeWithFolders())
+    const w = await mountApp()
+    await receive(w, 'v2.json', withEmpty())
+    await click('import-target-option-w')
+    await click('import-add')
+    const s = stored()!
+    const parentName = (n: string) => {
+      const f = s.folders.find((x) => x.name === n)!
+      return s.folders.find((x) => x.id === f.parentId)?.name ?? null
+    }
+    expect([parentName('空'), parentName('空2')]).toEqual(['A', '作業用'])
+  })
+
+  it('取り込み: 「フォルダ構成を保つ」を外すと、空のフォルダは取り込まない（追加。細部 (l)）', async () => {
+    putStore(storeWithFolders())
+    const w = await mountApp()
+    await receive(w, 'v2.json', withEmpty())
+    await click('import-keep-structure')
+    await click('import-add')
+    expect(stored()!.folders.map((f) => f.name)).toEqual(['ゲーム', 'ボス戦', '作業用'])
+    expect(stored()!.profiles.map((p) => p.folderId)).toEqual(['g', null, null])
+  })
+
+  it('取り込み: 「フォルダ構成を保つ」を外すと、空のフォルダは取り込まない（置換。全件をルートに。細部 (l)）', async () => {
+    putStore(storeWithFolders())
+    const w = await mountApp()
+    await receive(w, 'v2.json', withEmpty())
+    await click('import-keep-structure')
+    await click('import-replace')
+    await click('import-replace-ok')
+    expect(stored()!.folders).toEqual([])
+    expect(stored()!.profiles.map((p) => p.folderId)).toEqual([null, null])
+  })
+
   it('取り込み: 衝突の確認に、入る先のフォルダを出す', async () => {
     putStore(storeWithFolders())
     const w = await mountApp()
