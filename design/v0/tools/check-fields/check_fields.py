@@ -29,10 +29,8 @@ SPECIFICITY_LABEL = {"expand": "拡張可", "adapt": "翻案可", "keep": "保�
 STATE_NUMBER = {"specified": "①", "delegated": "②", "defaulted": "③", "toolManaged": "④"}
 
 # vocalMode によって有効・無効が切り替わる項目（L-01。宿題38）。fields.json の note に記述されている内容をここで埋め込む
-# vocalMode = instrumental のときのみ有効（歌ありでは無効）
-INSTRUMENTAL_ONLY_FIELDS = {"structure"}
-# vocalMode = vocal のときのみ有効（インストでは無効）
-VOCAL_ONLY_FIELDS = {"lyricsTheme", "lyricsLanguage", "lyricsStructure"}
+# vocalMode = vocal のときのみ有効（インストでは無効）。曲の構成（structure）はどちらでも有効（2026-11-01。入力項目の判断ポイント30）
+VOCAL_ONLY_FIELDS = {"lyricsTheme", "lyricsLanguage"}
 # vocalMode = vocal のとき取れる lyricsAuthor の値（L-01a。input-items.md 判断ポイント20）
 VOCAL_LYRICS_AUTHORS = ("chat-ai", "chat-ai-instruction")
 # output.requestScope のうち、vocalMode = vocal のときだけ取れる値（候補7。input-items.md 判断ポイント28）
@@ -63,7 +61,8 @@ def load_vocabularies(report):
     vocabs = {}
     for e in idx["vocabularies"]:
         v = load_json(PRESETS_DIR / e["file"])
-        vocabs[v["id"]] = {"axis": v["axis"], "structure": v["structure"], "items": {i["id"] for i in v["items"]}}
+        vocabs[v["id"]] = {"axis": v["axis"], "structure": v["structure"], "items": {i["id"] for i in v["items"]},
+                           "defaultSung": {i["id"]: i["defaultSung"] for i in v["items"] if "defaultSung" in i}}
     return vocabs
 
 
@@ -369,12 +368,15 @@ def check_one_profile(p, fields, fk, report):
     param_ids = {x["id"] for x in params}
     out_by = {o["id"]: o for o in fields["output"]}
     seen = set()
+    modes_of = {}  # 項目 → その項目の binding の vocalMode の一覧（省略は None）
     for b in p["bindings"]:
         it, tg, rt = b["item"], b["target"], b["route"]
         label = "%s:%s" % (it["kind"], it["id"])
-        if (it["kind"], it["id"]) in seen:
-            report.error("P7 bindings の item が重複: %s" % label)
-        seen.add((it["kind"], it["id"]))
+        mode = b.get("vocalMode")
+        if (it["kind"], it["id"], mode) in seen:
+            report.error("P7 bindings の item が重複: %s" % (label if mode is None else "%s（vocalMode %s）" % (label, mode)))
+        seen.add((it["kind"], it["id"], mode))
+        modes_of.setdefault(label, set()).add(mode)
         if it["kind"] == "axis" and it["id"] not in fk:
             report.error("P7 bindings の item が fields.json の項目にない: %s" % label)
         if it["kind"] == "output" and it["id"] not in out_by:
@@ -388,6 +390,11 @@ def check_one_profile(p, fields, fk, report):
                 report.error("P7 欄への対応の route は text または both: %s" % label)
         if it["kind"] == "axis" and it["id"] in fk and fk[it["id"]]["specificity"] == "uiSetting" and rt != "uiSetting":
             report.error("P7 fields.json の具体化が uiSetting の項目の route は uiSetting: %s（route %s）" % (label, rt))
+    for label, modes in modes_of.items():  # ボーカル区分による対応先の違い（判断ポイント10）
+        if None in modes and len(modes) > 1:
+            report.error("P7 条件なしと条件ありの binding を同じ項目に混ぜている: %s" % label)
+        elif None not in modes and modes != {"vocal", "instrumental"}:
+            report.error("P7 条件付きの binding は両方のボーカル区分をそろえる: %s（%s だけ）" % (label, ", ".join(sorted(modes))))
     # P8 派生生成の第一候補
     firsts = [o["id"] for o in ops if o["scope"] == "first"]
     if len(firsts) > 1:
@@ -467,6 +474,12 @@ def check_per_item_boolean(key, o, v, req, profile, report):
             report.warn("O4 output.%s.%s は、この依頼のモード（%s）にないため無視される" % (key, item, mode))
 
 
+def is_section_element(x, vocab_items):
+    """曲の構成の要素の形（{ id, sung }。UI の判断ポイント73）。sung の有無とボーカル区分の整合は S7 が見る。"""
+    return (isinstance(x, dict) and set(x) <= {"id", "sung"} and isinstance(x.get("id"), str) and x["id"] in vocab_items
+            and ("sung" not in x or isinstance(x["sung"], bool)))
+
+
 def check_request(req, fields, fk, vocabs, report, profile=None):
     """依頼1件の axes・output を検証する。profile は、その依頼の toolId のツールプロファイル（未知の toolId なら None。F7 が指摘する）。"""
     axes = req.get("axes")
@@ -479,7 +492,7 @@ def check_request(req, fields, fk, vocabs, report, profile=None):
 
     # S6 vocalMode で無効になる項目に（L-01。宿題38）①指定がある場合を検証する
     vocal_mode = req.get("vocalMode")
-    disabled = INSTRUMENTAL_ONLY_FIELDS if vocal_mode == "vocal" else VOCAL_ONLY_FIELDS if vocal_mode == "instrumental" else set()
+    disabled = VOCAL_ONLY_FIELDS if vocal_mode == "instrumental" else set()
     for fid in sorted(disabled):
         a = axes.get(fid)
         if isinstance(a, dict) and a.get("state") == "specified":
@@ -546,8 +559,12 @@ def check_request(req, fields, fk, vocabs, report, profile=None):
                 report.error("S4 長さは%s（秒）: %s" % (("%d〜%dの整数" % (lo, hi)) if rng else "正の整数", fid))
         elif kind == "sectionList":
             v = a.get("value")
-            if not (isinstance(v, list) and v and all(x in vocab_items for x in v)):
-                report.error("S4 構成はセクション id の空でない並び: %s" % fid)
+            if not (isinstance(v, list) and v and all(is_section_element(x, vocab_items) for x in v)):
+                report.error("S4 構成は要素 {id, sung} の空でない並び（id は語彙の語、sung は真偽値）: %s" % fid)
+            elif vocal_mode == "vocal" and not all("sung" in x for x in v):
+                report.error("S7 歌ありで歌の印（sung）がない要素がある: %s" % fid)
+            elif vocal_mode == "instrumental" and any("sung" in x for x in v):
+                report.warn("S7 インストでは歌の印（sung）は無視される: %s" % fid)
 
     # 交差項目の規則
     def choices(fid):
@@ -612,7 +629,7 @@ def check_request(req, fields, fk, vocabs, report, profile=None):
 # 仕様: docs/specifications/song-file.md §6・§9
 # ---------------------------------------------------------------------------
 # 版は、楽曲データと、ストア／エクスポートファイル（外側の形）で別々（§6）
-SUPPORTED_SCHEMA_VERSION = 1
+SUPPORTED_SCHEMA_VERSION = 2
 SUPPORTED_CONTAINER_VERSION = 2
 SONG_SCHEMA_FILE = SPEC / "song.schema.json"
 EXPORT_SCHEMA_FILE = SPEC / "song-export.schema.json"
@@ -709,6 +726,42 @@ def migrate_container(obj, new_id=None):
     while obj["schemaVersion"] < SUPPORTED_CONTAINER_VERSION:
         obj = CONTAINER_MIGRATIONS[obj["schemaVersion"]](obj, new_id)
     return obj
+
+
+def migrate_structure_v1(axis, to_element):
+    """版1 の構成の項目（語彙の id の配列）を、要素の配列にする。状態はそのまま（規則 (4)）。形が崩れた値は S4 に任せる。"""
+    v = axis.get("value") if isinstance(axis, dict) else None
+    if not isinstance(v, list):
+        return axis
+    return dict(axis, value=[to_element(x) if isinstance(x, str) else x for x in v])
+
+
+def migrate_song_request_1_to_2(req, default_sung):
+    """依頼1件の axes を版2 にする（UI の判断ポイント73 の規則 (1)〜(4)）。"""
+    axes = req.get("axes") if isinstance(req, dict) else None
+    if not isinstance(axes, dict) or not ("structure" in axes or "lyricsStructure" in axes):
+        return req
+    inst, vocal = axes.get("structure"), axes.get("lyricsStructure")
+    use_vocal = "lyricsStructure" in axes and ("structure" not in axes or req.get("vocalMode") == "vocal")
+    out = {k: v for k, v in axes.items() if k != "lyricsStructure"}
+    if use_vocal:  # (2) lyricsStructure は、各要素の sung を語彙の defaultSung から付ける（bridge は Cメロのまま）
+        out["structure"] = migrate_structure_v1(vocal, lambda x: {"id": x, "sung": default_sung.get(x, False)})
+    else:  # (1) structure は sung なしの要素にし、bridge（つなぎ）を transition に付け替える
+        out["structure"] = migrate_structure_v1(inst, lambda x: {"id": "transition" if x == "bridge" else x})
+    return dict(req, axes=out)
+
+
+def migrate_song_1_to_2(song, vocabs):
+    """楽曲データの版1 → 2（song-file.md §6-5。判断ポイント73）。引数は書き換えない。"""
+    default_sung = vocabs.get("section", {}).get("defaultSung", {})
+    out = dict(song, schemaVersion=2)
+    if isinstance(song.get("requests"), list):
+        out["requests"] = [migrate_song_request_1_to_2(r, default_sung) for r in song["requests"]]
+    return out
+
+
+# 楽曲データの移行（n → n+1 を1段ずつ。song-file.md §6-2 の 2）
+SONG_MIGRATIONS = {1: migrate_song_1_to_2}
 
 
 def duplicates(items, key):
@@ -917,8 +970,12 @@ def check_song_data(song, fields, fk, vocabs, profiles, validators, report):
         if "requests" not in song and "axes" in song:
             report.error("F0 旧形式（axes が最上位）。requests[] 形（song-file.md §2）に直す")
             return
-        if not check_version(song, report):
+        if not check_version(song, report, SUPPORTED_SCHEMA_VERSION, SONG_MIGRATIONS):
             return
+        if song["schemaVersion"] < SUPPORTED_SCHEMA_VERSION:
+            report.note("移行: 楽曲データの版%d のため、版%d に移行して検証する" % (song["schemaVersion"], SUPPORTED_SCHEMA_VERSION))
+            while song["schemaVersion"] < SUPPORTED_SCHEMA_VERSION:
+                song = SONG_MIGRATIONS[song["schemaVersion"]](song, vocabs)
         check_by_schema(validators["song"] if validators else None, song, report)
         reqs = song.get("requests")
         if not isinstance(reqs, list):

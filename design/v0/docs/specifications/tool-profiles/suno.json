@@ -168,7 +168,7 @@
     { "item": { "kind": "axis", "id": "length" }, "target": { "kind": "param", "id": "length" }, "route": "uiSetting", "note": "確定条件として扱い、本文には書かない（R-15）" },
     { "item": { "kind": "output", "id": "variation" }, "target": { "kind": "param", "id": "variation" }, "route": "uiSetting" },
     { "item": { "kind": "output", "id": "titleSuggestions" }, "target": { "kind": "field", "id": "title" }, "route": "text", "note": "曲名案の書き先。空欄なら Suno が自動設定する（R-14）" },
-    { "item": { "kind": "axis", "id": "structure" }, "target": null, "route": "text", "status": "pending", "note": "構成タグを歌詞欄に入れたときの効果が未検証（R-04）のため、対応先を決めない" },
-    { "item": { "kind": "axis", "id": "lyricsStructure" }, "target": { "kind": "field", "id": "lyrics" }, "route": "text", "note": "歌あり時の構成タグ。各語の `term.en` を歌詞欄に入れる（`scope.md` §4 の対応表。L-01。2026-10-16 追加）" }
+    { "item": { "kind": "axis", "id": "structure" }, "vocalMode": "vocal", "target": { "kind": "field", "id": "lyrics" }, "route": "text", "note": "歌あり時の構成タグ。各語の `term.en` を歌詞欄に入れる（`scope.md` §4 の対応表。L-01。2026-10-16 追加。2026-11-01 に `lyricsStructure` から統合）" },
+    { "item": { "kind": "axis", "id": "structure" }, "vocalMode": "instrumental", "target": null, "route": "text", "status": "pending", "note": "インストの歌詞欄に構成タグを入れたときの効果が未検証（R-04）のため、対応先を決めない" }
   ]
 }

@@ -50,14 +50,14 @@
 | B-05v0 | 選んだ `variation` の値の `rewritesStyle = false` | `param(variation).values[]` | 条件を `variation = off` の比較から、値の属性へ |
 | B-05v1 | 選んだ `variation` の値の `rewritesStyle = true` | 同上、その値の `label` | 同上 |
 | B-05-3 最終項 | `req.vocalMode = instrumental` | — | 「声に関する指定がある場合でも」を「声を決める場合も」に広げる（②の声の反映） |
-| B-05g | `req.vocalMode = vocal` | `req.axes.lyricsStructure`（状態のみ） | 新規（2026-09-28）。B-05-3 最終項（インスト）の代わりに出す。歌唱の質感・歌い方・性別をスタイル欄に書かせない。`lyricsStructure` が①指定のときだけ、「展開」の記述を歌詞の構成と矛盾させない旨の1文を続ける（2026-10-17。R-1） |
+| B-05g | `req.vocalMode = vocal` | `req.axes.structure`（状態のみ） | 新規（2026-09-28）。B-05-3 最終項（インスト）の代わりに出す。歌唱の質感・歌い方・性別をスタイル欄に書かせない。`structure` が①指定のときだけ、「展開」の記述を曲の構成と矛盾させない旨の1文を続ける（2026-10-17。R-1。2026-11-01 に参照を言い換え。文面の判断ポイント50） |
 | B-06 | 常時 | `fields.json`、`req.axes` | 「値」列は §4、「足させない」値は §5 |
 | B-06x | 除外対象が1件以上 かつ `feature(exclusion-field).supported` | 要件表の「使用しない」の列の値、`exclusions` の内容 | 「除外・補足」の表に合算行を足す（2026-10-18。R-6。§3-5）。除外欄がないツールは、文面なしで失敗 |
-| B-06G | `req.vocalMode = vocal` | `req.axes.lyricsTheme`・`lyricsLanguage`・`lyricsStructure` | 新規（2026-09-28）。§6 の F の後、除外・補足の前。`structure` は歌ありのとき出さない（§3-3） |
+| B-06G | `req.vocalMode = vocal` | `req.axes.lyricsTheme`・`lyricsLanguage`・`structure` | 新規（2026-09-28）。§6 の F の後、除外・補足の前。`structure` は歌ありのとき E の表ではなくここに出す（§3-3。2026-11-01。文面の判断ポイント50） |
 | B-LY | `req.vocalMode = vocal` | `req.lyricsAuthor` | 新規。「歌詞の作成」の節。B-DF の後、B-07 の前 |
 | B-LY-A | `req.lyricsAuthor = chat-ai` | — | 新規。共通項の後に「一人称を使わず、情景の描写を中心にしてもよい」を出す（2026-10-17。R-4） |
-| B-LY-B | `req.lyricsAuthor = chat-ai-instruction` | `req.axes.length.state`、`req.axes.lyricsStructure`（状態のみ） | 新規。指示文に含める要件は、`lyricsStructure` が①指定なら「テーマ・言語・構成」、②お任せなら「テーマ・言語」とし、構成は含めないと明記する（2026-10-18。R-5）。長さの状態が `toolManaged` 以外なら「指示文に曲の長さを書いてよい」、`toolManaged` なら「書かない」を出す（2026-10-17。R-2） |
-| B-LY-t | `req.lyricsAuthor = chat-ai` かつ `feature(meta-tags).supported` | `req.axes.lyricsStructure`、語彙 `section-vocal` | 新規。構成が①指定なら構成タグの対応（§3-3）、②お任せなら「タグを付けず空行で区切る」文 |
+| B-LY-B | `req.lyricsAuthor = chat-ai-instruction` | `req.axes.length.state`、`req.axes.structure`（状態のみ） | 新規。指示文に含める要件は、`structure` が①指定なら「テーマ・言語・構成」、②お任せなら「テーマ・言語」とし、構成は含めないと明記する（2026-10-18。R-5）。長さの状態が `toolManaged` 以外なら「指示文に曲の長さを書いてよい」、`toolManaged` なら「書かない」を出す（2026-10-17。R-2） |
+| B-LY-t | `req.lyricsAuthor = chat-ai` かつ `feature(meta-tags).supported` | `req.axes.structure`、語彙 `section` | 新規。構成が①指定なら構成タグの対応（§3-3。`sung = false` の要素が1つ以上あるときは、タグの書き方の1文を足す。2026-11-01。文面の判断ポイント50）、②お任せなら「タグを付けず空行で区切る」文 |
 | B-LY-ja | `lyricsLanguage` が「①指定 かつ english」でない（②お任せを含む） | — | 新規。`chat-ai` なら3項の配慮文、`chat-ai-instruction` なら指示文に含める希望の1文 |
 | B-07-1 | 常時 | `req.output.variantCount` | 「曲名案」の項は B-07-6 の条件に、「歌詞」の項は B-07-9 の条件に連動（2026-09-28）。リストの番号は、出力する項だけで描画時に振る（2026-10-17。§3-3） |
 | B-07-2b | `basic ∈ req.output.granularity` | — | なし |
@@ -128,7 +128,7 @@
 | `req.lyricsAuthor` | `chat-ai`／`chat-ai-instruction`。歌ありでは必須（`null` は生成を明示的に失敗させる。§1） |
 | 歌詞欄 | `field(feature(instrumental).field)`（現行の Suno では `lyrics`）。構成タグの書き先（`feature(meta-tags).field`）が同じ欄でなければ失敗 |
 | 作詞AIへの指示の欄 | `profile.fields[]` のうち `id = lyrics-prompt`（暫定。欄の種類を表す属性がプロファイルにないため id で引く。`request-text.md` §6 補完14） |
-| `req.axes.lyricsTheme`・`lyricsLanguage`・`lyricsStructure` | §6 の G の表（B-06G）。状態・手がかりの規則は他の項目と同じ（§4） |
+| `req.axes.lyricsTheme`・`lyricsLanguage`・`structure` | §6 の G の表（B-06G）。状態・手がかりの規則は他の項目と同じ（§4）。`structure` の `sung = false` の要素は、表示名の直後に「（歌なし）」を付ける（文面の判断ポイント50） |
 
 #### 5-1 の行
 
@@ -137,16 +137,16 @@
 
 #### 構成タグ（B-LY-t）
 
-- `lyricsStructure` が①指定: 並びの順に、初出のセクションを「表示名: [タグ]」の行で列挙する（語彙 `section-vocal`。重複は1回）。タグの表記は下の「2026-10-17 の追加規則」のとおり。②お任せ（初期状態。`leave`）: 「タグを付けず、空行で区切る」文（判断ポイント22）
+- `structure` が①指定: 並びの順に、初出のセクションを「表示名: [タグ]」の行で列挙する（語彙 `section`。重複は1回。歌の印はタグに関係しない）。`sung = false` の要素が1つ以上あるときだけ、続けて「「（歌なし）」を付けたまとまりは、構成タグだけを書き、歌詞は書かないでください。」を足す（文面の判断ポイント50）。タグの表記は下の「2026-10-17 の追加規則」のとおり。②お任せ（初期状態。`leave`）: 「タグを付けず、空行で区切る」文（判断ポイント22）
 - `lyricsAuthor = chat-ai-instruction` のときは B-LY-t を出さない。構成は、指示文に含める要件として、B-LY-B の文が伝える
 
 #### 日本語の歌詞の表記（2026-10-28）
 
 B-06 の「歌詞本文の言語」の値の例外（①指定の日本語、`lyricsAuthor = chat-ai` のとき「日本語 (漢字使用可能)」）と、B-LY-ja（`chat-ai`）の1つめの箇条は、`../decisions/request-text.md` §5 判断ポイント49（`-14` で6モデル検証済み、2026-10-28）。文面は `request-text.md` §2 が正
 
-#### `structure`（インスト用）との関係
+#### 曲の構成（`structure`）の置き場所（2026-11-01。文面の判断ポイント50）
 
-歌ありのとき `structure` は出さない（B-06 の E の表から除く）。インストのときは `lyricsStructure` を含む G の表を出さない。検査（`check_fields.py`）は、モードに合わない項目を「無効」として扱う（`request-text.md` §8。仕様側の作業）。
+歌ありのときは G の表（B-06G）、インストのときは E の表（B-06）に「曲の構成」の行を出す。依頼文の範囲が `lyrics` のとき D〜F の表が出ないため、E に寄せない。`lyricsStructure` は `structure` に統合して廃止した（入力項目の判断ポイント30）。検査（`check_fields.py`）は、歌詞の2項目だけをモードで「無効」として扱う（S6）。〔当時の記述〕2026-09-28 〜 2026-10-31 は、`structure`（インスト用）と `lyricsStructure`（歌あり用）の別の項目だった。
 
 #### 2026-10-17 の追加規則（監査。未検証 → `-07`・`-08` で6モデル検証済み、2026-10-17）
 
@@ -162,11 +162,11 @@ B-06 の「歌詞本文の言語」の値の例外（①指定の日本語、`ly
 
 判断は `../decisions/request-text.md` §5 判断ポイント28〜31。
 
-- **R-1 展開と歌詞構成の整合**: B-05g に1文を足す。`lyricsStructure` が①指定のときだけ出す（未指定のときは対象がない）
+- **R-1 展開と歌詞構成の整合**: B-05g に1文を足す。`structure` が①指定のときだけ出す（未指定のときは対象がない）
 - **R-2 作詞AIへの指示での長さ**: `chat-ai-instruction` で、長さの状態が `toolManaged` 以外なら「曲の長さを分量の目安として書いてよい」、`toolManaged` なら「書かない」を出す。§5-2 の「本文に書かない」はスタイル欄の話に限る（文面で明確化）
 - **R-3 声の扱い**: B-07-2d の詳細プロンプトの内容の列挙で、声の扱いを「§6 で触れると決めた場合のみ」に限定する
 - **R-4 一人称の例示**: `chat-ai` のとき、B-LY-A と B-07-9 に「一人称を使わず情景描写中心でもよい」を出す（選択肢の提示。一人称は禁じない）
-- **R-5 構成②のときの B-LY-B**（2026-10-18。判断ポイント38。`-12` で再検証済み）: `chat-ai-instruction` で `lyricsStructure` が②お任せのとき、指示文に含める要件を「テーマ・言語」とし、「歌詞の構成は指定がないため、指示文に含めない」を出す。①指定のときは現行のまま（テーマ・言語・構成）
+- **R-5 構成②のときの B-LY-B**（2026-10-18。判断ポイント38。`-12` で再検証済み）: `chat-ai-instruction` で `structure` が②お任せのとき、指示文に含める要件を「テーマ・言語」とし、「曲の構成は指定がないため、指示文に含めない」を出す（2026-11-01 に言い換え。文面の判断ポイント50）。①指定のときは現行のまま（テーマ・言語・構成）
 
 #### 出力しないもの
 
@@ -338,7 +338,7 @@ B-06 の「歌詞本文の言語」の値の例外（①指定の日本語、`ly
 - `{{tool.mode}}` は、画面名（`アドバンスド`）に「モード」を足して作る（`screens` の `label` は「モード」を含まないため）
 - 除外対象の定義（§3-1）は、`triSelect` の `exclude` と `exclusions` の内容から作る
 - 目標の切り捨て、`lowerBound` を安全側とする扱い（§6）
-- 歌ありでは `structure`（インスト用）を出さず、`lyricsStructure` を使う（§3-3）
+- 歌ありでは `structure` を E の表ではなく G の表に出す（§3-3）
 - 作詞AIへの指示の欄を id `lyrics-prompt` で引く（暫定。§3-3）
 - 歌詞の構成が未指定のとき、タグを付けず空行で区切る（§3-3。`request-text.md` §5 判断ポイント22）
 - 構成タグは `term.en` の各語の先頭を大文字にして出す（§3-3。判断ポイント25）。Suno での大文字小文字の効きは未検証

@@ -12,7 +12,7 @@
       "name": "和風戦闘BGM",
       "updatedAt": "2026-09-21T09:30:00+09:00",
       "data": {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "requests": [
           {
             "id": "r1",
@@ -56,7 +56,7 @@
               "tempoFeel": { "state": "delegated" },
               "bpm": { "state": "specified", "value": { "min": 120, "max": 140 } },
               "developmentShape": { "state": "specified", "value": "steady" },
-              "structure": { "state": "specified", "value": ["intro", "theme", "climax", "outro"] },
+              "structure": { "state": "specified", "value": [{ "id": "intro" }, { "id": "theme" }, { "id": "climax" }, { "id": "outro" }] },
               "exclusions": { "state": "specified", "value": "歪んだ音色を避けたい" },
               "notes": { "state": "delegated" }
             },

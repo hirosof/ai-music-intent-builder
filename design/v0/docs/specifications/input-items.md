@@ -164,7 +164,7 @@ python tools/check-fields/check_fields.py --markdown            # §3 の表を�
 | `tempoFeel` | テンポ感 | 単一選択 | `tempo-feel` | ①② | 導く（主ジャンル＋基調となる情緒。無ければ必ず決める） | — | ② | 翻案可 | — |
 | `bpm` | BPM の目安 | BPM | — | ①② | 足さない | — | ② | 保持 | — |
 | `developmentShape` | 展開の形 | 単一選択 | `development-shape` | ①② | 導く（用途。無ければ必ず決める） | — | ② | 拡張可 | ○ |
-| `structure` | 構成（セクションの並び） | 並びのリスト | `section` | ①② | 足さない | — | ② | 保持 | — |
+| `structure` | 曲の構成 | 並びのリスト | `section` | ①② | 足さない | — | ② | 保持 | — |
 
 **軸F: 制作・質感**
 
@@ -223,7 +223,7 @@ python tools/check-fields/check_fields.py --markdown            # §3 の表を�
   "regionStyles":    { "state": "specified", "choices": { "japanese": "use", "celtic": "exclude" } },
   "voiceTreatment":  { "state": "specified", "value": "wordless-choir" },
   "bpm":             { "state": "specified", "value": { "min": 120, "max": 140 } },
-  "structure":       { "state": "specified", "value": ["intro", "theme", "climax", "outro"] },
+  "structure":       { "state": "specified", "value": [{ "id": "intro" }, { "id": "theme" }, { "id": "climax" }, { "id": "outro" }] },
   "brightness":      { "state": "delegated" },
   "intensity":       { "state": "defaulted" },
   "length":          { "state": "toolManaged" }
@@ -237,7 +237,7 @@ python tools/check-fields/check_fields.py --markdown            # §3 の表を�
 | `text` | `value`（文字列） | 空でない |
 | `bpm` | `value` | 正の数、または `{ "min", "max" }`（min ≤ max） |
 | `length` | `value` | ツールプロファイルの範囲内の整数（秒）。Suno は 10〜360 |
-| `sectionList` | `value`（語彙の id の配列） | 空でない。順序に意味がある。同じ語が複数回あってもよい |
+| `sectionList` | `value`（要素 `{ id, sung }` の配列。`id` は語彙の id） | 空でない。順序に意味がある。同じ語が複数回あってもよい。`sung`（歌の印）は `vocalMode = vocal` のとき必須、`instrumental` のときは持たない（残っていれば無視して警告する）。2026-11-01 に語彙の id の配列から変えた（楽曲データの版2。`../decisions/ui-and-nonfunctional.md` 判断ポイント73） |
 
 - ①指定でない状態は、`state` だけを持つ。`value` などが残っていれば、無視して警告する
 - `axes` に項目がなければ、初期状態で、値なしとして扱う
@@ -304,7 +304,7 @@ python tools/check-fields/check_fields.py --markdown            # §3 の表を�
 | 4 | 手がかりは、声の扱いを除き、`decisions/input-items.md` の記述どおり。強度・音質・ミックスは「手がかりなし＋フォールバック」として定義した | 記述どおり。補完は声の扱いだけ（#2） |
 | 5 | 項目数は、表の実数で楽曲26＋出力9（判断ポイント4の「約29」との差は、数え方の違いと思われる） | 表を数えた |
 | 6 | 出力項目の「案の数」の既定値を3（仮）とした。曲名案の言語の選択肢と既定値は未定 | 依頼文の例が3。R-14 が未確定 |
-| 7 | 構成（`sectionList`）は自由記述を持たない | 語彙が7語で、追加の要否は使ってから決める |
+| 7 | 構成（`sectionList`）は自由記述を持たない | 語彙が7語で、追加の要否は使ってから決める（2026-11-01 に12語〔語彙の判断ポイント215〕。自由記述は持たないまま） |
 | 8 | 出力項目の `variation` の選択肢は、ツールプロファイルが持つ（`optionsFrom`）。`length` の範囲（`rangeFrom`）と `recommendParams` の項目（`itemsFrom`）も同様。`default` は本ツールの既定値で、ツールの既定値とは別（`tool-profile.md` §9） | R-10。当初は Suno の値を参照用に置いていた |
 
 ---

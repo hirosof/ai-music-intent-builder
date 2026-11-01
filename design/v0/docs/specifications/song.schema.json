@@ -7,7 +7,7 @@
   "additionalProperties": false,
   "required": ["schemaVersion", "requests"],
   "properties": {
-    "schemaVersion": { "const": 1 },
+    "schemaVersion": { "description": "楽曲データの形の版（song-file.md §6）。版1 のデータは、移行してから検証する（判断ポイント73）。", "const": 2 },
     "requests": {
       "description": "依頼の配列。1件以上。順序に意味はない。初版が扱えるのは、ちょうど1件（チェッカーが検証する）。",
       "type": "array",

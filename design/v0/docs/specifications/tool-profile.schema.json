@@ -260,6 +260,7 @@
       "additionalProperties": false,
       "required": ["item", "target", "route"],
       "properties": {
+        "vocalMode": { "description": "このボーカル区分のときだけ効く対応（省略は常に効く）。条件付きの項目は両方のボーカル区分をそろえる（P7。tool-profile.md §8。判断ポイント10）", "enum": ["vocal", "instrumental"] },
         "item": {
           "type": "object", "additionalProperties": false, "required": ["kind", "id"],
           "properties": { "kind": { "description": "axis は fields.json の項目、output は出力項目", "enum": ["axis", "output"] }, "id": { "$ref": "#/$defs/camelId" } }

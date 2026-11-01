@@ -59,7 +59,6 @@ VOCABULARIES = [
     ("tempo-feel", "E", "テンポ感", "flat", ["temporal-structure.md"], "tempo-feel"),
     ("development-shape", "E", "展開の形", "flat", ["temporal-structure.md"], "development-shape"),
     ("section", "E", "構成のセクション", "flat", ["temporal-structure.md"], "section"),
-    ("section-vocal", "G", "歌詞の構成セクション", "flat", ["lyrics.md"], "section-vocal"),
     ("spatial-texture", "F", "空間の質感", "flat", ["production-quality.md"], "spatial-texture"),
     ("recording-texture", "F", "音質・録音の質感", "flat", ["production-quality.md"], "recording-texture"),
     ("mix-direction", "F", "ミックスの方向性", "flat", ["production-quality.md"], "mix-direction"),
@@ -78,9 +77,8 @@ def _own_file(vocab_id, category_id):
 # 語彙をまたぐ同一 id を許す例外（判断ポイント205）。値は「ジャンル側が other-axis である語彙」。
 ALLOWED_CROSS_VOCAB = {"celtic": "region-style", "game-music": "usage"}
 
-# 同じ構成の概念を、インスト用と歌あり用の別の語彙として持つ組（判断ポイント213）。
-# 両方の語彙にある id は、term.en が一致するときだけ許す。
-ALLOWED_SHARED_VOCABS = [("section", "section-vocal")]
+# 語の属性 defaultSung を持つ語彙（判断ポイント215）。この語彙のすべての語で必須、ほかの語彙では持てない。
+DEFAULT_SUNG_VOCABULARY = "section"
 
 # 表示順の上書き（判断ポイント208）。ソースに順序の記録がある場合のみ。
 ORDER_OVERRIDES = {
@@ -341,6 +339,16 @@ def validate_groups(v, report):
             report.error("S14 語が1つもないグループ: %s/%s" % (vid, g))
 
 
+def validate_default_sung(v, report):
+    """S15 語の属性 defaultSung（判断ポイント215。presets.md §5）"""
+    for it in v["items"]:
+        if v["id"] != DEFAULT_SUNG_VOCABULARY:
+            if "defaultSung" in it:
+                report.error("S15 defaultSung は語彙 %s の語だけが持てる: %s/%s" % (DEFAULT_SUNG_VOCABULARY, v["id"], it["id"]))
+        elif not isinstance(it.get("defaultSung"), bool):
+            report.error("S15 語彙 %s の語は defaultSung（真偽値）が必須: %s" % (DEFAULT_SUNG_VOCABULARY, it["id"]))
+
+
 def validate(out, per_vocab_ids, report):
     ids_by_vocab = {v["id"]: {it["id"] for it in v["items"]} for v in out["vocabularies"]}
 
@@ -363,13 +371,6 @@ def validate(out, per_vocab_ids, report):
         if len(lst) < 2:
             continue
         vocabs = sorted(x[0] for x in lst)
-        if tuple(vocabs) in [tuple(sorted(p)) for p in ALLOWED_SHARED_VOCABS]:
-            terms = {json.dumps(it.get("term", {}).get("en")) for _, it in lst}
-            if len(terms) > 1:
-                report.error("案3 共有を許す語彙の組で term.en が一致しない: %s（%s）" % (i, ", ".join(vocabs)))
-            else:
-                report.note("案3 語彙間で同一 id（共有を許す組）: %s（%s）" % (i, ", ".join(vocabs)))
-            continue
         if i not in ALLOWED_CROSS_VOCAB:
             report.error("案3 例外リストにない語彙間の id 重複: %s（%s）" % (i, ", ".join(vocabs)))
             continue
@@ -431,6 +432,10 @@ def validate(out, per_vocab_ids, report):
     # S14 グループ
     for v in out["vocabularies"]:
         validate_groups(v, report)
+
+    # S15 defaultSung
+    for v in out["vocabularies"]:
+        validate_default_sung(v, report)
 
     # S9 警告ペア（語彙のファイルの中で完結する）
     for v in out["vocabularies"]:

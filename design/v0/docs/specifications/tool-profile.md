@@ -263,7 +263,9 @@ Suno の `variation` の `default` は `standard`（Suno の既定値）。R-17 
 | `route` | 指定経路（`text`／`uiSetting`／`both`） |
 | `status` | `target` が `null` のとき**必須**（`pending`）。そうでないときは持たない |
 
-`target` の種類と `route` の組（`check_fields.py` が検証）: `param` は `uiSetting` または `both`、`field` は `text` または `both`。`item` の重複は不可。
+`target` の種類と `route` の組（`check_fields.py` が検証）: `param` は `uiSetting` または `both`、`field` は `text` または `both`。`item` の重複は不可（`vocalMode` を持つときは、項目と `vocalMode` の組で判定する）。
+
+**ボーカル区分による対応先の違い（2026-11-01。判断ポイント10）**: 1件の binding に任意のキー `vocalMode`（`vocal`／`instrumental`）を持たせると、そのボーカル区分のときだけ効く。条件付きの binding を持つ項目は、両方のボーカル区分の binding をそろえる。条件なしと条件ありを、同じ項目に混ぜない（どちらも P7 のエラー）。
 
 Suno の `bindings`:
 
@@ -272,8 +274,8 @@ Suno の `bindings`:
 | `length`（axis） | パラメータ `length` | `uiSetting` | 確定条件として扱い、本文には書かない（R-15） |
 | `variation`（output） | パラメータ `variation` | `uiSetting` | |
 | `titleSuggestions`（output） | 欄 `title` | `text` | 空欄なら Suno が自動設定する（R-14） |
-| `structure`（axis） | 未決（`pending`） | `text` | 構成タグの効果が未検証（R-04）。決着までは対応先を決めない |
-| `lyricsStructure`（axis） | 欄 `lyrics` | `text` | 歌あり時の構成タグ。各語の `term.en` を歌詞欄に入れる（`scope.md` §4。L-01。2026-10-16 追加） |
+| `structure`（axis。`vocalMode: vocal`） | 欄 `lyrics` | `text` | 歌あり時の構成タグ。各語の `term.en` を歌詞欄に入れる（`scope.md` §4。L-01。2026-10-16 追加。2026-11-01 に `lyricsStructure` から統合） |
+| `structure`（axis。`vocalMode: instrumental`） | 未決（`pending`） | `text` | 構成タグの効果が未検証（R-04）。決着までは対応先を決めない |
 
 **`fields.json` の `specificity` との関係**: `length` は `fields.json` でも `specificity: uiSetting` を持つ。これは、ツールを問わない項目の性質。`bindings` の `route` は、そのツールでの実際の経路。両者が食い違わないことを検証する（§10-2 の P7）。
 
@@ -317,7 +319,7 @@ Suno の `bindings`:
 | P4 | 欄・パラメータの `modes` が、`modes` の id である |
 | P5 | `default` の整合（`select` は `values` の id、`slider` は `range` の内側、`duration` は `hasAuto` なら `auto`、または `range` の内側の整数） |
 | P6 | `defaultDescriptionField` と `features[].field` が `fields` の id である |
-| P7 | `bindings`: `target` の id が存在する。`item` の id が `fields.json` に存在する。`item` の重複がない。`target` の種類と `route` の組（§8）。`fields.json` の `specificity` が `uiSetting` の項目に対応があれば、`route` は `uiSetting` |
+| P7 | `bindings`: `target` の id が存在する。`item` の id が `fields.json` に存在する。`item` の重複がない（`vocalMode` を持つときは、項目と `vocalMode` の組で判定する）。`vocalMode` を持つ項目は `vocal`・`instrumental` の両方をそろえる。条件なしと条件ありを同じ項目に混ぜない。`target` の種類と `route` の組（§8）。`fields.json` の `specificity` が `uiSetting` の項目に対応があれば、`route` は `uiSetting` |
 | P8 | `scope` が `first` の操作は高々1つ |
 | P9 | `version.id` と `meta.targetVersion` が一致する。`updatedAt` が `meta.confirmedAt` 以降 |
 | P10 | ファイル名（拡張子を除く）と `toolId` が一致する |
@@ -340,6 +342,7 @@ Suno の `bindings`:
 | 7 | ボーカル性別（食い違い G） | プロファイルには持つ。~~入力項目は歌あり対応（L-01）のときに足す~~ → **訂正（2026-10-16）**: L-01 が決着し、入力項目は持たない（歌い手の性別は Suno 側の設定で決める。`input-items.md` 判断ポイント24【訂正後】） | 既定案 |
 | 8 | データの持ち方 | 手書きの JSON とスキーマ。既知の `toolId` はディレクトリ内のファイルから導く。`schemaVersion` は持たない（§2） | 既定案 |
 | 9 | 操作の `note` の役割（2026-09-24。`examples/rendered-04-derived-extend-keep.md` の作成中に、5操作の `note` に内部参照が混ざり、依頼文にそのまま出ることが判明。同 §5 Q-01） | **B**: `note` は依頼文に出す利用者向けの説明に限り、内部の参照は `meta.note` に移す。データだけの修正で、スキーマと `check_fields.py` は変えない。直した5操作は `mashup`・`extend`・`edit-vocals`・`replace-section`・`add-stem`。内部参照の検出を検査（P 系の規則）にするかは未着手 | 選択 |
+| 10 | ボーカル区分による対応先の違い（入力項目の判断ポイント30。曲の構成は、歌ありは歌詞欄、インストは対応先なし〔R-04〕。今の `bindings` の形では表せなかった） | **(A)**: binding に任意のキー `vocalMode`（`vocal`／`instrumental`）を足し、そのボーカル区分のときだけ効かせる。P7 の重複は（項目, `vocalMode`）の組で判定する。条件付きの binding を持つ項目は両方のボーカル区分をそろえる（片方だけはエラー）。条件なしと条件ありを同じ項目に混ぜない（エラー）。採らなかった案: (B) 1件の binding を `lyrics` にして note で補う（インストの未決をデータで表せない）、(C) `null` のままにして note にだけ書く（歌ありの対応がデータから消える）。生成器は構成タグを `feature(meta-tags)` と B-LY-t から出すので、依頼文は変わらない（文面の再検証は要らない） | Claude Code の持ち帰り、設計スレッドの推奨、利用者の承認、2026-11-01 |
 
 ---
 
@@ -350,7 +353,7 @@ Suno の `bindings`:
 | 1 | プロファイル内の id は kebab-case。入力項目側の id は camelCase のまま参照する | V-08 にそろえた |
 | 2 | `plan` は `none`／`pro`／`premier`／`null`。3状態の `status` は持たず、`null` を不明とする。確からしさは `meta` に持つ | 判断ポイント4の趣旨を、単純な形で満たす |
 | 3 | `defaultDescriptionField` を追加し、`bindings` に載せない項目は、その欄の本文に書くとした | D1 のままでは、全入力項目を並べる必要があるため |
-| 4 | `bindings` は5件（`length`、`variation`、`titleSuggestions`、`structure`、`lyricsStructure`）。`structure` は対応先未決。`lyricsStructure` は歌詞欄 `lyrics` に対応（2026-10-16 追加） | 構成タグの効果が未検証（R-04） |
+| 4 | `bindings` は5件（`length`、`variation`、`titleSuggestions`、`structure` の2件）。`structure` は、歌ありは歌詞欄 `lyrics` に対応（2026-10-16 に `lyricsStructure` として追加、2026-11-01 に統合）、インストは対応先未決 | 構成タグの効果が未検証（R-04） |
 | 5 | 情報源に `unverified` を追加 | DP-06 の4段階に「不明」がないため |
 | 6 | 操作の id は kebab-case。`song-file.md` §3 の例とテストにあった仮の値 `add-vocal` は `edit-vocals` に変えた | Suno の操作名が「ボーカルを編集」（追加または置き換え） |
 | 7 | 歌詞の推奨長（日本語 200、英語 3,000）を、第三者情報として持つ | R-10（推奨長は言語ごと）。v6 では未検証と明記した |
@@ -366,6 +369,6 @@ Suno の `bindings`:
 - **`fields.json` の `variation` の既定値**（`standard`）は、いまは Suno の既定値と同じ。R-17 の推奨（オフ）との関係は、入力項目の既定値の議題で扱う
 - **複数ツールを足すとき**は、`bindings` のほか、`fields.json` の `specificity` との整合（P7）が、プロファイルごとに検証される。ツール固有の欄がない項目は、`defaultDescriptionField` の規則で扱う
 - **ボーカル性別の入力項目**: **2026-10-16 訂正** — ~~歌あり対応（L-01）のときに足す（判断ポイント7）~~ → L-01 が決着し、入力項目は持たないことに決まった（`input-items.md` 判断ポイント24【訂正後】）
-- **`structure` の対応先**は、R-04 の検証結果で決める（インストの歌詞欄に構成タグだけを入れる効果）。歌あり側の構成タグは、専用の入力項目 `lyricsStructure`（語彙 `section-vocal`）を歌詞欄 `lyrics` に対応させた（L-01。2026-10-16）
+- **`structure` のインスト側の対応先**は、R-04 の検証結果で決める（インストの歌詞欄に構成タグだけを入れる効果）。歌あり側は歌詞欄 `lyrics` に対応させた（L-01。2026-10-16。2026-11-01 に入力項目を `structure` に統合。判断ポイント10）
 - **`recommendParams` の保存値の形**は解決した（`input-items.md` 判断ポイント18。`{ パラメータ id: 真偽 }`）。チェッカーは O2・O3・O4 で検証する
 - **`fields.json` の `default`**（本ツールの既定値）と、プロファイルの `default`（ツールの既定値）は別。いまは `variation` で一致しているが、一致を検証していない（一致を強いると、R-17 の推奨（オフ）を本ツールの既定値にできなくなる）

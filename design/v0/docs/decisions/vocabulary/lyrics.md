@@ -10,6 +10,8 @@
 
 ## 1. 歌詞の構成セクション（section-vocal）
 
+**2026-11-01: 統合して廃止した。** 行き先は `temporal-structure.md` §3（語彙 `section`。12語・3グループ）、根拠は `README.md` §5 判断ポイント215。入力項目 `lyricsStructure` も `structure` に統合した（`../input-items.md` 判断ポイント30）。以下は当時の記録（教訓4-16。生成の入力ではない）。
+
 `structure`（軸E・インスト用）とは別の語彙。歌あり（`vocalMode = vocal`）のときの
 `lyricsStructure` が使う。インストの構成名（主題提示・展開部など。`section`。
 `temporal-structure.md` §3）には A メロ・サビがなく、歌詞の構成には使えないため分離した

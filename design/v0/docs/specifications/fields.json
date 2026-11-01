@@ -203,13 +203,13 @@
       "note": "ループ用途なら「一定を保つ」寄り"
     },
     {
-      "id": "structure", "label": "構成（セクションの並び）", "group": "time", "kind": "sectionList", "vocabulary": "section", "freeText": false,
+      "id": "structure", "label": "曲の構成", "group": "time", "kind": "sectionList", "vocabulary": "section", "freeText": false,
       "specificity": "keep", "initialState": "delegated",
       "states": {
         "specified": {},
         "delegated": {"rule": "leave"}
       },
-      "note": "③は持たない（判断ポイント11）。並び替え可能なリスト。歌あり（`vocalMode` = `vocal`）のときは無効（`lyricsStructure` を使う。`song.schema.json` 側で制御。2026-09-28。L-01）"
+      "note": "③は持たない（判断ポイント11）。並び替え可能なリスト。歌あり・インストのどちらでも有効（2026-11-01。`lyricsStructure` を統合。`input-items.md` 判断ポイント30）。要素は `{ id, sung }`、`sung`（歌の印）は歌ありのときだけ持つ（`ui-and-nonfunctional.md` 判断ポイント73）。②は、インストは構成を足さない、歌ありの `chat-ai` は構成タグを付けず空行で区切る、`chat-ai-instruction` は指示文に構成を含めない"
     },
     {
       "id": "lyricsTheme", "label": "歌詞のテーマ・内容", "group": "lyrics", "kind": "text", "freeText": false,
@@ -233,15 +233,6 @@
         "delegated": {"rule": "derive", "cues": ["mainGenre", "regionStyles"], "fallback": {"type": "value", "value": "japanese"}}
       },
       "note": "歌あり（`vocalMode` = `vocal`）のときのみ有効（`song.schema.json` 側で制御）。専用の語彙ファイルを持たず、固定3値の列挙とする。`era` に近い型（`input-items.md` 判断ポイント21）"
-    },
-    {
-      "id": "lyricsStructure", "label": "歌詞の構成", "group": "lyrics", "kind": "sectionList", "vocabulary": "section-vocal", "freeText": false,
-      "specificity": "keep", "initialState": "delegated",
-      "states": {
-        "specified": {},
-        "delegated": {"rule": "leave"}
-      },
-      "note": "歌あり（`vocalMode` = `vocal`）のときのみ有効（`structure` と排他。`song.schema.json` 側で制御）。③は持たない。②は構成タグを付けず空行で区切る（`input-items.md` 判断ポイント22・26）"
     },
     {
       "id": "spatialTexture", "label": "空間の質感", "group": "production", "kind": "select", "vocabulary": "spatial-texture", "freeText": false,

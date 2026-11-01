@@ -1,7 +1,7 @@
 # 時間的な構造（軸E）の語彙
 
 - 作成日: 2026-09-18
-- 対象項目: `../input-items.md` グループ5「テンポ感」「展開の形」「構成（セクションの並び）」
+- 対象項目: `../input-items.md` グループ5「テンポ感」「展開の形」「曲の構成」（2026-11-01 に「構成（セクションの並び）」から改名。判断ポイント215）
 - 「長さ」（Auto/カスタム秒数）と「BPMの目安」（数値）はUI設定・数値入力のため、本ファイルの語彙化の対象外
 - 資料の方針: 専用資料なし。`../../research/suno-profile.md` の実例（Sunoが実際に書き換えたスタイル文）と
   `../input-items.md` 自体の記述を主な材料とする
@@ -52,20 +52,33 @@
 
 ## 3. 構成（セクションの並び）
 
-並び替え可能なリストの部品となるセクション名。歌入りの音楽の「Aメロ/Bメロ/サビ」ではなく、
-インスト曲を主対象とする本ツールの用途（ゲームBGM等のループ再生を含む）に合わせた名称とした
-（一般的な知識による判定。専用資料・Suno実績の裏付けはない）。
+並び替え可能なリストの部品となるセクション名。**2026-11-01 に、歌ありの語彙 `section-vocal`（`lyrics.md` §1）を統合して12語・3グループにした（判断ポイント215。入力項目は `structure` に一本化）。** どちらのモードでも全部の語を選べる。
+
+- `defaultSung`: 歌ありで、その語を足したときの歌の印の初期値と、版1 の `lyricsStructure` を移行するときの印（UI の判断ポイント73・74）。`section` の語だけが持ち、すべての語で必須
+- `bridge` は Cメロ（ブリッジ）。版1 の `section` の `bridge`（ブリッジ〔つなぎ〕）は、新しい id `transition`（つなぎ）に付け替える（V-08 の例外。楽曲データの版の移行で行う。判断ポイント215 の (3)）
+
+〔当時の記述〕2026-09-18 の7語は、歌入りの音楽の「Aメロ/Bメロ/サビ」ではなく、インスト曲を主対象とする本ツールの用途（ゲームBGM等のループ再生を含む）に合わせた名称だった（一般的な知識による判定。専用資料・Suno実績の裏付けはない）。統合後の「歌もの向け」の語は `scope.md` §4 の対応表から、`transition` は判断ポイント215 から。
 
 ```json
 {
+  "groups": [
+    { "id": "common", "label": "共通" },
+    { "id": "vocal", "label": "歌もの向け" },
+    { "id": "instrumental", "label": "インスト向け" }
+  ],
   "items": [
-    { "id": "intro",     "label": "イントロ",     "categories": ["section"], "term": { "en": "intro" } },
-    { "id": "theme",     "label": "主題提示",     "categories": ["section"], "term": { "en": "main theme" } },
-    { "id": "development","label": "展開部",      "categories": ["section"], "term": { "en": "development" } },
-    { "id": "interlude", "label": "間奏",         "categories": ["section"], "term": { "en": "interlude" } },
-    { "id": "climax",    "label": "クライマックス", "categories": ["section"], "term": { "en": "climax" } },
-    { "id": "bridge",    "label": "ブリッジ（つなぎ）", "categories": ["section"], "term": { "en": "bridge" } },
-    { "id": "outro",     "label": "アウトロ",     "categories": ["section"], "term": { "en": "outro" } }
+    { "id": "intro",       "label": "イントロ",         "categories": ["section"], "group": "common", "term": { "en": "intro" }, "defaultSung": false },
+    { "id": "interlude",   "label": "間奏",             "categories": ["section"], "group": "common", "term": { "en": "interlude" }, "defaultSung": false },
+    { "id": "transition",  "label": "つなぎ",           "categories": ["section"], "group": "common", "term": { "en": "transition" }, "defaultSung": false },
+    { "id": "climax",      "label": "クライマックス",   "categories": ["section"], "group": "common", "term": { "en": "climax" }, "defaultSung": false },
+    { "id": "outro",       "label": "アウトロ",         "categories": ["section"], "group": "common", "term": { "en": "outro" }, "defaultSung": false },
+    { "id": "verse",       "label": "Aメロ",            "categories": ["section"], "group": "vocal", "term": { "en": "verse" }, "defaultSung": true },
+    { "id": "pre-chorus",  "label": "Bメロ",            "categories": ["section"], "group": "vocal", "term": { "en": "pre-chorus" }, "defaultSung": true },
+    { "id": "chorus",      "label": "サビ",             "categories": ["section"], "group": "vocal", "term": { "en": "chorus" }, "defaultSung": true },
+    { "id": "post-chorus", "label": "サビ直後",         "categories": ["section"], "group": "vocal", "term": { "en": "post-chorus" }, "defaultSung": true },
+    { "id": "bridge",      "label": "Cメロ（ブリッジ）", "categories": ["section"], "group": "vocal", "term": { "en": "bridge" }, "defaultSung": true },
+    { "id": "theme",       "label": "主題提示",         "categories": ["section"], "group": "instrumental", "term": { "en": "main theme" }, "defaultSung": false },
+    { "id": "development", "label": "展開部",           "categories": ["section"], "group": "instrumental", "term": { "en": "development" }, "defaultSung": false }
   ]
 }
 ```

@@ -1,13 +1,23 @@
 {
 "schemaVersion": 1,
 "id": "section", "axis": "E", "label": "構成のセクション", "structure": "flat",
+"groups": [
+{"id": "common", "label": "共通"},
+{"id": "vocal", "label": "歌もの向け"},
+{"id": "instrumental", "label": "インスト向け"}
+],
 "items": [
-{"id": "intro", "label": "イントロ", "term": {"en": "intro"}},
-{"id": "theme", "label": "主題提示", "term": {"en": "main theme"}},
-{"id": "development", "label": "展開部", "term": {"en": "development"}},
-{"id": "interlude", "label": "間奏", "term": {"en": "interlude"}},
-{"id": "climax", "label": "クライマックス", "term": {"en": "climax"}},
-{"id": "bridge", "label": "ブリッジ（つなぎ）", "term": {"en": "bridge"}},
-{"id": "outro", "label": "アウトロ", "term": {"en": "outro"}}
+{"id": "intro", "label": "イントロ", "group": "common", "term": {"en": "intro"}, "defaultSung": false},
+{"id": "interlude", "label": "間奏", "group": "common", "term": {"en": "interlude"}, "defaultSung": false},
+{"id": "transition", "label": "つなぎ", "group": "common", "term": {"en": "transition"}, "defaultSung": false},
+{"id": "climax", "label": "クライマックス", "group": "common", "term": {"en": "climax"}, "defaultSung": false},
+{"id": "outro", "label": "アウトロ", "group": "common", "term": {"en": "outro"}, "defaultSung": false},
+{"id": "verse", "label": "Aメロ", "group": "vocal", "term": {"en": "verse"}, "defaultSung": true},
+{"id": "pre-chorus", "label": "Bメロ", "group": "vocal", "term": {"en": "pre-chorus"}, "defaultSung": true},
+{"id": "chorus", "label": "サビ", "group": "vocal", "term": {"en": "chorus"}, "defaultSung": true},
+{"id": "post-chorus", "label": "サビ直後", "group": "vocal", "term": {"en": "post-chorus"}, "defaultSung": true},
+{"id": "bridge", "label": "Cメロ（ブリッジ）", "group": "vocal", "term": {"en": "bridge"}, "defaultSung": true},
+{"id": "theme", "label": "主題提示", "group": "instrumental", "term": {"en": "main theme"}, "defaultSung": false},
+{"id": "development", "label": "展開部", "group": "instrumental", "term": {"en": "development"}, "defaultSung": false}
 ]
 }

@@ -166,7 +166,7 @@ case("F0: axes の値がオブジェクトでない（例外で落ちない）",
 # ---------------------------------------------------------------------------
 # F8 schemaVersion（新しい版・古い版は拒否し、それ以降を検証しない）
 # ---------------------------------------------------------------------------
-case("F8: 楽曲データの版が新しい", song(lambda x: x.update(schemaVersion=2)),
+case("F8: 楽曲データの版が新しい", song(lambda x: x.update(schemaVersion=3)),
      has=["F8 新しい版"], lacks=["F6", "F2", "S1"])
 case("F8: 楽曲データの版が古い", song(lambda x: x.update(schemaVersion=0)), has=["F8 古い版"])
 case("F8: 楽曲データの版が整数でない", song(lambda x: x.update(schemaVersion="1")),
@@ -174,7 +174,7 @@ case("F8: 楽曲データの版が整数でない", song(lambda x: x.update(sche
 case("F8: エクスポートファイルの版が新しい", export(lambda x: x.update(schemaVersion=3)),
      has=["F8 新しい版"], lacks=["[プロファイル「"])
 case("F8: プロファイルの data の版が新しい（外側の版とは別に判定する）",
-     in_export(lambda d: d.update(schemaVersion=2)),
+     in_export(lambda d: d.update(schemaVersion=3)),
      has=["F8 新しい版", "[プロファイル「和風戦闘BGM」]"], lacks=["F1 スキーマ違反"])
 case("F8: ストアの版が新しい", dict(store(), schemaVersion=3), has=["F8 新しい版（3。このツールが読めるのは 2 まで）"])
 case("F8: エクスポートファイルの版が古い（移行が未定義）", export(lambda x: x.update(schemaVersion=0)),
@@ -297,24 +297,21 @@ case("F6: 依頼が2件", song(lambda x: second_request(x)),
 # ---------------------------------------------------------------------------
 # F12 vocalMode と lyricsAuthor の整合（L-01a。input-items.md 判断ポイント20。宿題38で F6 から分離）
 # ---------------------------------------------------------------------------
-def vocal_axes(structure_state="delegated"):
-    """歌あり対応で必要な axes の更新（歌詞関連3項目は①指定）。structure_state が None なら structure は触らず（song.example.json の①指定のまま。S6 の負例用）。"""
-    d = {
+def vocal_axes():
+    """歌あり対応で必要な axes の更新（歌詞の2項目と曲の構成は①指定）。"""
+    return {
         "lyricsTheme": {"state": "specified", "value": "静かな夜に思いを巡らせる物語"},
         "lyricsLanguage": {"state": "specified", "value": "japanese"},
-        "lyricsStructure": {"state": "specified", "value": ["intro", "verse", "chorus", "outro"]},
+        "structure": {"state": "specified", "value": [{"id": "intro", "sung": False}, {"id": "verse", "sung": True}, {"id": "chorus", "sung": True}, {"id": "outro", "sung": False}]},
     }
-    if structure_state is not None:
-        d["structure"] = {"state": structure_state}
-    return d
 
 
-def vocal_song(lyrics_author="chat-ai", structure_state="delegated"):
-    """vocalMode = vocal と、歌詞関連の項目を整えた依頼（既定では正例。structure_state を None にすれば S6 の負例を作れる）。"""
+def vocal_song(lyrics_author="chat-ai"):
+    """vocalMode = vocal と、歌詞関連の項目を整えた依頼（正例）。"""
     def f(x):
         r = req(x)
         r.update(vocalMode="vocal", lyricsAuthor=lyrics_author)
-        r["axes"].update(vocal_axes(structure_state))
+        r["axes"].update(vocal_axes())
     return song(f)
 
 
@@ -333,11 +330,78 @@ case("F1: lyricsAuthor が列挙にない値（F12 とスキーマ違反の両�
 # ---------------------------------------------------------------------------
 # S6 vocalMode で無効になる項目に①指定がある（L-01。宿題38）
 # ---------------------------------------------------------------------------
-case("S6: vocalMode が vocal なのに structure（インスト専用）に①指定がある（song.example.json の structure を残したまま vocal にする）",
-     vocal_song(structure_state=None), has=["S6 vocalMode vocal では無効な項目に①指定がある: structure"])
+case("S6: 曲の構成（structure）はどちらのモードでも有効（S6 の対象でない）", vocal_song(), rc=0, lacks=["S6"])
 case("S6: vocalMode が instrumental（既定値）なのに lyricsTheme（歌あり専用）に①指定がある",
      song(lambda x: req(x)["axes"].update(lyricsTheme={"state": "specified", "value": "例"})),
      has=["S6 vocalMode instrumental では無効な項目に①指定がある: lyricsTheme"])
+
+# ---------------------------------------------------------------------------
+# S4・S7 曲の構成の要素の形と歌の印（UI の判断ポイント73）
+# ---------------------------------------------------------------------------
+def with_structure(value, vocal=False):
+    def f(x):
+        r = req(x)
+        if vocal:
+            r.update(vocalMode="vocal", lyricsAuthor="chat-ai")
+            r["axes"].update(vocal_axes())
+        r["axes"]["structure"] = {"state": "specified", "value": value}
+    return song(f)
+
+
+S4_SECTION = "S4 構成は要素 {id, sung} の空でない並び（id は語彙の語、sung は真偽値）: structure"
+case("S4: 版2 で構成が語彙の id の配列（版1 の形）", with_structure(["intro", "outro"]), has=[S4_SECTION], counts=(1, 0))
+case("S4: 構成が空", with_structure([]), has=[S4_SECTION], counts=(1, 0))
+case("S4: 要素の id が語彙にない", with_structure([{"id": "nope"}]), has=[S4_SECTION], counts=(1, 0))
+case("S4: 要素の id が文字列でない", with_structure([{"id": ["intro"]}]), has=[S4_SECTION], counts=(1, 0))
+case("S4: 要素に未知のキー", with_structure([{"id": "intro", "x": 1}]), has=[S4_SECTION], counts=(1, 0))
+case("S4: sung が真偽値でない", with_structure([{"id": "intro", "sung": "no"}], vocal=True), has=[S4_SECTION], counts=(1, 0))
+case("S4: 新しい id（transition・verse など）はインストでも選べる", with_structure([{"id": "transition"}, {"id": "verse"}]), rc=0, counts=(0, 0))
+case("S4: 古い id ではなく bridge は Cメロとしてそのまま通る（版2）", with_structure([{"id": "bridge"}]), rc=0, counts=(0, 0))
+case("S7: 歌ありで sung がない要素はエラー", with_structure([{"id": "intro", "sung": False}, {"id": "verse"}], vocal=True),
+     has=["S7 歌ありで歌の印（sung）がない要素がある: structure"], counts=(1, 0))
+case("S7: インストで sung がある要素は警告（無視）", with_structure([{"id": "intro", "sung": False}, {"id": "theme"}]),
+     rc=0, has=["S7 インストでは歌の印（sung）は無視される: structure"], counts=(0, 1))
+case("S7: 歌ありで②お任せなら要素がないのでエラーにしない", song(lambda x: (req(x).update(vocalMode="vocal", lyricsAuthor="chat-ai"),
+     req(x)["axes"].update(vocal_axes()), req(x)["axes"].update(structure={"state": "delegated"}))), rc=0, counts=(0, 0))
+case("S1: 版2 で lyricsStructure は未知の項目", song(lambda x: req(x)["axes"].update(lyricsStructure={"state": "delegated"})),
+     has=["S1 未知の項目: lyricsStructure"])
+
+
+# ---------------------------------------------------------------------------
+# 楽曲データの版1 → 2 の移行（song-file.md §6-5。判断ポイント73）
+# ---------------------------------------------------------------------------
+def song_v1(vocal=False, **axes):
+    def f(x):
+        x["schemaVersion"] = 1
+        r = req(x)
+        r["axes"].pop("structure", None)
+        if vocal:
+            r.update(vocalMode="vocal", lyricsAuthor="chat-ai")
+            r["axes"].update(lyricsTheme={"state": "delegated"}, lyricsLanguage={"state": "delegated"})
+        r["axes"].update(axes)
+    return song(f)
+
+
+case("移行: 版1 のインスト（structure）は移行して通る", song_v1(structure={"state": "specified", "value": ["intro", "bridge", "outro"]}),
+     rc=0, counts=(0, 0), has=["移行: 楽曲データの版1 のため、版2 に移行して検証する"])
+case("移行: 版1 の歌あり（lyricsStructure）は移行して通る", song_v1(True, lyricsStructure={"state": "specified", "value": ["intro", "verse", "bridge"]}),
+     rc=0, counts=(0, 0))
+case("移行 (3): 両方を持つ歌ありは lyricsStructure を残す（structure の①指定は捨てる）",
+     song_v1(True, structure={"state": "specified", "value": ["theme"]}, lyricsStructure={"state": "specified", "value": ["verse"]}), rc=0, counts=(0, 0))
+case("移行 (3): 両方を持つインストは structure を残す（lyricsStructure の①指定は捨てる）",
+     song_v1(structure={"state": "specified", "value": ["theme"]}, lyricsStructure={"state": "specified", "value": ["verse"]}), rc=0, counts=(0, 0))
+case("移行: 版1 のインストで lyricsStructure だけが①指定（版1 の S6 エラー）は、移行のあと警告（song-file.md §11）",
+     song_v1(lyricsStructure={"state": "specified", "value": ["verse"]}), rc=0, has=["S7 インストでは歌の印（sung）は無視される: structure"], counts=(0, 1), lacks=["S6"])
+case("移行: 版1 の歌ありで structure だけが①指定（版1 の S6 エラー）は、移行のあと S7 のエラー",
+     song_v1(True, structure={"state": "specified", "value": ["theme"]}), has=["S7 歌ありで歌の印（sung）がない要素がある: structure"], counts=(1, 0), lacks=["S6"])
+case("移行 (4): ②お任せはそのまま", song_v1(True, lyricsStructure={"state": "delegated"}), rc=0, counts=(0, 0))
+case("移行: 版1 の値の形が崩れていれば S4", song_v1(structure={"state": "specified", "value": "intro"}), has=[S4_SECTION], counts=(1, 0))
+case("移行: 版1 の値の要素が文字列でなければ S4", song_v1(structure={"state": "specified", "value": [1]}), has=[S4_SECTION], counts=(1, 0))
+case("移行: 版1 の歌ありで値の要素が配列（語の初期値を引けない形）でも S4", song_v1(True, lyricsStructure={"state": "specified", "value": [["verse"]]}), has=[S4_SECTION], counts=(1, 0), lacks=["F0"])
+case("移行: 版1 の語彙にない id は S4", song_v1(structure={"state": "specified", "value": ["nope"]}), has=[S4_SECTION], counts=(1, 0))
+case("移行: ファイルの中の版1 の data も移行する（外側の版とは別）", in_export(lambda d: (d.update(schemaVersion=1), d["requests"][0]["axes"].update(structure={"state": "specified", "value": ["intro"]}))),
+     rc=0, counts=(0, 0), has=["移行: 楽曲データの版1"])
+
 
 # ---------------------------------------------------------------------------
 # F13 output.requestScope と vocalMode の整合（候補7。input-items.md 判断ポイント28）
@@ -756,8 +820,12 @@ def _(p): del p["screens"][0]["reason"]
 def _(p): op_of(p, "cover")["plan"] = "—"
 
 
-@pcase("P0: 対応先が null なのに status がない", schema=True, has=["P0 スキーマ違反: bindings/3"])
-def _(p): del p["bindings"][3]["status"]
+@pcase("P0: 対応先が null なのに status がない", schema=True, has=["P0 スキーマ違反: bindings/4"])
+def _(p): del p["bindings"][4]["status"]
+
+
+@pcase("P0: vocalMode が列挙にない", schema=True, has=["P0 スキーマ違反: bindings/3/vocalMode"])
+def _(p): p["bindings"][3]["vocalMode"] = "both"
 
 
 @pcase("P0: 上限が confirmed なのに value がない", schema=True, has=["P0 スキーマ違反: fields/0/limit"])
@@ -859,6 +927,18 @@ def _(p): p["bindings"].append({"item": {"kind": "output", "id": "noSuchOutput"}
 
 @pcase("P7: bindings の item が重複", has=["P7 bindings の item が重複: axis:length"])
 def _(p): p["bindings"].append(copy.deepcopy(p["bindings"][0]))
+
+
+@pcase("P7: 同じ項目・同じ vocalMode の binding が重複", has=["P7 bindings の item が重複: axis:structure（vocalMode vocal）"])
+def _(p): p["bindings"].append(copy.deepcopy(next(b for b in p["bindings"] if b.get("vocalMode") == "vocal")))
+
+
+@pcase("P7: 条件付きの binding が片方のモードだけ", has=["P7 条件付きの binding は両方のボーカル区分をそろえる: axis:structure（vocal だけ）"])
+def _(p): p["bindings"][:] = [b for b in p["bindings"] if b.get("vocalMode") != "instrumental"]
+
+
+@pcase("P7: 条件なしと条件ありを同じ項目に混ぜる", has=["P7 条件なしと条件ありの binding を同じ項目に混ぜている: axis:structure"])
+def _(p): p["bindings"].append({"item": {"kind": "axis", "id": "structure"}, "target": None, "route": "text", "status": "pending"})
 
 
 @pcase("P7: パラメータへの対応の route が text", has=["P7 パラメータへの対応の route は uiSetting または both: axis:length"])
@@ -1027,7 +1107,45 @@ def direct_migration():
     return problems
 
 
-DIRECT = [("移行: 版1 → 2 の結果（版2、folders は空、各プロファイルに新しい id と folderId = null）", direct_migration)]
+def direct_song_migration():
+    """楽曲データの版1 → 2 の結果（song-file.md §6-5）。問題のリストを返す（空なら期待どおり）。"""
+    sys.path.insert(0, str(HERE))
+    import check_fields as cf
+    defs = cf.Report()
+    vocabs = cf.load_vocabularies(defs)
+    problems = []
+
+    def check(label, mode, axes, want):
+        src = {"schemaVersion": 1, "requests": [{"id": "r", "vocalMode": mode, "axes": axes}]}
+        before = copy.deepcopy(src)
+        out = cf.migrate_song_1_to_2(src, vocabs)
+        got = out["requests"][0]["axes"]
+        if out["schemaVersion"] != 2 or got != want:
+            problems.append("%s: %r（版 %r）" % (label, got, out["schemaVersion"]))
+        if src != before:
+            problems.append("%s: 引数を書き換えた" % label)
+
+    spec = {"state": "specified"}
+    check("(1) structure。bridge → transition、sung なし", "instrumental", {"structure": dict(spec, value=["intro", "bridge"])},
+          {"structure": dict(spec, value=[{"id": "intro"}, {"id": "transition"}])})
+    check("(2) lyricsStructure。defaultSung から sung。bridge はそのまま", "vocal", {"lyricsStructure": dict(spec, value=["intro", "verse", "bridge", "outro"])},
+          {"structure": dict(spec, value=[{"id": "intro", "sung": False}, {"id": "verse", "sung": True}, {"id": "bridge", "sung": True}, {"id": "outro", "sung": False}])})
+    check("(3) 両方・歌あり", "vocal", {"structure": dict(spec, value=["theme"]), "lyricsStructure": dict(spec, value=["verse"])},
+          {"structure": dict(spec, value=[{"id": "verse", "sung": True}])})
+    check("(3) 両方・インスト", "instrumental", {"structure": dict(spec, value=["bridge"]), "lyricsStructure": dict(spec, value=["verse"])},
+          {"structure": dict(spec, value=[{"id": "transition"}])})
+    check("(3)(4) 歌ありで structure が①、lyricsStructure が②: ②を残す", "vocal", {"structure": dict(spec, value=["theme"]), "lyricsStructure": {"state": "delegated"}},
+          {"structure": {"state": "delegated"}})
+    check("(1) もう一方がなくても当てる（歌ありの structure）", "vocal", {"structure": dict(spec, value=["bridge"])},
+          {"structure": dict(spec, value=[{"id": "transition"}])})
+    check("(2) もう一方がなくても当てる（インストの lyricsStructure）", "instrumental", {"lyricsStructure": dict(spec, value=["bridge"])},
+          {"structure": dict(spec, value=[{"id": "bridge", "sung": True}])})
+    check("どちらもなければ足さない", "vocal", {"notes": {"state": "delegated"}}, {"notes": {"state": "delegated"}})
+    return problems
+
+
+DIRECT = [("移行: 版1 → 2 の結果（版2、folders は空、各プロファイルに新しい id と folderId = null）", direct_migration),
+          ("楽曲データの移行: 版1 → 2 の規則 (1)〜(4)（song-file.md §6-5）", direct_song_migration)]
 
 
 def main():

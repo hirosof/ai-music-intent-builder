@@ -90,6 +90,7 @@
         "id": { "$ref": "#/$defs/id" },
         "label": { "type": "string", "minLength": 1 },
         "group": { "$ref": "#/$defs/id" },
+        "defaultSung": { "description": "歌ありで語を足したときの歌の印の初期値。語彙 section の語だけが持ち、すべての語で必須（build_presets.py の S15。判断ポイント215）", "type": "boolean" },
         "term": { "$ref": "#/$defs/term" },
         "jpNative": { "const": true },
         "aliases": { "$ref": "#/$defs/aliases" },

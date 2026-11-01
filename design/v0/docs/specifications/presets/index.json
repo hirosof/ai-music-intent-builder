@@ -16,7 +16,6 @@
 {"id": "tempo-feel", "file": "tempo-feel.json"},
 {"id": "development-shape", "file": "development-shape.json"},
 {"id": "section", "file": "section.json"},
-{"id": "section-vocal", "file": "section-vocal.json"},
 {"id": "spatial-texture", "file": "spatial-texture.json"},
 {"id": "recording-texture", "file": "recording-texture.json"},
 {"id": "mix-direction", "file": "mix-direction.json"}

@@ -105,6 +105,38 @@ class TestS14(unittest.TestCase):
         self.assertTrue(any(e.startswith("S14 グループなしの語") for e in r.errors), r.errors)
 
 
+class TestS15(unittest.TestCase):
+    """語の属性 defaultSung（判断ポイント215）"""
+
+    def s15(self, vid, items):
+        r = bp.Report()
+        bp.validate_default_sung({"id": vid, "items": items}, r)
+        return r.errors
+
+    def test_ok(self):
+        self.assertEqual(self.s15("section", [{"id": "a", "defaultSung": True}, {"id": "b", "defaultSung": False}]), [])
+        self.assertEqual(self.s15("era", [{"id": "a"}]), [])
+
+    def test_required_in_section(self):
+        errs = self.s15("section", [{"id": "a", "defaultSung": True}, {"id": "b"}])
+        self.assertEqual(len(errs), 1)
+        self.assertIn("defaultSung（真偽値）が必須: b", errs[0])
+
+    def test_must_be_boolean(self):
+        errs = self.s15("section", [{"id": "a", "defaultSung": "yes"}])
+        self.assertIn("defaultSung（真偽値）が必須: a", errs[0])
+
+    def test_only_section(self):
+        errs = self.s15("era", [{"id": "a", "defaultSung": False}])
+        self.assertIn("defaultSung は語彙 section の語だけが持てる: era/a", errs[0])
+
+    def test_validate_runs_s15(self):
+        out = {"schemaVersion": 1, "vocabularies": [{"id": "era", "axis": "B", "label": "x", "structure": "flat", "items": [{"id": "a", "label": "x", "defaultSung": True}]}]}
+        r = bp.Report()
+        bp.validate(out, {}, r)
+        self.assertTrue(any(e.startswith("S15") for e in r.errors), r.errors)
+
+
 class TestCollect(unittest.TestCase):
     """語彙の md の json ブロックから、groups を語彙ごとに取り込む"""
 
@@ -153,7 +185,7 @@ class TestRepository(unittest.TestCase):
         era = next(v for v in out["vocabularies"] if v["id"] == "era")
         self.assertEqual([g["label"] for g in era["groups"]], ["西暦", "和暦"])
         self.assertEqual([i.get("group") for i in era["items"]][:2], [None, "gregorian"])
-        self.assertEqual([v["id"] for v in out["vocabularies"] if "groups" in v], ["era"])
+        self.assertEqual([v["id"] for v in out["vocabularies"] if "groups" in v], ["era", "section"])
         rendered = bp.render("era.json", bp.to_files(out)["era.json"])
         self.assertIn('"groups": [\n{"id": "gregorian", "label": "西暦"},\n', rendered)
 

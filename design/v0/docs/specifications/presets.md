@@ -1,8 +1,8 @@
 # プリセット（語彙）データ仕様
 
 - 作成日: 2026-09-19
-- 状態: 暫定（判断ポイント203〜210・213。承認済みの既定案）
-- 対象: 軸A〜F・G（歌詞の構成セクション。2026-10-16 追加）の語彙（`decisions/vocabulary/` の json ブロック）を、語彙ごとのファイル（`presets/<語彙 id>.json`）と索引（`presets/index.json`）にまとめたもの
+- 状態: 暫定（判断ポイント203〜210・213・215。承認済みの既定案）
+- 対象: 軸A〜F（2026-11-01 まで軸G の `section-vocal` があった。判断ポイント215 で `section` に統合）の語彙（`decisions/vocabulary/` の json ブロック）を、語彙ごとのファイル（`presets/<語彙 id>.json`）と索引（`presets/index.json`）にまとめたもの
 - 関連: `../decisions/presets.md`（選択肢の設計）、`../decisions/vocabulary/README.md`（語彙の選定。判断ポイント203〜210 の記録先）、`../decisions/ui-and-nonfunctional.md` §4-4（保存データ）
 
 ---
@@ -25,7 +25,7 @@
 | `docs/specifications/presets.schema.json` | 語彙ファイル（1語彙分）の JSON Schema（draft 2020-12） | 手書き |
 | `docs/specifications/presets-index.schema.json` | `index.json` の JSON Schema | 手書き |
 | `docs/specifications/presets/index.json` | 生成物。語彙ファイルの一覧（順序つき） | **手で編集しない** |
-| `docs/specifications/presets/<語彙 id>.json` | 生成物。**1語彙1ファイル**（19ファイル。2026-10-16 に `section-vocal` を追加） | **手で編集しない** |
+| `docs/specifications/presets/<語彙 id>.json` | 生成物。**1語彙1ファイル**（18ファイル。2026-10-16 に `section-vocal` を追加、2026-11-01 に `section` へ統合して外した） | **手で編集しない** |
 | `tools/build-presets/build_presets.py` | 統合と検証のスクリプト（Python 標準ライブラリのみ。jsonschema があればスキーマ検証も行う） | 手書き |
 
 ### 生成の向き（判断ポイント203）
@@ -59,7 +59,6 @@ presets/
   emotion.json  intensity.json  brightness.json
   instrument.json  voice-treatment.json  ensemble-size.json
   tempo-feel.json  development-shape.json  section.json
-  section-vocal.json（軸G。2026-10-16 追加）
   spatial-texture.json  recording-texture.json  mix-direction.json
 ```
 
@@ -80,7 +79,7 @@ presets/
 | フィールド | 必須 | 内容 |
 |---|---|---|
 | `id` | ○ | 語彙 id（小文字ケバブ） |
-| `axis` | ○ | `A`〜`G`（`input-items.md` §0。`G` は歌詞の構成セクション `section-vocal` だけ。2026-10-16 追加） |
+| `axis` | ○ | `A`〜`G`（`input-items.md` §0。`G` を使う語彙は、`section-vocal` を統合した 2026-11-01 から、ない。判断ポイント215） |
 | `label` | ○ | 語彙の表示名（仮） |
 | `structure` | ○ | `categorized`（カテゴリを持つ）／ `flat`（持たない） |
 | `categories` | categorized のとき必須。flat では持てない | §2-3 |
@@ -116,6 +115,7 @@ presets/
 | `defaultVisible` | — | `false` のときだけ書く（省略は表示）。`exclusion` と対 |
 | `exclusion` | `defaultVisible: false` のとき必須 | §2-5 |
 | `group` | — | flat 語彙で、語彙が `groups` を持つときだけ書ける。所属するグループの id。省略した語はグループなし（2026-10-28 追加。判断ポイント214） |
+| `defaultSung` | `section` で必須。ほかの語彙では持てない | 真偽値。歌ありで、その語を足したときの歌の印の初期値と、版1 の `lyricsStructure` を移行するときの印（2026-11-01 追加。判断ポイント215。UI の判断ポイント73・74） |
 
 ### 2-5. 除外情報（exclusion）
 
@@ -158,7 +158,7 @@ presets/
 
 ---
 
-## 3. 語彙の一覧（2026-09-19 時点。2026-10-18 に `section-vocal` を追記。2026-10-28 に `era` を更新〔判断ポイント214〕）
+## 3. 語彙の一覧（2026-09-19 時点。2026-10-18 に `section-vocal` を追記。2026-10-28 に `era` を更新〔判断ポイント214〕。2026-11-01 に `section` を12語・3グループにし `section-vocal` を外した〔判断ポイント215〕）
 
 | 語彙 id | 軸 | 構造 | 表示 / 非表示 | ソース |
 |---|---|---|---|---|
@@ -176,12 +176,11 @@ presets/
 | `ensemble-size` | D | flat | 3 / 0 | `small-choices.md` |
 | `tempo-feel` | E | flat | 5 / 0 | `temporal-structure.md` |
 | `development-shape` | E | flat | 4 / 0 | `temporal-structure.md` |
-| `section` | E | flat | 7 / 0 | `temporal-structure.md` |
-| `section-vocal` | G | flat | 7 / 0 | `lyrics.md` |
+| `section` | E | flat | 12 / 0 | `temporal-structure.md` |
 | `spatial-texture` | F | flat | 7 / 0 | `production-quality.md` |
 | `recording-texture` | F | flat | 7 / 0 | `production-quality.md` |
 | `mix-direction` | F | flat | 6 / 0 | `production-quality.md` |
-| 計 | | | 448 / 190（638語） | |
+| 計 | | | 451 / 190（641語） | |
 
 語彙 id は、ソースの疑似カテゴリ（§4-2）をそのまま流用したもの（上記のうち、`genre`・`instrument` と少数の択一項目の7語彙は新設）。少数の択一項目の7語彙は `small-choices.md` にまとめている（§9）。
 
@@ -193,7 +192,7 @@ presets/
 
 - 語の識別は「語彙＋id」。**id の名前空間は語彙ごと**
 - 語彙をまたぐ同一 id は、ジャンル側が `other-axis` で、行き先の語彙に同名の語があるときだけ許す。例外リストは `celtic`（`region-style`）と `game-music`（`usage`）の2件。リストは `build_presets.py` の `ALLOWED_CROSS_VOCAB`
-- もう1種類の例外として、**同じ構成の概念をインスト用と歌あり用の別の語彙として持つ組**（`section` と `section-vocal`）では、両方の語彙にある id（`intro`・`bridge`・`outro`）を、`term.en` が一致するときだけ許す（ラベルは違ってよい）。リストは `build_presets.py` の `ALLOWED_SHARED_VOCABS`（判断ポイント213）
+- ~~もう1種類の例外として、**同じ構成の概念をインスト用と歌あり用の別の語彙として持つ組**（`section` と `section-vocal`）では、両方の語彙にある id（`intro`・`bridge`・`outro`）を、`term.en` が一致するときだけ許す（ラベルは違ってよい）。リストは `build_presets.py` の `ALLOWED_SHARED_VOCABS`（判断ポイント213）~~ → 2026-11-01、語彙を `section` に統合して、この例外を外した（判断ポイント215）
 - **同一語彙の同じ id を複数ファイルが定義してよい**。全フィールドが一致するときだけ1語に統合し、不一致は生成エラー。現状は `electric-guitar` と `electric-bass`（`guitar-bass.md` と `electric.md`）の2語
 
 ### 4-2. フラット語彙の `categories`（判断ポイント206）
@@ -245,6 +244,7 @@ flat 語彙の表示順は配列順。
 | S12 | 各語彙ファイルを `presets.schema.json` で、`index.json` を `presets-index.schema.json` で検証（jsonschema がインストールされている場合） |
 | S13 | `term` の言語キーは `en` のみ。`jpNative` は `true` のときだけ |
 | S14 | `groups` は flat 語彙だけが持てる。グループ id は V-08 の形式で語彙内で一意、`label` は空でない。語の `group` は定義済みのグループで、`groups` のない語彙の語は `group` を持てない。グループなしの語は、グループのある語より前に並ぶ。同じグループの語は連続し、グループの並びは `groups` の順。語が1つもないグループはエラー（2026-10-28 追加。判断ポイント214） |
+| S15 | `defaultSung` は語彙 `section` の語だけが持ち、`section` のすべての語で真偽値が必須（2026-11-01。判断ポイント215） |
 
 S11 は欠番。語数のスナップショットは検証しない（語彙の追加・非表示化は通常の作業のため）。生成時に内訳を表示する。
 
@@ -304,7 +304,8 @@ S11 は欠番。語数のスナップショットは検証しない（語彙の�
 | 208 | 表示順 | `itemOrder` を規則で生成。上書きは日本・東アジア系の1件（§4-4） |
 | 209 | 除外情報の非対称 | スキーマは全語彙で対称。`kind` の性質は導出。`substitute`・`targetAxis` はテキストのまま（§2-5） |
 | 210 | 少数の択一項目 | スキーマは同じ形で受ける。中身は `small-choices.md`（7語彙・30語）。「しない」の値（`no-voice`・`no-era`・`no-playback`）を、概念が曲になくてよい項目にだけ持たせる（§9） |
-| 213 | 語彙をまたぐ同一 id の例外の追加 | `section` と `section-vocal` を、共有を許す組にする。両方にある id は `term.en` が一致するときだけ許す（§4-1。`decisions/vocabulary/README.md` §5） |
+| 213 | 語彙をまたぐ同一 id の例外の追加 | `section` と `section-vocal` を、共有を許す組にする。両方にある id は `term.en` が一致するときだけ許す（§4-1。`decisions/vocabulary/README.md` §5）。→ 2026-11-01、判断ポイント215 で外した |
+| 215 | 構成のセクションの語彙の統合 | `section-vocal` を `section` に統合（12語・3グループ）。`bridge` は Cメロ、つなぎは新しい id `transition`。語の属性 `defaultSung`（S15）。決定と根拠は `decisions/vocabulary/README.md` §5 |
 
 ---
 
