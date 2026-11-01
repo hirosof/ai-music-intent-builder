@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 2,
+  "requests": [
+    {
+      "id": "r1",
+      "toolId": "suno",
+      "toolVersion": "v6",
+      "generationType": "new",
+      "vocalMode": "vocal",
+      "lyricsAuthor": "chat-ai",
+      "derivedFrom": null,
+      "axes": {
+        "purpose": { "state": "delegated" },
+        "purposeDetail": { "state": "delegated" },
+        "listeningEnvironment": { "state": "delegated" },
+        "mainGenre": { "state": "specified", "value": "ondo" },
+        "subGenres": { "state": "delegated" },
+        "regionStyles": { "state": "specified", "choices": { "japanese": "use" } },
+        "styleLean": { "state": "specified", "value": "traditional" },
+        "era": { "state": "specified", "value": "no-era" },
+        "mood": { "state": "specified", "choices": { "mysterious": "use", "valiant": "use" } },
+        "intensity": { "state": "delegated" },
+        "brightness": { "state": "specified", "value": "bright" },
+        "leadInstruments": { "state": "delegated" },
+        "accompanimentInstruments": { "state": "delegated" },
+        "rhythmInstruments": { "state": "delegated" },
+        "voiceTreatment": { "state": "delegated" },
+        "ensembleSize": { "state": "specified", "value": "large-ensemble" },
+        "length": { "state": "specified", "value": 260 },
+        "tempoFeel": { "state": "specified", "value": "fast" },
+        "bpm": { "state": "delegated" },
+        "developmentShape": { "state": "delegated" },
+        "spatialTexture": { "state": "delegated" },
+        "recordingTexture": { "state": "delegated" },
+        "mixDirection": { "state": "delegated" },
+        "lyricsTheme": { "state": "specified", "value": "盆踊り" },
+        "lyricsLanguage": { "state": "specified", "value": "japanese" },
+        "structure": { "state": "specified", "value": [{ "id": "intro", "sung": false }, { "id": "verse", "sung": true }, { "id": "pre-chorus", "sung": true }, { "id": "chorus", "sung": true }, { "id": "interlude", "sung": false }, { "id": "verse", "sung": true }, { "id": "bridge", "sung": true }, { "id": "transition", "sung": false }, { "id": "chorus", "sung": true }, { "id": "outro", "sung": false }] },
+        "exclusions": { "state": "delegated" },
+        "notes": { "state": "delegated" }
+      },
+      "output": {
+        "variantCount": 4,
+        "diffAxis": "interpretation",
+        "granularity": ["basic", "detailed"],
+        "variation": "standard",
+        "outputLanguage": "mixed",
+        "titleSuggestions": true,
+        "titleCount": 4,
+        "recommendParams": {},
+        "requestScope": "combined"
+      }
+    }
+  ]
+}

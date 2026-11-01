@@ -38,7 +38,7 @@ docs/
 │       ├── temporal-structure.md 時間的な構造（軸E）の語彙
 │       ├── production-quality.md 制作・質感（軸F）の語彙
 │       ├── small-choices.md     少数の択一項目7つ（軸A〜D）の語彙
-│       └── lyrics.md        歌詞の構成セクション（軸G。`section-vocal`。L-01、2026-10-16）の語彙
+│       └── lyrics.md        歌詞の構成セクション（`section-vocal`。L-01、2026-10-16。2026-11-01 に `temporal-structure.md` §3 へ統合。記録として残す）
 ├── examples/                 依頼文のレンダリング例、検証観点、検証結果
 │   ├── inputs/               レンダリング例の入力（楽曲データ JSON）。アプリの生成器の照合に使う（2026-10-18〜）。`*.generated.txt` は生成器の出力（例の元。生成物）
 │   ├── rendered-06-input-songs/  `-04` の入力と `-06` の A〜D の楽曲データ JSON（5件。`-06` §8-2 の確認の再現用。宿題39）
@@ -59,6 +59,7 @@ docs/
 │   ├── rendered-11-new-vocal-lyrics-instruction-r2.md  新規生成・歌あり（作詞AIへの指示文）。R-2 反映後の再検証用（`-08` と同一入力。6モデルで検証済み）
 │   ├── rendered-12-new-vocal-lyrics-instruction-auto.md  新規生成・歌あり（作詞AIへの指示文）・長さ Auto。R-5・T-02・Auto 経路の検証用（`-11` と同一入力で長さだけ Auto。6モデルで検証済み）
 │   ├── rendered-13-new-instrumental-freetext-all-english.md  新規生成・インスト・出力言語＝すべて英語。自由記述・BPM 範囲・Max モード推奨・R-6 の確認用。入力 `inputs/rendered-13.json`、依頼文は生成器の出力。6モデルで検証済み
+│   ├── rendered-15-new-vocal-unsung-sections.md  新規生成・歌あり（チャットAIが作詞）・歌なしのセクションと Cメロ。曲の構成の統合（文面の判断ポイント50）の確認用。入力 `inputs/rendered-15.json`（`-14` と曲の構成だけが違う）。**未検証**
 │   ├── rendered-14-new-vocal-chat-ai-japanese-kanji.md  新規生成・歌あり（チャットAIが作詞）・歌詞の言語①日本語。日本語の歌詞の表記（判断ポイント49）の再検証用。入力 `inputs/rendered-14.json`、依頼文は生成器の出力。6モデルで検証済み（2026-10-28）
 │   ├── chat-test-01-jp-lyrics-kanji.md    チャットAIでのお試し（2026-10-27。日本語の歌詞の漢字・かな・振り仮名。7条件×6モデル）の記録と計測。判断ポイント49 の根拠
 │   ├── suno-test-01-granularity.md        Suno での検証（H-07）
