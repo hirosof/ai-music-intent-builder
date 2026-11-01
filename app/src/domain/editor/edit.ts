@@ -244,6 +244,14 @@ export function moveSection<T>(list: readonly T[], index: number, delta: -1 | 1)
   return out
 }
 
+/** from の行を to の位置へ動かす（ドラッグ。UI 判断ポイント76）。範囲外はそのまま */
+export function moveSectionTo<T>(list: readonly T[], from: number, to: number): T[] {
+  const out = [...list]
+  if (from < 0 || from >= out.length || to < 0 || to >= out.length) return out
+  out.splice(to, 0, out.splice(from, 1)[0]!)
+  return out
+}
+
 export function removeSection<T>(list: readonly T[], index: number): T[] {
   if (list.length <= 1) return [...list]
   return list.filter((_, i) => i !== index)

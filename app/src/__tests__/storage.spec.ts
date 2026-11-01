@@ -79,9 +79,9 @@ describe('ファクトリープロファイル', () => {
 })
 
 describe('localStorage のキー', () => {
-  it('キーは3つで、接頭辞を持つ（song-file.md §8）', () => {
+  it('キーは4つで、接頭辞を持つ（song-file.md §8）', () => {
     const keys = Object.values(STORAGE_KEYS)
-    expect(new Set(keys).size).toBe(3)
+    expect(new Set(keys).size).toBe(4)
     for (const k of keys) expect(k.startsWith('ai-music-intent-builder/')).toBe(true)
   })
 

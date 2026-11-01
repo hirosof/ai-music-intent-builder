@@ -1,12 +1,17 @@
 <script setup lang="ts">
-// 曲の構成（U4b の決定 K6。UI 判断ポイント74）: 並びの行ごとに「上へ」「下へ」「削除」、末尾に「追加」。ドラッグはしない。
+// 曲の構成（U4b の決定 K6。UI 判断ポイント74〜76）: 並びの行ごとに「上へ」「下へ」「削除」、末尾に「追加」。
+// 行の先頭のハンドルからドラッグでも並び替えられる（判断ポイント76）。
 // 空の並びはデータに入れない（最後の1つは消せない。①をやめるときは状態を切り替える）。
-// 歌ありのときだけ、各行に歌の印の切り替えを出す（押すと歌あり／歌なしが入れ替わる）。追加の選択肢は語彙のグループごとに見出しを付ける
-import { computed, ref } from 'vue'
+// 歌ありのときだけ、各行に歌の印の切り替えを出す（押すと歌あり／歌なしが入れ替わる）。追加の選択肢は語彙のグループごとに見出しを付ける。
+// 「ひな型として保存」「ひな型から読み込む」は判断ポイント75
+import { useSortable } from '@vueuse/integrations/useSortable'
+import type { SortableEvent } from 'sortablejs'
+import { computed, ref, useTemplateRef, watch } from 'vue'
 import { spec } from '@/data/spec'
 import { usePendingSpecified } from '@/composables/usePendingSpecified'
 import {
   moveSection,
+  moveSectionTo,
   newSection,
   removeSection,
   selectMenu,
@@ -14,10 +19,17 @@ import {
   stateOptions,
   toggleSung,
 } from '@/domain/editor/edit'
-import { termLabel } from '@/domain/editor/display'
+import { displaySections, termLabel } from '@/domain/editor/display'
+import {
+  sectionsForTemplate,
+  sectionsFromTemplate,
+  type StructureTemplate,
+} from '@/domain/storage/structure-templates'
 import type { FieldDef } from '@/domain/types/fields'
 import type { SectionElement, SongRequest } from '@/domain/types/song'
 import StateToggle from './StateToggle.vue'
+import TemplateLoadDialog from './TemplateLoadDialog.vue'
+import TemplateSaveDialog from './TemplateSaveDialog.vue'
 
 const props = defineProps<{ field: FieldDef; request: SongRequest }>()
 
@@ -60,6 +72,42 @@ function add(id: string) {
   write([...list.value, newSection(spec, props.request, id)])
   addKey.value++
 }
+
+// ドラッグでの並び替え（判断ポイント76）。Sortable が動かした行を元の位置に戻してから値を書き、DOM は Vue に任せる。
+// 末尾の行は v-for の終わりの目印の前に戻す（目印より後ろに置くと、次の追加で順序が崩れる）
+function onDragUpdate(e: SortableEvent) {
+  const { item, from, oldIndex, newIndex } = e
+  if (oldIndex === undefined || newIndex === undefined) return
+  item.remove()
+  from.insertBefore(item, from.children[oldIndex] ?? from.lastElementChild?.nextSibling ?? null)
+  write(moveSectionTo(list.value, oldIndex, newIndex))
+}
+const listEl = useTemplateRef<HTMLElement>('listEl')
+const { option: sortableOption } = useSortable(listEl, list, {
+  handle: '[data-drag-handle]',
+  animation: 150,
+  // マウスでもタッチと同じ動きにする（ポップアップの中でネイティブの DnD に頼らない）
+  forceFallback: true,
+  disabled: disabled.value,
+  onUpdate: onDragUpdate,
+})
+watch(disabled, (v) => sortableOption('disabled', v))
+
+// 構成のひな型（判断ポイント75）
+const saveOpen = ref(false)
+const loadOpen = ref(false)
+const canSaveTemplate = computed(() => !disabled.value && list.value.length > 0)
+const templateSections = computed(() =>
+  sectionsForTemplate(spec, list.value, props.request.vocalMode),
+)
+const label = (sections: readonly SectionElement[]) =>
+  displaySections(spec, props.field, sections, vocal.value)
+function templateLabel(t: StructureTemplate) {
+  return label(sectionsFromTemplate(spec, t.sections, props.request.vocalMode))
+}
+function applyTemplate(t: StructureTemplate) {
+  write(sectionsFromTemplate(spec, t.sections, props.request.vocalMode))
+}
 </script>
 
 <template>
@@ -70,8 +118,10 @@ function add(id: string) {
       :testid="`state-${field.id}`"
       @update:model-value="selectState"
     />
+    <!-- Sortable を要素に結び付けたままにするため、v-if にしない -->
     <ol
-      v-if="list.length"
+      v-show="list.length"
+      ref="listEl"
       class="space-y-1"
       :class="disabled && 'opacity-50'"
       :data-testid="`sections-${field.id}`"
@@ -79,8 +129,21 @@ function add(id: string) {
       <li
         v-for="(section, i) in list"
         :key="`${i}-${section.id}`"
-        class="flex flex-wrap items-center gap-2"
+        class="flex flex-wrap items-center gap-2 bg-default"
       >
+        <!-- つかむ所（判断ポイント76）。キーボード・読み上げは「上へ」「下へ」で操作するので、読み上げからは隠す。
+             data-vaul-no-drag: スマホ幅のドロワーが、ここからのドラッグを閉じる操作と取り違えないように -->
+        <span
+          data-drag-handle
+          data-vaul-no-drag
+          aria-hidden="true"
+          title="ドラッグで並び替え"
+          class="flex size-7 shrink-0 touch-none items-center justify-center rounded text-muted"
+          :class="disabled ? 'cursor-not-allowed' : 'cursor-grab hover:bg-elevated'"
+          :data-testid="`handle-${field.id}-${i}`"
+        >
+          <UIcon name="i-lucide-grip-vertical" class="size-4" />
+        </span>
         <span class="w-6 text-right text-sm text-muted">{{ i + 1 }}.</span>
         <span class="min-w-24 flex-1 text-sm">{{ termLabel(spec, field, section.id) }}</span>
         <UButton
@@ -135,5 +198,33 @@ function add(id: string) {
     <p v-if="isPending" class="text-xs text-muted" :data-testid="`pending-hint-${field.id}`">
       値を入力すると指定になります
     </p>
+    <div class="flex flex-wrap gap-2">
+      <UButton
+        size="xs"
+        color="neutral"
+        variant="outline"
+        icon="i-lucide-bookmark-plus"
+        label="ひな型として保存"
+        :disabled="!canSaveTemplate"
+        data-testid="template-save-open"
+        @click="saveOpen = true"
+      />
+      <UButton
+        size="xs"
+        color="neutral"
+        variant="outline"
+        icon="i-lucide-bookmark"
+        label="ひな型から読み込む"
+        data-testid="template-load-open"
+        @click="loadOpen = true"
+      />
+    </div>
+    <TemplateSaveDialog v-model:open="saveOpen" :sections="templateSections" :label="label(list)" />
+    <TemplateLoadDialog
+      v-model:open="loadOpen"
+      :has-current="list.length > 0"
+      :label-of="templateLabel"
+      @select="applyTemplate"
+    />
   </div>
 </template>

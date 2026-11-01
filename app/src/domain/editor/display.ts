@@ -2,7 +2,7 @@
 // ②お任せも省略せずに出し、①指定以外は淡く表示する（RP-02）。表示名は語彙・fields.json・ツールプロファイルから取る
 import type { Spec } from '../spec'
 import type { FieldDef, OutputDef, StateId } from '../types/fields'
-import type { AxisValue, LyricsAuthor, SongRequest, VocalMode } from '../types/song'
+import type { AxisValue, LyricsAuthor, SectionElement, SongRequest, VocalMode } from '../types/song'
 
 export interface DisplayValue {
   state: StateId
@@ -40,6 +40,18 @@ const UNSUNG_MARK = '（歌なし）'
 const formatSeconds = (sec: number) =>
   `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`
 
+/** 曲の構成の並びの表示（表示名を「 → 」でつなぐ。歌ありのときは「（歌なし）」も。判断ポイント74 の細部 (c)） */
+export function displaySections(
+  spec: Spec,
+  field: FieldDef,
+  sections: readonly SectionElement[],
+  vocal: boolean,
+): string {
+  return sections
+    .map((x) => termLabel(spec, field, x.id) + (vocal && x.sung === false ? UNSUNG_MARK : ''))
+    .join(' → ')
+}
+
 function formatSpecified(spec: Spec, field: FieldDef, a: AxisValue, vocal: boolean): string {
   const parts: string[] = []
   const v = a.value
@@ -68,14 +80,7 @@ function formatSpecified(spec: Spec, field: FieldDef, a: AxisValue, vocal: boole
       if (typeof v === 'number') parts.push(formatSeconds(v))
       break
     case 'sectionList':
-      if (Array.isArray(v))
-        parts.push(
-          v
-            .map(
-              (x) => termLabel(spec, field, x.id) + (vocal && x.sung === false ? UNSUNG_MARK : ''),
-            )
-            .join(' → '),
-        )
+      if (Array.isArray(v)) parts.push(displaySections(spec, field, v, vocal))
       break
   }
   if (field.freeText && a.freeText?.trim()) parts.push(`自由記述: ${a.freeText.trim()}`)

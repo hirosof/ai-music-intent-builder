@@ -6,6 +6,11 @@ import { loadSaved, type LoadResult } from '@/domain/storage/load'
 import { normalizeForSave } from '@/domain/storage/normalize'
 import { emptyStore, toJsonText } from '@/domain/storage/profiles'
 import {
+  checkTemplateStore,
+  loadTemplateStore,
+  type StructureTemplateStore,
+} from '@/domain/storage/structure-templates'
+import {
   createUiSettingsValidator,
   loadUiSettings,
   type UiSettings,
@@ -20,6 +25,7 @@ export const STORAGE_KEYS = {
   song: 'ai-music-intent-builder/song',
   profiles: 'ai-music-intent-builder/profiles',
   uiSettings: 'ai-music-intent-builder/ui-settings',
+  structureTemplates: 'ai-music-intent-builder/structure-templates',
 } as const
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS]
@@ -127,6 +133,45 @@ export function commitProfileStore(state: ProfileStoreState, next: ProfileStore)
   if (!w.ok)
     return { ok: false, reason: 'storage', errors: [`localStorage に書けない: ${w.error}`] }
   return { ok: true, state: { status: 'ok', store: next, warnings: check.warnings } }
+}
+
+// ---------------------------------------------------------------------------
+// 構成のひな型のストア（song-file.md §13。判断ポイント75。拒否したストアには書き込まない）
+// ---------------------------------------------------------------------------
+
+export type TemplateStoreState =
+  | { status: 'ok'; store: StructureTemplateStore }
+  | { status: 'rejected'; errors: string[] }
+
+/** ひな型のストアを開く。値がなければ空のストア。拒否したら、そのストアには書き込めない状態になる */
+export function openTemplateStore(): TemplateStoreState {
+  const r = readStorage(STORAGE_KEYS.structureTemplates)
+  if (!r.ok) return { status: 'rejected', errors: [`localStorage を読めない: ${r.error}`] }
+  const loaded = loadTemplateStore(spec, r.text)
+  return loaded.ok
+    ? { status: 'ok', store: loaded.store }
+    : { status: 'rejected', errors: loaded.errors }
+}
+
+export type TemplateCommit =
+  | { ok: true; state: TemplateStoreState }
+  | { ok: false; errors: string[] }
+
+/** ひな型のストアに書き込む。拒否したストアには書き込まない。書き込む前に検査する */
+export function commitTemplateStore(
+  state: TemplateStoreState,
+  next: StructureTemplateStore,
+): TemplateCommit {
+  if (state.status === 'rejected')
+    return {
+      ok: false,
+      errors: ['ひな型のストアを読み込めなかったため、書き込まない', ...state.errors],
+    }
+  const errors = checkTemplateStore(spec, next)
+  if (errors.length > 0) return { ok: false, errors }
+  const w = writeStorage(STORAGE_KEYS.structureTemplates, toJsonText(next))
+  if (!w.ok) return { ok: false, errors: [`localStorage に書けない: ${w.error}`] }
+  return { ok: true, state: { status: 'ok', store: next } }
 }
 
 // ---------------------------------------------------------------------------
