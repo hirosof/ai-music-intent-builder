@@ -1,7 +1,9 @@
 // UI 設定（song-file.md §5、ui-and-nonfunctional.md §4-6）。語ごとの表示の有無を、語彙の既定値から変えたものだけ持つ。
 // 版の不一致・スキーマ違反は破棄する（移行は設けない。U3 の決定 I8）。不明な語彙 id・語 id は、データから消さず、使うときに無視する
 import Ajv2020, { type ValidateFunction } from 'ajv/dist/2020'
-import { SUPPORTED_SCHEMA_VERSION } from '../validation/check-saved'
+
+/** UI 設定の版。楽曲データ・ストアの版とは独立（song-file.md §6） */
+const UI_SETTINGS_SCHEMA_VERSION = 1
 
 export interface UiSettings {
   schemaVersion: number
@@ -9,7 +11,7 @@ export interface UiSettings {
 }
 
 export function defaultUiSettings(): UiSettings {
-  return { schemaVersion: SUPPORTED_SCHEMA_VERSION, termVisibility: {} }
+  return { schemaVersion: UI_SETTINGS_SCHEMA_VERSION, termVisibility: {} }
 }
 
 export function createUiSettingsValidator(schema: object): ValidateFunction {
@@ -39,7 +41,7 @@ export function loadUiSettings(text: string | null, validate: ValidateFunction):
     typeof obj === 'object' && obj !== null
       ? (obj as { schemaVersion?: unknown }).schemaVersion
       : undefined
-  if (version !== SUPPORTED_SCHEMA_VERSION) return discard(`版が違う: ${JSON.stringify(version)}`)
+  if (version !== UI_SETTINGS_SCHEMA_VERSION) return discard(`版が違う: ${JSON.stringify(version)}`)
   if (!validate(obj)) return discard('スキーマに適合しない')
   return { status: 'ok', settings: obj as UiSettings }
 }

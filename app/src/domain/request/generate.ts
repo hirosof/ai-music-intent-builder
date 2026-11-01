@@ -1,7 +1,7 @@
 // 依頼文の生成器（純関数）。楽曲データの依頼1件＋仕様 → 依頼文（markdown の文字列）。
 // 文面の正は request-text.md（逐語的に再現する）、出力条件とデータの出所は request-blocks.md、描画規則は request-blocks.md §12。
 // 節番号は描画時に、出力する節だけで振る（request-text.md 判断ポイント6）。
-import { profileParam, type Spec } from '../spec'
+import { profileParam, STRUCTURE_FIELD_ID, type Spec } from '../spec'
 import type { Param, ToolField, ToolProfile } from '../types/tool-profile'
 import type { SongRequest } from '../types/song'
 import { isSpecifiedEmpty } from '../validation/check-saved'
@@ -270,10 +270,9 @@ export function generateRequestText({ spec, req }: GenerateInput): string {
 
   const lengthField = spec.fieldById.get('length')
   const lengthAuto = lengthField ? effectiveState(ctx, lengthField) === 'toolManaged' : false
-  const lyricsStructureSpecified =
-    vocal &&
-    spec.fieldById.has('lyricsStructure') &&
-    effectiveState(ctx, spec.fieldById.get('lyricsStructure')!) === 'specified'
+  const structureField = spec.fieldById.get(STRUCTURE_FIELD_ID)
+  const structureSpecified =
+    vocal && structureField !== undefined && effectiveState(ctx, structureField) === 'specified'
 
   const variantCount = ctx.out('variantCount')
   if (typeof variantCount !== 'number') throw new GenerationError('案の数が数値でない')
@@ -516,8 +515,8 @@ export function generateRequestText({ spec, req }: GenerateInput): string {
         vocal &&
           `- 今回は歌入りです。歌唱の質感や歌い方、歌い手の性別は、§6 に指定がない限りスタイル欄に書かないでください。歌い手の性別は ${T} 側の設定で決めます。`,
         vocal &&
-          lyricsStructureSpecified &&
-          '- スタイル欄の「展開」の記述は、§6 の「歌詞の構成」と矛盾しないようにしてください（例: 歌詞にブリッジがないのに、展開にブリッジを書かない）。',
+          structureSpecified &&
+          '- スタイル欄の「展開」の記述は、§6 の「曲の構成」と矛盾しないようにしてください（例: 歌詞にブリッジがないのに、展開にブリッジを書かない）。',
         vv.rewritesStyle
           ? `- バリエーション設定が「${vv.label}」のため、あなたが書いたスタイルは ${T} 側で書き換えられます。あなたの記述は最終形ではなく、書き換えの元になる材料です。細部を書き込むより、曲の性格を決める核となる要素を短く、前方に置いてください。`
           : `- バリエーション設定が「オフ」のため、あなたが書いたスタイルはそのまま最終形として使われます。${T} 側での書き換えは起きません。必要な要素をすべて含んだ、完成した記述を書いてください。`,
@@ -539,15 +538,15 @@ export function generateRequestText({ spec, req }: GenerateInput): string {
       body.push(
         lines(
           `歌詞そのものではなく、${T} の作詞AIに渡す指示文を、あなたが書いてください。歌詞は ${T} 側で生成されます。`,
-          lyricsStructureSpecified
+          structureSpecified
             ? '指示文には、§6 の G の要件（テーマ・言語・構成）を含めてください。'
-            : '指示文には、§6 の G の要件（テーマ・言語）を含めてください。歌詞の構成は指定がないため、指示文に含めないでください。',
+            : '指示文には、§6 の G の要件（テーマ・言語）を含めてください。曲の構成は指定がないため、指示文に含めないでください。',
         ),
       )
     }
     body.push(
       lines(
-        '- 歌詞の分量は、§6 の歌詞の構成と、§5-2 に長さの指定があるときはその長さに見合う量にしてください。',
+        '- 歌詞の分量は、§6 の曲の構成と、§5-2 に長さの指定があるときはその長さに見合う量にしてください。',
         '- 歌い手の性別は ' +
           T +
           ' 側の設定で決めるため、特定の性別を前提にした一人称・語尾・表現は避けてください。',
@@ -567,11 +566,15 @@ export function generateRequestText({ spec, req }: GenerateInput): string {
       ),
     )
     if (isChatAi && feature(ctx, 'meta-tags')?.supported) {
-      if (lyricsStructureSpecified) {
+      if (structureSpecified) {
         body.push(
-          '歌詞の構成は、§6 の「歌詞の構成」に指定した順にしてください。次の対応で、各まとまりの直前に英語の構成タグを付けてください。',
+          '歌詞の構成は、§6 の「曲の構成」に指定した順にしてください。次の対応で、各まとまりの直前に英語の構成タグを付けてください。',
           structureTags(ctx),
         )
+        if (hasUnsungSection(ctx))
+          body.push(
+            '「（歌なし）」を付けたまとまりは、構成タグだけを書き、歌詞は書かないでください。',
+          )
       } else {
         body.push(
           '歌詞の構成は指定されていません。構成タグは付けず、空行でまとまりを区切って書いてください。',
@@ -769,14 +772,20 @@ function lyricsField(ctx: Ctx): ToolField {
   return toolField(ctx, id)
 }
 
-/** 構成タグの対応（{{lyrics.structureTags}}）。初出の順、重複は1回。タグは term.en の各語の先頭を大文字に */
+/** 曲の構成に「歌なし」の要素が1つ以上あるか（request-text.md B-LY-t。文面の判断ポイント50） */
+function hasUnsungSection(ctx: Ctx): boolean {
+  const v = axisOf(ctx.req, ctx.spec.fieldById.get(STRUCTURE_FIELD_ID)!).value
+  return Array.isArray(v) && v.some((x) => x.sung === false)
+}
+
+/** 構成タグの対応（{{lyrics.structureTags}}）。初出の順、重複は1回。歌の印には関係しない。タグは term.en の各語の先頭を大文字に */
 function structureTags(ctx: Ctx): string {
-  const f = ctx.spec.fieldById.get('lyricsStructure')!
+  const f = ctx.spec.fieldById.get(STRUCTURE_FIELD_ID)!
   const vocab = ctx.spec.vocabularyById.get(f.vocabulary ?? '')
   const v = axisOf(ctx.req, f).value
-  if (!vocab || !Array.isArray(v)) throw new GenerationError('歌詞の構成の値が不正')
+  if (!vocab || !Array.isArray(v)) throw new GenerationError('曲の構成の値が不正')
   const seen: string[] = []
-  for (const id of v) if (!seen.includes(id)) seen.push(id)
+  for (const { id } of v) if (!seen.includes(id)) seen.push(id)
   return seen
     .map((id) => {
       const item = vocab.items.find((x) => x.id === id)

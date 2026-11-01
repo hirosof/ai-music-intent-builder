@@ -3,18 +3,25 @@
 //   (1) ①指定以外の項目は値を持たない（state だけ）
 //   (2) 今の vocalMode で無効な項目（S6）は省略する
 //   (3) インストのとき requestScope は combined、lyricsAuthor は null
+//   (4) インストのとき曲の構成の要素から歌の印 sung を外す（判断ポイント73）
 // output のその他の値は触らない。画面上の一時保持（判断ポイント30）は保存データに入れない
 import { cloneJson } from '../clone'
-import type { SongData, SongRequest } from '../types/song'
-import { INSTRUMENTAL_ONLY_FIELDS, VOCAL_ONLY_FIELDS } from '../validation/check-saved'
+import type { AxisValue, SongData, SongRequest } from '../types/song'
+import { VOCAL_ONLY_FIELDS } from '../validation/check-saved'
+
+function withoutSung(a: AxisValue): AxisValue {
+  if (!Array.isArray(a.value)) return a
+  return { ...a, value: a.value.map(({ id }) => ({ id })) }
+}
 
 function normalizeRequest(req: SongRequest): SongRequest {
   const vocal = req.vocalMode === 'vocal'
-  const invalid = new Set(vocal ? INSTRUMENTAL_ONLY_FIELDS : VOCAL_ONLY_FIELDS)
+  const invalid = new Set(vocal ? [] : VOCAL_ONLY_FIELDS)
   const axes: SongRequest['axes'] = {}
   for (const [fid, a] of Object.entries(req.axes)) {
     if (invalid.has(fid)) continue
-    axes[fid] = a.state === 'specified' ? cloneJson(a) : { state: a.state }
+    const kept = a.state === 'specified' ? cloneJson(a) : { state: a.state }
+    axes[fid] = vocal ? kept : withoutSung(kept)
   }
   const output = cloneJson(req.output)
   const out: SongRequest = { ...cloneJson(req), axes, output }

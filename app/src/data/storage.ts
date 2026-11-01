@@ -12,6 +12,7 @@ import {
   type UiSettingsLoad,
 } from '@/domain/storage/ui-settings'
 import type { ExportFile, ProfileStore, SongData } from '@/domain/types/song'
+import { spec } from './spec'
 import { checkSaved } from './validation'
 
 /** localStorage のキー（song-file.md §8。接頭辞はアプリ名。U3 の決定 I3） */
@@ -54,7 +55,7 @@ export function loadAutosaveFromStorage(): AutosaveLoad {
   const r = readStorage(STORAGE_KEYS.song)
   if (!r.ok)
     return { status: 'discarded', errors: [`localStorage を読めない: ${r.error}`], warnings: [] }
-  return loadAutosave(r.text, checkSaved)
+  return loadAutosave(spec, r.text, checkSaved)
 }
 
 /** 自動保存する（正規化してから。未完成でも保存する） */
@@ -91,15 +92,15 @@ export type ProfileStoreState =
 
 /**
  * プロファイルのストアを開く。値がなければ空のストア。拒否したら、そのストアには書き込めない状態になる。
- * 古い版（版1）は移行して読み、今の版で書き戻す（判断ポイント68。書き戻せなくても、次の書き込みで今の版になる）
+ * 古い版（ストアの版1、楽曲データの版1）は移行して読み、今の版で書き戻す（判断ポイント68・73。書き戻せなくても、次の書き込みで今の版になる）
  */
 export function openProfileStore(): ProfileStoreState {
   const r = readStorage(STORAGE_KEYS.profiles)
   if (!r.ok) return { status: 'rejected', errors: [`localStorage を読めない: ${r.error}`] }
   if (r.text === null) return { status: 'ok', store: emptyStore(), warnings: [] }
-  const loaded = loadSaved(r.text, 'store', checkSaved)
+  const loaded = loadSaved(spec, r.text, 'store', checkSaved)
   if (!loaded.ok) return { status: 'rejected', errors: loaded.errors }
-  if (loaded.migratedFrom !== undefined)
+  if (loaded.migratedFrom !== undefined || loaded.dataMigrated)
     writeStorage(STORAGE_KEYS.profiles, toJsonText(loaded.value))
   return { status: 'ok', store: loaded.value, warnings: loaded.warnings }
 }
@@ -133,7 +134,7 @@ export function commitProfileStore(state: ProfileStoreState, next: ProfileStore)
 // ---------------------------------------------------------------------------
 
 export function loadImportFile(text: string): LoadResult<ExportFile> {
-  return loadSaved(text, 'file', checkSaved)
+  return loadSaved(spec, text, 'file', checkSaved)
 }
 
 const validateUiSettings = createUiSettingsValidator(uiSettingsSchema)

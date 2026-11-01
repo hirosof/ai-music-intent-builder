@@ -4,6 +4,7 @@
 import { computed } from 'vue'
 import { spec } from '@/data/spec'
 import { LYRICS_AUTHOR_LABELS, VOCAL_MODE_LABELS } from '@/domain/editor/display'
+import { setVocalMode } from '@/domain/editor/edit'
 import { UNFINISHED_MESSAGES } from '@/domain/editor/incomplete'
 import type { LyricsAuthor, RequestScope, SongRequest, VocalMode } from '@/domain/types/song'
 
@@ -28,9 +29,8 @@ const scope = computed(
   () => (props.request.output.requestScope as RequestScope | undefined) ?? 'combined',
 )
 
-function setVocalMode(v: VocalMode) {
-  // eslint-disable-next-line vue/no-mutating-props -- 編集中の依頼（リアクティブ）を直接書き換える
-  props.request.vocalMode = v
+function changeVocalMode(v: VocalMode) {
+  setVocalMode(spec, props.request, v) // 編集中の依頼（リアクティブ）を直接書き換える
 }
 function setAuthor(v: LyricsAuthor) {
   // eslint-disable-next-line vue/no-mutating-props
@@ -50,7 +50,7 @@ function setScope(v: RequestScope) {
         :items="vocalModes"
         orientation="horizontal"
         data-testid="input-vocalMode"
-        @update:model-value="(v: unknown) => setVocalMode(v as VocalMode)"
+        @update:model-value="(v: unknown) => changeVocalMode(v as VocalMode)"
       />
     </UFormField>
     <template v-if="vocal">

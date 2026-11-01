@@ -42,6 +42,8 @@ export interface VocabularyItem {
   exclusion?: Exclusion
   /** 所属するグループの id（flat 語彙で、語彙が groups を持つときだけ。省略はグループなし。presets.md §2-4） */
   group?: string
+  /** 語彙 section の語だけが持つ（必須）。歌ありで語を足したときの歌の印の初期値（判断ポイント215） */
+  defaultSung?: boolean
 }
 
 /** グループ（flat 語彙のみ。表示の上で語をまとめる。presets.md §2-2。判断ポイント214） */

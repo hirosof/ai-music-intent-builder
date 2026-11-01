@@ -1,6 +1,6 @@
 // §6「楽曲の要件」の表と、「値」列の生成。
 // 文面の正は request-text.md（B-06 系・表の生成規則）、条件は request-blocks.md §3・§3-5・§4・§5・§12（描画規則）
-import { fieldItemIds, type Spec } from '../spec'
+import { fieldGroupId, fieldItemIds, fieldsInGroup, type Spec } from '../spec'
 import type { FieldDef, StateId } from '../types/fields'
 import type { AxisValue, SongRequest } from '../types/song'
 import { GenerationError } from './errors'
@@ -23,9 +23,10 @@ const LEAVE_SUFFIX = '（足さない。触れないまま残す）'
 const JA_KANJI_SUFFIX = ' (漢字使用可能)'
 const LEAVE_TEXT = 'お任せ — 指定しないまま残す'
 
-// vocalMode によって無効になる項目（song-file.md §2-3。request-blocks.md §3-3）
-const INSTRUMENTAL_ONLY_FIELDS = new Set(['structure'])
-const VOCAL_ONLY_FIELDS = new Set(['lyricsTheme', 'lyricsLanguage', 'lyricsStructure'])
+// インストのとき無効になる項目（song-file.md §2-3。request-blocks.md §3-3）
+const VOCAL_ONLY_FIELDS = new Set(['lyricsTheme', 'lyricsLanguage'])
+// 歌の印が「歌なし」の要素に付ける印（request-text.md B-06G。文面の判断ポイント50）
+const UNSUNG_SUFFIX = '（歌なし）'
 // lyrics の範囲で出す軸（request-blocks.md §3-4。D・E・F は出さない）
 const LYRICS_SCOPE_AXES = new Set(['A', 'B', 'C', 'G'])
 
@@ -78,10 +79,10 @@ function valueLabel(ctx: RequirementsContext, f: FieldDef, id: string): string {
 /** 項目が依頼文の §6 に出るか */
 export function isFieldShown(ctx: RequirementsContext, f: FieldDef): boolean {
   if (f.kind === 'length') return false // 長さは §5-2 のみ（request-text.md 判断ポイント5）
-  if (ctx.req.vocalMode === 'vocal' && INSTRUMENTAL_ONLY_FIELDS.has(f.id)) return false
   if (ctx.req.vocalMode !== 'vocal' && VOCAL_ONLY_FIELDS.has(f.id)) return false
   if (ctx.scope === 'lyrics') {
-    const axis = ctx.spec.fieldsDef.groups.find((g) => g.id === f.group)?.axis
+    const groupId = fieldGroupId(f, ctx.req.vocalMode === 'vocal')
+    const axis = ctx.spec.fieldsDef.groups.find((g) => g.id === groupId)?.axis
     if (axis ? !LYRICS_SCOPE_AXES.has(axis) : f.id !== 'notes') return false
   }
   // active-when: 条件を満たさないとき、項目は依頼文に出さない（input-items.md §4）
@@ -194,7 +195,10 @@ function valueRow(ctx: RequirementsContext, f: FieldDef): Row {
       value = bpm
       specificity = SPECIFICITY_LABEL[f.specificity]!
     } else if (f.kind === 'sectionList' && Array.isArray(v)) {
-      value = v.map((id) => itemLabel(ctx, f, id)).join(' → ')
+      const vocal = ctx.req.vocalMode === 'vocal'
+      value = v
+        .map((x) => itemLabel(ctx, f, x.id) + (vocal && x.sung === false ? UNSUNG_SUFFIX : ''))
+        .join(' → ')
       specificity = SPECIFICITY_LABEL[f.specificity]!
     } else {
       throw new GenerationError(`①指定の値の形が不正: ${f.id}`)
@@ -305,8 +309,9 @@ export function hasExclusionTargets(ctx: RequirementsContext): boolean {
 /** §6 に出る項目を、表に出る順（グループの順 → 項目定義の順）に */
 function visibleFields(ctx: RequirementsContext): FieldDef[] {
   const groups = [...ctx.spec.fieldsDef.groups].sort((a, b) => a.order - b.order)
+  const vocal = ctx.req.vocalMode === 'vocal'
   return groups.flatMap((g) =>
-    [...ctx.spec.fieldById.values()].filter((f) => f.group === g.id && isFieldShown(ctx, f)),
+    fieldsInGroup(ctx.spec, g.id, vocal).filter((f) => isFieldShown(ctx, f)),
   )
 }
 
@@ -319,10 +324,9 @@ export interface RequirementsOptions {
 export function requirementsBody(ctx: RequirementsContext, opts: RequirementsOptions): string[] {
   const out: string[] = ['状態の意味は §2 を参照してください。「具体化」の列は §2-2 の分類です。']
   const groups = [...ctx.spec.fieldsDef.groups].sort((a, b) => a.order - b.order)
+  const vocal = ctx.req.vocalMode === 'vocal'
   const fieldsOf = (groupIds: string[]) =>
-    [...ctx.spec.fieldById.values()].filter(
-      (f) => groupIds.includes(f.group) && isFieldShown(ctx, f),
-    )
+    groupIds.flatMap((id) => fieldsInGroup(ctx.spec, id, vocal).filter((f) => isFieldShown(ctx, f)))
 
   for (const g of groups.filter((x) => x.axis)) {
     const fs = fieldsOf([g.id])

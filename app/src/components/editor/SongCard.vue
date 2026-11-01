@@ -94,7 +94,7 @@ const sections = computed<Section[]>(() => {
     label: s.label,
     rows: s.fieldIds.map((id) => {
       const f = spec.fieldById.get(id)!
-      const d = displayAxis(spec, f, req.axes[id])
+      const d = displayAxis(spec, f, req.axes[id], req.vocalMode === 'vocal')
       return {
         id,
         label: f.label,

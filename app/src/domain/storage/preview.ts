@@ -4,7 +4,7 @@
 import { displayAxis, stateCounts } from '../editor/display'
 import type { Spec } from '../spec'
 import type { Profile } from '../types/song'
-import { INSTRUMENTAL_ONLY_FIELDS, VOCAL_ONLY_FIELDS } from '../validation/check-saved'
+import { VOCAL_ONLY_FIELDS } from '../validation/check-saved'
 import { formatDisplayTimestamp } from './timestamp'
 
 export interface ProfilePreview {
@@ -33,9 +33,10 @@ export function profilePreview(
 ): ProfilePreview {
   const req = profile.data.requests[0]!
   const tool = spec.toolProfileById.get(req.toolId)
-  const invalid = new Set(req.vocalMode === 'vocal' ? INSTRUMENTAL_ONLY_FIELDS : VOCAL_ONLY_FIELDS)
+  const vocal = req.vocalMode === 'vocal'
+  const invalid = new Set(vocal ? [] : VOCAL_ONLY_FIELDS)
   const fields = spec.fieldsDef.fields.filter((f) => !invalid.has(f.id))
-  const shown = fields.map((f) => ({ f, d: displayAxis(spec, f, req.axes[f.id]) }))
+  const shown = fields.map((f) => ({ f, d: displayAxis(spec, f, req.axes[f.id], vocal) }))
   return {
     name: profile.name,
     updatedAt: formatDisplayTimestamp(profile.updatedAt),

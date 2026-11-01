@@ -5,11 +5,17 @@ import type { StateId } from './fields'
 /** 3値選択の値。「未指定」の語はキーを持たない */
 export type Choice = 'use' | 'exclude'
 
+/** 曲の構成の要素（UI 判断ポイント73）。sung（歌の印）は歌ありのときだけ持つ。編集中はインストでも覚えておく（判断ポイント74） */
+export interface SectionElement {
+  id: string
+  sung?: boolean
+}
+
 /** axes の1項目の値（input-items.md §5）。①指定でない状態は state だけを持つ */
 export interface AxisValue {
   state: StateId
-  /** select: 語の id、text: 文字列、bpm: 数値か {min, max}、length: 秒、sectionList: 語の id の配列 */
-  value?: string | number | { min: number; max: number } | string[]
+  /** select: 語の id、text: 文字列、bpm: 数値か {min, max}、length: 秒、sectionList: 要素の配列 */
+  value?: string | number | { min: number; max: number } | SectionElement[]
   /** triSelect */
   choices?: Record<string, Choice>
   freeText?: string

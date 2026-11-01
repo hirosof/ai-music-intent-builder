@@ -1,8 +1,9 @@
 // 自動保存の読み込み（song-file.md §6-3、判断ポイント43「保存は厳格、復元は寛容」）。
 // 自動保存の読み込みに限り、編集途中に自然に起こる次の2つを拒否の理由にしない（未完成として読み込む）:
 //   S5（①指定なのに値が空）、F12（vocalMode = vocal で lyricsAuthor が null）
-// 他のエラーは拒否し、破棄する（初版は移行がないため、版の不一致も破棄）。
+// 他のエラーは拒否し、破棄する（版の不一致のうち、移行できる古い版は移行して読む。song-file.md §6-3・§6-5）。
 // 破棄は「読み込まない」こと。キーは消さず、次の自動保存で上書きされる（U3 の解釈）
+import type { Spec } from '../spec'
 import type { SongData } from '../types/song'
 import type { CheckResult } from '../validation/check-saved'
 import { loadSaved } from './load'
@@ -23,12 +24,13 @@ export type AutosaveLoad =
 
 /** text は localStorage の値（ない場合は null） */
 export function loadAutosave(
+  spec: Spec,
   text: string | null,
   check: (text: string) => CheckResult,
 ): AutosaveLoad {
   if (text === null) return { status: 'empty' }
   let incomplete: string[] = []
-  const r = loadSaved(text, 'song', (t) => {
+  const r = loadSaved(spec, text, 'song', (t) => {
     const c = check(t)
     incomplete = c.errors.filter(isIncompleteFinding)
     return { ...c, errors: c.errors.filter((e) => !isIncompleteFinding(e)) }

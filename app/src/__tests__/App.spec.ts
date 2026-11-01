@@ -12,10 +12,12 @@ import { resetSongEditor, useSongEditor } from '@/composables/useSongEditor'
 import { STORAGE_KEYS } from '@/data/storage'
 import { spec } from '@/data/spec'
 import { createInitialSong } from '@/domain/editor/initial'
-import type { SongData } from '@/domain/types/song'
+import { toCurrentSong } from '@/domain/request/__tests__/helpers'
 
 const INPUTS = resolve(process.cwd(), '../design/v0/docs/examples/inputs')
-const vocalSong = JSON.parse(readFileSync(resolve(INPUTS, 'rendered-11.json'), 'utf8')) as SongData
+const vocalSong = toCurrentSong(
+  JSON.parse(readFileSync(resolve(INPUTS, 'rendered-11.json'), 'utf8')),
+)
 
 let wrapper: VueWrapper | undefined
 afterEach(() => {
@@ -65,7 +67,14 @@ describe('主画面', () => {
     const w = await mountApp()
     expect(cardIds(w)).toContain('card-lyrics')
     expect(cardIds(w)).toHaveLength(8)
-    expect(w.find('[data-testid="row-structure"]').exists()).toBe(false)
+    expect(
+      w.get('[data-testid="card-lyrics"]').find('[data-testid="row-structure"]').exists(),
+    ).toBe(true)
+    expect(
+      w.get('[data-testid="card-structure"]').find('[data-testid="row-structure"]').exists(),
+    ).toBe(false)
+    // 依頼文の範囲 lyrics でも、歌ありの曲の構成は依頼文に出る
+    expect(w.get('[data-testid="row-structure"]').attributes('data-out-of-scope')).toBeUndefined()
     expect(w.get('[data-testid="row-tempoFeel"]').attributes('data-out-of-scope')).toBe('true')
     expect(w.get('[data-testid="row-length"]').attributes('data-out-of-scope')).toBeUndefined()
     expect(w.get('[data-testid="card-sound"]').find('[data-testid="scope-note"]').exists()).toBe(

@@ -7,15 +7,21 @@ import input from '@examples/inputs/rendered-12.json'
 import { spec } from '@/data/spec'
 import { checkSaved } from '@/data/validation'
 import { generateRequestText } from '@/domain/request/generate'
-import type { SongData } from '@/domain/types/song'
-import { applyPatches, extractRequestText, type Patch } from './helpers'
-import { Q02_ORDER, R6_TEXT, r6Row } from './patches'
+import { applyPatches, extractRequestText, toCurrentSong, type Patch } from './helpers'
+import { DP50_AMOUNT, DP50_ROW_DELEGATED, Q02_ORDER, R6_TEXT, r6Row } from './patches'
 
 /** 文書化された差（-12 の依頼文は、これらの反映前の版。出典は patches.ts） */
 const PATCHES: Patch[] = [
   Q02_ORDER,
   r6Row('| 除外したい要素 | 指定 | ラップ | 保持 |', '緊迫感, ラップ'),
   R6_TEXT,
+  DP50_ROW_DELEGATED,
+  {
+    source: '文面の判断ポイント50（B-LY-B の②の文）',
+    from: '歌詞の構成は指定がないため、指示文に含めないでください。',
+    to: '曲の構成は指定がないため、指示文に含めないでください。',
+  },
+  DP50_AMOUNT,
 ]
 
 describe('依頼文の生成器: レンダリング例 -12（受け入れ基準）', () => {
@@ -26,7 +32,7 @@ describe('依頼文の生成器: レンダリング例 -12（受け入れ基準�
 
   it('-12 §1 と、文書化された差を除いて1文字単位で一致する', () => {
     const expected = applyPatches(extractRequestText(md), PATCHES)
-    const got = generateRequestText({ spec, req: (input as unknown as SongData).requests[0]! })
+    const got = generateRequestText({ spec, req: toCurrentSong(input).requests[0]! })
     expect(got).toBe(expected)
   })
 })

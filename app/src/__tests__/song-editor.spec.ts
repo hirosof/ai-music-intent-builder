@@ -9,10 +9,13 @@ import { factoryProfiles } from '@/data/factory'
 import { spec } from '@/data/spec'
 import { STORAGE_KEYS } from '@/data/storage'
 import { createInitialSong } from '@/domain/editor/initial'
+import { toCurrentSong } from '@/domain/request/__tests__/helpers'
 import type { SongData } from '@/domain/types/song'
 
 const INPUTS = resolve(process.cwd(), '../design/v0/docs/examples/inputs')
-const vocalSong = JSON.parse(readFileSync(resolve(INPUTS, 'rendered-11.json'), 'utf8')) as SongData
+const vocalSong = toCurrentSong(
+  JSON.parse(readFileSync(resolve(INPUTS, 'rendered-11.json'), 'utf8')),
+)
 const factory = factoryProfiles[0]!.data
 const stored = () =>
   JSON.parse(localStorage.getItem(STORAGE_KEYS.song) ?? 'null') as SongData | null
@@ -125,7 +128,7 @@ describe('依頼文（J6）', () => {
   it('リアクティブな状態からでも作れる（Proxy の複製で落ちない）', () => {
     editor.start()
     editor.replaceSong(vocalSong)
-    expect(editor.savedSong.value.requests[0]!.axes.structure).toBeUndefined()
+    expect(editor.savedSong.value.requests[0]!.axes.structure).toEqual({ state: 'delegated' })
     expect(editor.generated.value.ok).toBe(true)
   })
 })

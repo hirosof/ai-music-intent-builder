@@ -12,8 +12,8 @@ import input from '@examples/inputs/rendered-13.json'
 import { spec } from '@/data/spec'
 import { checkSaved } from '@/data/validation'
 import { generateRequestText } from '@/domain/request/generate'
-import type { SongData } from '@/domain/types/song'
-import { extractRequestText } from './helpers'
+import { applyPatches, extractRequestText, toCurrentSong, type Patch } from './helpers'
+import { DP50_ROW_INST } from './patches'
 
 // テストの実行ディレクトリは app/（vitest.config.ts の root）
 const GENERATED = resolve(
@@ -21,8 +21,10 @@ const GENERATED = resolve(
   '../design/v0/docs/examples/inputs/rendered-13.generated.txt',
 )
 
-const generate = () =>
-  generateRequestText({ spec, req: (input as unknown as SongData).requests[0]! })
+// 文書化された差: 曲の構成の行名（文面の判断ポイント50。インストは行名だけが変わる）
+const PATCHES: Patch[] = [DP50_ROW_INST]
+
+const generate = () => generateRequestText({ spec, req: toCurrentSong(input).requests[0]! })
 
 describe('依頼文の生成器: レンダリング例 -13', () => {
   it('入力の楽曲データは、保存データの検証を通る（エラー0件・警告0件）', () => {
@@ -30,15 +32,15 @@ describe('依頼文の生成器: レンダリング例 -13', () => {
     expect([...r.errors, ...r.warnings]).toEqual([])
   })
 
-  it('-13 §1 と1文字単位で一致する（文書化された差はない）', () => {
+  it('-13 §1 と、文書化された差を除いて1文字単位で一致する', () => {
     const got = generate()
-    expect(got).toBe(extractRequestText(md))
+    expect(got).toBe(applyPatches(extractRequestText(md), PATCHES))
     expect(got).not.toContain('`'.repeat(3))
   })
 
-  it('生成物 inputs/rendered-13.generated.txt とも一致する', () => {
+  it('生成物 inputs/rendered-13.generated.txt（検証した当時の出力）とも、文書化された差を除いて一致する', () => {
     const got = generate()
     if (process.env.UPDATE_EXAMPLES === '1') writeFileSync(GENERATED, got, 'utf-8')
-    expect(got).toBe(readFileSync(GENERATED, 'utf-8'))
+    expect(got).toBe(applyPatches(readFileSync(GENERATED, 'utf-8'), PATCHES))
   })
 })

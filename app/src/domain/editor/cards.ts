@@ -1,5 +1,5 @@
 // カードの構成（ui-and-nonfunctional.md §1・§1-2。判断ポイント48）と、依頼文の範囲による「淡い表示」（判断ポイント53）
-import type { Spec } from '../spec'
+import { fieldGroupId, fieldsInGroup, type Spec } from '../spec'
 import type { FieldDef } from '../types/fields'
 import type { RequestScope, SongRequest } from '../types/song'
 
@@ -43,23 +43,20 @@ export const CARDS: readonly CardDef[] = [
   { id: 'output', label: '出力設定', showCounts: false, groups: [] },
 ]
 
-// vocalMode によって画面から外す項目（判断ポイント48。S6 と同じ組）
-const INSTRUMENTAL_ONLY = new Set(['structure'])
-
 /** 今の依頼で表示するカード（インストは7枚、歌ありは8枚） */
 export function visibleCards(req: SongRequest): CardDef[] {
   return CARDS.filter((c) => !c.vocalOnly || req.vocalMode === 'vocal')
 }
 
-/** カードの項目を、グループごとの小見出しに分けて返す（fields.json の並び順） */
+/**
+ * カードの項目を、グループごとの小見出しに分けて返す（fields.json の並び順）。
+ * 曲の構成は、インストは構造カード、歌ありは歌詞カード（判断ポイント74）
+ */
 export function cardSections(spec: Spec, card: CardDef, req: SongRequest): CardSection[] {
   const vocal = req.vocalMode === 'vocal'
   return card.groups.map((g) => {
     const group = spec.fieldsDef.groups.find((x) => x.id === g)
-    const fieldIds = spec.fieldsDef.fields
-      .filter((f) => f.group === g)
-      .filter((f) => !(vocal && INSTRUMENTAL_ONLY.has(f.id)))
-      .map((f) => f.id)
+    const fieldIds = fieldsInGroup(spec, g, vocal).map((f) => f.id)
     return { label: card.groups.length > 1 ? group?.label : undefined, fieldIds }
   })
 }
@@ -108,7 +105,7 @@ export function isOutOfScope(spec: Spec, req: SongRequest, id: string): boolean 
   const field: FieldDef | undefined = spec.fieldById.get(id)
   if (!field) return false
   if (scope === 'lyrics' && SHOWN_IN_LYRICS.has(id)) return false
-  return hidden.groups.includes(field.group)
+  return hidden.groups.includes(fieldGroupId(field, req.vocalMode === 'vocal'))
 }
 
 /** 依頼文の範囲の表示名（fields.json の requestScope の選択肢） */

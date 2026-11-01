@@ -8,20 +8,33 @@ import { spec } from '@/data/spec'
 import { GenerationError } from '@/domain/request/errors'
 import { generateRequestText } from '@/domain/request/generate'
 import { normalizeForSave } from '@/domain/storage/normalize'
-import type { SongData } from '@/domain/types/song'
+import { toCurrentSong } from '@/domain/request/__tests__/helpers'
 
 const INPUTS = resolve(process.cwd(), '../design/v0/docs/examples/inputs')
-const vocalSong = JSON.parse(readFileSync(resolve(INPUTS, 'rendered-07.json'), 'utf8')) as SongData
-// 例の入力は、歌ありでも structure（無効な項目）を②お任せで持つ。正規化（判断ポイント45 の (2)）で省略される形
-const vocalClean = structuredClone(vocalSong)
-delete vocalClean.requests[0]!.axes.structure
+const vocalSong = toCurrentSong(
+  JSON.parse(readFileSync(resolve(INPUTS, 'rendered-07.json'), 'utf8')),
+)
 const instSong = factoryProfiles[0]!.data
 
 describe('保存時の正規化', () => {
-  it('正規化済みのデータは変わらない（ファクトリー・歌あり）。例の入力の structure は省略される', () => {
+  it('正規化済みのデータは変わらない（ファクトリー・歌あり）', () => {
     for (const p of factoryProfiles) expect(normalizeForSave(p.data)).toEqual(p.data)
-    expect(normalizeForSave(vocalClean)).toEqual(vocalClean)
-    expect(normalizeForSave(vocalSong)).toEqual(vocalClean)
+    expect(normalizeForSave(vocalSong)).toEqual(vocalSong)
+  })
+
+  it('(4) インストのとき曲の構成の要素から sung を外す。歌ありでは残す。引数は書き換えない', () => {
+    const value = [{ id: 'intro', sung: false }, { id: 'theme' }]
+    const inst = structuredClone(instSong)
+    inst.requests[0]!.axes.structure = { state: 'specified', value }
+    expect(normalizeForSave(inst).requests[0]!.axes.structure!.value).toEqual([
+      { id: 'intro' },
+      { id: 'theme' },
+    ])
+    expect(inst.requests[0]!.axes.structure!.value).toEqual(value)
+    const vocal = structuredClone(vocalSong)
+    const sung = [{ id: 'intro', sung: false }]
+    vocal.requests[0]!.axes.structure = { state: 'specified', value: sung }
+    expect(normalizeForSave(vocal).requests[0]!.axes.structure!.value).toEqual(sung)
   })
 
   it('(1) ①指定以外の項目は、state だけを持つ', () => {
@@ -44,10 +57,11 @@ describe('保存時の正規化', () => {
     expect('lyricsLanguage' in ni).toBe(false)
     expect(ni.structure).toEqual(inst.requests[0]!.axes.structure)
 
+    // 曲の構成はどちらのモードでも有効（入力項目の判断ポイント30）
     const vocal = structuredClone(vocalSong)
     vocal.requests[0]!.axes.structure = { state: 'delegated' }
     const nv = normalizeForSave(vocal).requests[0]!.axes
-    expect('structure' in nv).toBe(false)
+    expect(nv.structure).toEqual({ state: 'delegated' })
     expect(nv.lyricsTheme).toEqual(vocal.requests[0]!.axes.lyricsTheme)
   })
 
@@ -92,8 +106,7 @@ describe('保存時の正規化', () => {
 describe('未完成のデータでは、依頼文を生成しない', () => {
   it.each(['select', 'triSelect', 'text'])('S5（%s）', (kind) => {
     const f = [...spec.fieldById.values()].find(
-      (x) =>
-        x.kind === kind && !['lyricsTheme', 'lyricsLanguage', 'lyricsStructure'].includes(x.id),
+      (x) => x.kind === kind && !['lyricsTheme', 'lyricsLanguage'].includes(x.id),
     )!
     const s = structuredClone(instSong)
     s.requests[0]!.axes[f.id] = { state: 'specified' }

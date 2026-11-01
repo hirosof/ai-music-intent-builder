@@ -1,20 +1,26 @@
 // 保存データ（楽曲データ・エクスポートファイル・プロファイルのストア）の検証。
-// 参照実装 design/v0/tools/check-fields/check_fields.py の保存データ側（F0〜F13、S0〜S6、R、O1〜O4）の移植。
+// 参照実装 design/v0/tools/check-fields/check_fields.py の保存データ側（F0〜F13、S0〜S7、R、O1〜O4）の移植。
 // 指摘の文言は参照実装と同じ（U1 の決定 4）。照合は __tests__/check-saved.spec.ts（正解データは export_parity_cases.py が書き出す）。
 // 仕様: song-file.md §6・§9、input-items.md §4〜§6、tool-profile.md §9
 import { fieldItemIds, profileParam, type Spec } from '../spec'
-import { canMigrateContainer, migrateContainer, STORE_SCHEMA_VERSION } from '../storage/migrate'
+import {
+  canMigrateContainer,
+  canMigrateSong,
+  migrateContainer,
+  migrateSong,
+  SONG_SCHEMA_VERSION,
+  STORE_SCHEMA_VERSION,
+} from '../storage/migrate'
 import type { OutputDef, StateId } from '../types/fields'
 import type { ToolProfile } from '../types/tool-profile'
 import { pyRepr } from './py-repr'
 import type { SchemaValidators } from './schema'
 
 /** 楽曲データの版のうち、このアプリが読める版（song-file.md §6-2）。ストア／エクスポートファイルの版は別（STORE_SCHEMA_VERSION） */
-export const SUPPORTED_SCHEMA_VERSION = 1
+export const SUPPORTED_SCHEMA_VERSION = SONG_SCHEMA_VERSION
 
-// vocalMode によって有効・無効が切り替わる項目（L-01。宿題38）
-export const INSTRUMENTAL_ONLY_FIELDS = ['structure']
-export const VOCAL_ONLY_FIELDS = ['lyricsTheme', 'lyricsLanguage', 'lyricsStructure']
+// vocal のときだけ有効な項目（L-01。宿題38）。曲の構成（structure）はどちらでも有効（入力項目の判断ポイント30）
+export const VOCAL_ONLY_FIELDS = ['lyricsTheme', 'lyricsLanguage']
 // vocalMode = vocal のとき取れる lyricsAuthor の値（L-01a）
 const VOCAL_LYRICS_AUTHORS = ['chat-ai', 'chat-ai-instruction']
 // output.requestScope のうち、vocalMode = vocal のときだけ取れる値（判断ポイント28）
@@ -49,6 +55,17 @@ export function isSpecifiedEmpty(kind: string, a: Obj): boolean {
     return (isObj(a.choices) ? Object.keys(a.choices).length === 0 : true) && !freeOk
   if (kind === 'text') return !(isStr(a.value) && a.value.trim() !== '')
   return false
+}
+
+/** 曲の構成の要素の形（{ id, sung }。UI 判断ポイント73）。sung の有無とボーカル区分の整合は S7 が見る */
+function isSectionElement(x: unknown, vocabItems: Set<string>): boolean {
+  return (
+    isObj(x) &&
+    Object.keys(x).every((k) => k === 'id' || k === 'sung') &&
+    isStr(x.id) &&
+    vocabItems.has(x.id) &&
+    (!has(x, 'sung') || typeof x.sung === 'boolean')
+  )
 }
 
 class Report implements CheckResult {
@@ -122,12 +139,7 @@ function checkRequest(req: Obj, spec: Spec, report: Report, profile: ToolProfile
 
   // S6 vocalMode で無効になる項目に①指定がある
   const vocalMode = req.vocalMode
-  const disabled =
-    vocalMode === 'vocal'
-      ? INSTRUMENTAL_ONLY_FIELDS
-      : vocalMode === 'instrumental'
-        ? VOCAL_ONLY_FIELDS
-        : []
+  const disabled = vocalMode === 'instrumental' ? VOCAL_ONLY_FIELDS : []
   for (const fid of sorted(disabled)) {
     const a = axes[fid]
     if (isObj(a) && a.state === 'specified')
@@ -207,8 +219,14 @@ function checkRequest(req: Obj, spec: Spec, report: Report, profile: ToolProfile
         report.error(`S4 長さは${rng ? `${lo}〜${hi}の整数` : '正の整数'}（秒）: ${fid}`)
       }
     } else if (f.kind === 'sectionList') {
-      if (!(Array.isArray(v) && v.length > 0 && v.every((x) => isStr(x) && vocabItems.has(x)))) {
-        report.error(`S4 構成はセクション id の空でない並び: ${fid}`)
+      if (!(Array.isArray(v) && v.length > 0 && v.every((x) => isSectionElement(x, vocabItems)))) {
+        report.error(
+          `S4 構成は要素 {id, sung} の空でない並び（id は語彙の語、sung は真偽値）: ${fid}`,
+        )
+      } else if (vocalMode === 'vocal' && !v.every((x: Obj) => has(x, 'sung'))) {
+        report.error(`S7 歌ありで歌の印（sung）がない要素がある: ${fid}`)
+      } else if (vocalMode === 'instrumental' && v.some((x: Obj) => has(x, 'sung'))) {
+        report.warn(`S7 インストでは歌の印（sung）は無視される: ${fid}`)
       }
     }
   }
@@ -584,7 +602,8 @@ function checkBySchema(
   }
 }
 
-function checkSongData(song: unknown, spec: Spec, validators: SchemaValidators, report: Report) {
+function checkSongData(input: unknown, spec: Spec, validators: SchemaValidators, report: Report) {
+  let song = input
   const base = report.scope
   try {
     if (!isObj(song)) {
@@ -595,9 +614,16 @@ function checkSongData(song: unknown, spec: Spec, validators: SchemaValidators, 
       report.error('F0 旧形式（axes が最上位）。requests[] 形（song-file.md §2）に直す')
       return
     }
-    if (!checkVersion(song, report)) return
-    checkBySchema(validators.song, song, report)
-    const reqs = song.requests
+    if (!checkVersion(song, report, SUPPORTED_SCHEMA_VERSION, canMigrateSong)) return
+    const version = song.schemaVersion as number
+    if (version < SUPPORTED_SCHEMA_VERSION) {
+      report.note(
+        `移行: 楽曲データの版${version} のため、版${SUPPORTED_SCHEMA_VERSION} に移行して検証する`,
+      )
+      song = migrateSong(song, spec)
+    }
+    checkBySchema(validators.song, song as Obj, report)
+    const reqs = (song as Obj).requests
     if (!Array.isArray(reqs)) return
     if (reqs.length !== 1) report.error(`F6 依頼はちょうど1件（初版の対象外: ${reqs.length} 件）`)
     const ids = new Map<string, number[]>()

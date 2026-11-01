@@ -93,6 +93,8 @@ export interface Param {
 /** 入力項目とツールの欄・パラメータの対応（tool-profile.md §8） */
 export interface Binding {
   item: { kind: 'axis' | 'output'; id: string }
+  /** このボーカル区分のときだけ効く対応（省略は常に効く。tool-profile.md §8・判断ポイント10） */
+  vocalMode?: 'vocal' | 'instrumental'
   target: { kind: 'field' | 'param'; id: string } | null
   route: 'text' | 'uiSetting' | 'both'
   status?: 'pending'

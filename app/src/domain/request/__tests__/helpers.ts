@@ -1,4 +1,11 @@
 // レンダリング例（design/v0/docs/examples/rendered-*.md）との照合の補助
+import { spec } from '@/data/spec'
+import { migrateSong } from '@/domain/storage/migrate'
+import type { SongData } from '@/domain/types/song'
+
+/** 例の入力（楽曲データの版1 のまま置く。検証した記録のため）を、読むときと同じように移行する（UI 判断ポイント73） */
+export const toCurrentSong = (input: unknown): SongData =>
+  migrateSong(input as Record<string, unknown>, spec) as unknown as SongData
 
 /** 文書化された差。正解（例の依頼文）の from を to に置き換える。from はちょうど1回現れなければならない */
 export interface Patch {

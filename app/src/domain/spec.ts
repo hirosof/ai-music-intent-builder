@@ -46,6 +46,31 @@ export function fieldItemIds(spec: Spec, field: FieldDef): Set<string> {
   return new Set(v ? v.items.map((i) => i.id) : [])
 }
 
+/** 曲の構成の項目 id。歌ありのときは「歌詞」のグループに置く（UI 判断ポイント74、文面の判断ポイント50。fields.json の group は time のまま） */
+export const STRUCTURE_FIELD_ID = 'structure'
+const LYRICS_GROUP_ID = 'lyrics'
+
+/** 表示の上で項目が属するグループ（カードと依頼文 §6 の表） */
+export function fieldGroupId(field: FieldDef, vocal: boolean): string {
+  return vocal && field.id === STRUCTURE_FIELD_ID ? LYRICS_GROUP_ID : field.group
+}
+
+/** グループの項目（項目定義の順）。歌ありの曲の構成は、歌詞のグループの最後に置く */
+export function fieldsInGroup(spec: Spec, groupId: string, vocal: boolean): FieldDef[] {
+  const fields = [...spec.fieldById.values()]
+  const members = fields.filter((f) => f.group === groupId && fieldGroupId(f, vocal) === groupId)
+  const moved = fields.filter((f) => f.group !== groupId && fieldGroupId(f, vocal) === groupId)
+  return [...members, ...moved]
+}
+
+/** 語の歌の印の初期値（語彙 section の defaultSung。UI 判断ポイント73・74）。語彙にない id は偽 */
+export function defaultSung(spec: Spec, id: string): boolean {
+  const vocabulary = spec.fieldById.get(STRUCTURE_FIELD_ID)?.vocabulary
+  return (
+    spec.vocabularyById.get(vocabulary ?? '')?.items.find((i) => i.id === id)?.defaultSung ?? false
+  )
+}
+
 /** ツールプロファイルのパラメータ（なければ undefined） */
 export function profileParam(profile: ToolProfile | undefined, paramId: string): Param | undefined {
   return profile?.params.find((p) => p.id === paramId)

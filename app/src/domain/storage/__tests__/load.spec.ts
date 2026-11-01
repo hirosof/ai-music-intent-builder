@@ -4,10 +4,12 @@ import { resolve } from 'node:path'
 import { describe, it, expect } from 'vitest'
 
 import { factoryProfiles } from '@/data/factory'
+import { spec } from '@/data/spec'
 import { checkSaved } from '@/data/validation'
 import { isIncompleteFinding } from '@/domain/storage/autosave'
 import { loadSaved } from '@/domain/storage/load'
 import { buildExportFile, emptyStore, saveProfile, toJsonText } from '@/domain/storage/profiles'
+import { toCurrentSong } from '@/domain/request/__tests__/helpers'
 import type { ExportFile, SongData } from '@/domain/types/song'
 
 // テストの実行ディレクトリは app/（vitest.config.ts の root）
@@ -40,11 +42,11 @@ describe('書き出し→読み込みの往復', () => {
     const songs = [
       ...factoryProfiles.map((p) => ({ name: p.name, data: p.data })),
       { name: 'song.example', data: songExample },
-      ...exampleInputs,
+      ...exampleInputs.map((x) => ({ name: x.name, data: toCurrentSong(x.data) })),
     ]
     for (const s of songs) store = saveProfile(store, null, s.name, s.data, NOW).store
     const text = toJsonText(buildExportFile(store.profiles, NOW))
-    const r = loadSaved(text, 'file', checkSaved)
+    const r = loadSaved(spec, text, 'file', checkSaved)
     if (!r.ok) throw new Error(r.errors.join('\n'))
     expect(r.value.profiles.map((p) => p.name)).toEqual(songs.map((s) => s.name))
     r.value.profiles.forEach((p, i) => expect(p.data).toEqual(songs[i]!.data))
@@ -53,36 +55,36 @@ describe('書き出し→読み込みの往復', () => {
 
   it('1件の書き出しも、同じ読み込みで扱える', () => {
     const store = saveProfile(emptyStore(), null, '単一', songExample, NOW).store
-    const r = loadSaved(toJsonText(buildExportFile(store.profiles, NOW)), 'file', checkSaved)
+    const r = loadSaved(spec, toJsonText(buildExportFile(store.profiles, NOW)), 'file', checkSaved)
     expect(r.ok && r.value.profiles.length).toBe(1)
     expect(r.ok && r.value.profiles[0]!.data).toEqual(songExample)
   })
 
   it('ストアそのもの（localStorage の値）も往復する', () => {
     const store = saveProfile(emptyStore(), null, 'a', songExample, NOW).store
-    const r = loadSaved(toJsonText(store), 'store', checkSaved)
+    const r = loadSaved(spec, toJsonText(store), 'store', checkSaved)
     expect(r.ok && r.value).toEqual(store)
     expect(r.ok && r.migratedFrom).toBeUndefined()
   })
 
   it('空のストアは有効（補完・仮定9）', () => {
-    const r = loadSaved(toJsonText(emptyStore()), 'store', checkSaved)
+    const r = loadSaved(spec, toJsonText(emptyStore()), 'store', checkSaved)
     expect(r.ok).toBe(true)
   })
 })
 
 describe('読み込みの拒否（§6-2）', () => {
   it('正例: エクスポートファイルの例はエラー0・警告0で読める', () => {
-    const r = loadSaved(JSON.stringify(exportExample), 'file', checkSaved)
+    const r = loadSaved(spec, JSON.stringify(exportExample), 'file', checkSaved)
     expect(r).toMatchObject({ ok: true, warnings: [] })
   })
 
   it('1. 新しい版は拒否する（外側・data のそれぞれ）', () => {
     for (const text of [
       fileWith((f) => (f.schemaVersion = 3)),
-      fileWith((f) => (f.profiles[0]!.data.schemaVersion = 2)),
+      fileWith((f) => (f.profiles[0]!.data.schemaVersion = 3)),
     ]) {
-      const r = loadSaved(text, 'file', checkSaved)
+      const r = loadSaved(spec, text, 'file', checkSaved)
       expect(r.ok).toBe(false)
       expect(!r.ok && r.errors.some((e) => e.includes('F8 新しい版'))).toBe(true)
     }
@@ -90,6 +92,7 @@ describe('読み込みの拒否（§6-2）', () => {
 
   it('2. 古い版は、移行が未定義のため拒否する', () => {
     const r = loadSaved(
+      spec,
       fileWith((f) => (f.schemaVersion = 0)),
       'file',
       checkSaved,
@@ -103,7 +106,7 @@ describe('読み込みの拒否（§6-2）', () => {
         if (v === undefined) delete (f as Partial<ExportFile>).schemaVersion
         else (f as unknown as Record<string, unknown>).schemaVersion = v
       })
-      const r = loadSaved(text, 'file', checkSaved)
+      const r = loadSaved(spec, text, 'file', checkSaved)
       expect(r.ok).toBe(false)
       expect(!r.ok && r.errors.some((e) => e.includes('F8 schemaVersion がない'))).toBe(true)
     }
@@ -115,7 +118,7 @@ describe('読み込みの拒否（§6-2）', () => {
         state: 'delegated',
       }
     })
-    const r1 = loadSaved(unknownField, 'file', checkSaved)
+    const r1 = loadSaved(spec, unknownField, 'file', checkSaved)
     expect(!r1.ok && r1.errors.some((e) => e.includes('noSuchField'))).toBe(true)
 
     const unknownTerm = fileWith((f) => {
@@ -124,7 +127,7 @@ describe('読み込みの拒否（§6-2）', () => {
         value: 'no-such-genre',
       }
     })
-    const r2 = loadSaved(unknownTerm, 'file', checkSaved)
+    const r2 = loadSaved(spec, unknownTerm, 'file', checkSaved)
     expect(!r2.ok && r2.errors.some((e) => e.includes('no-such-genre'))).toBe(true)
   })
 
@@ -135,13 +138,14 @@ describe('読み込みの拒否（§6-2）', () => {
       bad.data.schemaVersion = 99
       f.profiles.push(bad)
     })
-    const r = loadSaved(text, 'file', checkSaved)
+    const r = loadSaved(spec, text, 'file', checkSaved)
     expect(r.ok).toBe(false)
     expect('value' in r).toBe(false)
   })
 
   it('警告（toolVersion の差）では止めず、警告を返す（§7）', () => {
     const r = loadSaved(
+      spec,
       fileWith((f) => (f.profiles[0]!.data.requests[0]!.toolVersion = 'v5')),
       'file',
       checkSaved,
@@ -152,7 +156,7 @@ describe('読み込みの拒否（§6-2）', () => {
   })
 
   it('JSON として読めないものは拒否する', () => {
-    const r = loadSaved('{', 'file', checkSaved)
+    const r = loadSaved(spec, '{', 'file', checkSaved)
     expect(!r.ok && r.errors[0]).toMatch(/^F0 JSON として読めない/)
   })
 
@@ -167,7 +171,7 @@ describe('読み込みの拒否（§6-2）', () => {
       [JSON.stringify(songExample), 'store'],
     ]
     for (const [text, expected] of cases) {
-      const r = loadSaved(text, expected, checkSaved)
+      const r = loadSaved(spec, text, expected, checkSaved)
       expect(r.ok).toBe(false)
       expect(!r.ok && r.errors[0]).toMatch(/^形が違う: /)
     }
@@ -193,7 +197,7 @@ describe('版1 → 2 の移行（§6-2 の 2。判断ポイント68）', () => {
   }
 
   it('版1 のファイルは、各プロファイルに新しい id、folderId を null、folders を空にして読む', () => {
-    const r = loadSaved(v1Text(), 'file', checkSaved, seq())
+    const r = loadSaved(spec, v1Text(), 'file', checkSaved, seq())
     if (!r.ok) throw new Error(r.errors.join('\n'))
     expect(r.migratedFrom).toBe(1)
     expect(r.value.schemaVersion).toBe(2)
@@ -211,7 +215,7 @@ describe('版1 → 2 の移行（§6-2 の 2。判断ポイント68）', () => {
     delete v1.exportType
     delete v1.exportedAt
     v1.profiles = [...(v1.profiles as object[]), { ...(v1.profiles as object[])[0]!, name: '二' }]
-    const r = loadSaved(JSON.stringify(v1), 'store', checkSaved)
+    const r = loadSaved(spec, JSON.stringify(v1), 'store', checkSaved)
     if (!r.ok) throw new Error(r.errors.join('\n'))
     expect(r.migratedFrom).toBe(1)
     const ids = r.value.profiles.map((p) => p.id)
@@ -221,6 +225,7 @@ describe('版1 → 2 の移行（§6-2 の 2。判断ポイント68）', () => {
 
   it('版1 のファイルは、版1 の形として検証する（folders を持つ版1 は拒否）', () => {
     const r = loadSaved(
+      spec,
       v1Text((f) => (f.folders = [])),
       'file',
       checkSaved,
@@ -230,6 +235,7 @@ describe('版1 → 2 の移行（§6-2 の 2。判断ポイント68）', () => {
 
   it('同梱のファクトリープロファイル（版1 のまま）も、移行すれば検証を通る', () => {
     const r = loadSaved(
+      spec,
       readFileSync(resolve(SPEC, 'factory-profiles.json'), 'utf8'),
       'file',
       checkSaved,

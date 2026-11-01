@@ -47,9 +47,7 @@ describe('プロファイルのプレビュー', () => {
     // 件数は displayAxis の状態と同じ数え方
     const fid = (vocal: boolean) =>
       spec.fieldsDef.fields.filter((f) =>
-        vocal
-          ? f.id !== 'structure'
-          : !['lyricsTheme', 'lyricsLanguage', 'lyricsStructure'].includes(f.id),
+        vocal ? true : !['lyricsTheme', 'lyricsLanguage'].includes(f.id),
       )
     const count = (state: string) =>
       fid(false).filter((f) => displayAxis(spec, f, req(p).axes[f.id]).state === state).length
@@ -65,7 +63,7 @@ describe('プロファイルのプレビュー', () => {
     )
   })
 
-  it('今の vocalMode で無効な項目は数えない（インストの歌詞、歌ありの構成）', () => {
+  it('今の vocalMode で無効な項目は数えない（インストの歌詞）', () => {
     const inst = profilePreview(spec, profileOf(), [])
     const vocal = profilePreview(
       spec,
@@ -78,8 +76,8 @@ describe('プロファイルのプレビュー', () => {
     )
     const total = (pv: typeof inst) =>
       pv.specified.length + pv.others.split(' / ').reduce((n, s) => n + Number(s.split(' ')[1]), 0)
-    expect(total(inst)).toBe(spec.fieldsDef.fields.length - 3)
-    expect(total(vocal)).toBe(spec.fieldsDef.fields.length - 1)
+    expect(total(inst)).toBe(spec.fieldsDef.fields.length - 2)
+    expect(total(vocal)).toBe(spec.fieldsDef.fields.length)
     expect(vocal.specified).toContainEqual({ label: '歌詞のテーマ・内容', text: '海' })
   })
 

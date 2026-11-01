@@ -1,9 +1,9 @@
 // レンダリング例 -14（判断ポイント49 の確認。日本語の歌詞の表記。6モデルでの検証は利用者の作業）との照合。
 // -14 §1 の依頼文は、生成器の出力（inputs/rendered-14.generated.txt）を転記したもの。
 // ここでは、inputs/rendered-14.json を生成器に通した出力を、-14 §1（md から直接読む）と突き合わせる（-14 §5-1）。
-// 一致しなければ、転記の誤り（または生成器の変化）として設計スレッドに知らせる。当て布（文書化された差）はない。
-// 生成物を書き出し直すときは: UPDATE_EXAMPLES=1 npx vitest run src/domain/request/__tests__/rendered-14.spec.ts
-import { readFileSync, writeFileSync } from 'node:fs'
+// 一致しなければ、転記の誤り（または生成器の変化）として設計スレッドに知らせる。当て布は、曲の構成の統合（文面の判断ポイント50）の分だけ。
+// 生成物は検証した当時の出力のまま置く（書き出し直さない）
+import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, it, expect } from 'vitest'
 
@@ -12,8 +12,14 @@ import input from '@examples/inputs/rendered-14.json'
 import { spec } from '@/data/spec'
 import { checkSaved } from '@/data/validation'
 import { generateRequestText } from '@/domain/request/generate'
-import type { SongData } from '@/domain/types/song'
-import { extractRequestText } from './helpers'
+import { applyPatches, extractRequestText, toCurrentSong, type Patch } from './helpers'
+import {
+  DP50_AMOUNT,
+  DP50_B05G,
+  DP50_ROW_SPECIFIED_14,
+  DP50_TAG_BRIDGE,
+  DP50_TAG_INTRO,
+} from './patches'
 
 // テストの実行ディレクトリは app/（vitest.config.ts の root）
 const GENERATED = resolve(
@@ -21,8 +27,15 @@ const GENERATED = resolve(
   '../design/v0/docs/examples/inputs/rendered-14.generated.txt',
 )
 
-const generate = () =>
-  generateRequestText({ spec, req: (input as unknown as SongData).requests[0]! })
+const PATCHES: Patch[] = [
+  DP50_B05G,
+  DP50_ROW_SPECIFIED_14,
+  DP50_AMOUNT,
+  DP50_TAG_INTRO,
+  DP50_TAG_BRIDGE,
+]
+
+const generate = () => generateRequestText({ spec, req: toCurrentSong(input).requests[0]! })
 
 describe('依頼文の生成器: レンダリング例 -14', () => {
   it('入力の楽曲データは、保存データの検証を通る（エラー0件・警告0件）', () => {
@@ -30,15 +43,13 @@ describe('依頼文の生成器: レンダリング例 -14', () => {
     expect([...r.errors, ...r.warnings]).toEqual([])
   })
 
-  it('生成物 inputs/rendered-14.generated.txt と一致する', () => {
-    const got = generate()
-    if (process.env.UPDATE_EXAMPLES === '1') writeFileSync(GENERATED, got, 'utf-8')
-    expect(got).toBe(readFileSync(GENERATED, 'utf-8'))
+  it('生成物 inputs/rendered-14.generated.txt（検証した当時の出力）と、文書化された差を除いて一致する', () => {
+    expect(generate()).toBe(applyPatches(readFileSync(GENERATED, 'utf-8'), PATCHES))
   })
 
-  it('-14 §1 と1文字単位で一致する（文書化された差はない）', () => {
+  it('-14 §1 と、文書化された差を除いて1文字単位で一致する', () => {
     const got = generate()
-    expect(got).toBe(extractRequestText(md))
+    expect(got).toBe(applyPatches(extractRequestText(md), PATCHES))
     expect(got).not.toContain('`'.repeat(3))
   })
 

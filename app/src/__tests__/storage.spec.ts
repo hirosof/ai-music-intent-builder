@@ -30,14 +30,15 @@ import {
   toJsonText,
 } from '@/domain/storage/profiles'
 import { defaultUiSettings, setTermVisibility } from '@/domain/storage/ui-settings'
+import { toCurrentSong } from '@/domain/request/__tests__/helpers'
 import type { SongData } from '@/domain/types/song'
 import factoryJson from '@spec/factory-profiles.json'
 
 const INPUTS = resolve(process.cwd(), '../design/v0/docs/examples/inputs')
-const vocalSong = JSON.parse(readFileSync(resolve(INPUTS, 'rendered-07.json'), 'utf8')) as SongData
-// 例の入力は、歌ありでも structure（無効な項目）を②お任せで持つ。正規化（判断ポイント45 の (2)）で省略される形
-const vocalClean = structuredClone(vocalSong)
-delete vocalClean.requests[0]!.axes.structure
+const vocalSong = toCurrentSong(
+  JSON.parse(readFileSync(resolve(INPUTS, 'rendered-07.json'), 'utf8')),
+)
+const vocalClean = vocalSong
 const instSong = factoryProfiles[0]!.data
 const NOW = new Date('2026-10-19T01:23:45Z')
 
@@ -99,6 +100,58 @@ describe('localStorage のキー', () => {
   })
 })
 
+describe('楽曲データの版1 の読み込み（判断ポイント73）', () => {
+  const v1Song = () => {
+    const s = structuredClone(instSong) as unknown as {
+      schemaVersion: number
+      requests: SongData['requests']
+    }
+    s.schemaVersion = 1
+    ;(s.requests[0]!.axes as Record<string, unknown>).structure = {
+      state: 'specified',
+      value: ['intro', 'bridge'],
+    }
+    return s
+  }
+
+  it('自動保存の版1 は移行して読む（破棄しない）', () => {
+    localStorage.setItem(STORAGE_KEYS.song, JSON.stringify(v1Song()))
+    const r = loadAutosaveFromStorage()
+    if (r.status !== 'ok') throw new Error(r.status)
+    expect(r.song.schemaVersion).toBe(2)
+    expect(r.song.requests[0]!.axes.structure!.value).toEqual([
+      { id: 'intro' },
+      { id: 'transition' },
+    ])
+  })
+
+  it('ストアの中の版1 の data は移行して読み、書き戻す。外側の版は 2 のまま', () => {
+    const store = {
+      schemaVersion: 2,
+      folders: [],
+      profiles: [
+        {
+          id: 'a',
+          folderId: null,
+          name: '曲',
+          updatedAt: '2026-10-19T00:00:00+09:00',
+          data: v1Song(),
+        },
+      ],
+    }
+    localStorage.setItem(STORAGE_KEYS.profiles, JSON.stringify(store))
+    const st = openProfileStore()
+    if (st.status !== 'ok') throw new Error(st.status)
+    expect(st.store.profiles[0]!.data.schemaVersion).toBe(2)
+    const written = JSON.parse(localStorage.getItem(STORAGE_KEYS.profiles)!) as typeof st.store
+    expect(written.profiles[0]!.data.schemaVersion).toBe(2)
+    expect(written.profiles[0]!.data.requests[0]!.axes.structure!.value).toEqual([
+      { id: 'intro' },
+      { id: 'transition' },
+    ])
+  })
+})
+
 describe('自動保存（判断ポイント43・45）', () => {
   it('値がなければ空。保存したものを読める（往復）', () => {
     expect(loadAutosaveFromStorage()).toEqual({ status: 'empty' })
@@ -130,7 +183,7 @@ describe('自動保存（判断ポイント43・45）', () => {
 
   it('未完成の2つ以外のエラーは破棄する（読み込まない）', () => {
     const cases: [string, (s: SongData) => void][] = [
-      ['新しい版', (s) => (s.schemaVersion = 2)],
+      ['新しい版', (s) => (s.schemaVersion = 3)],
       [
         '不明な語 id',
         (s) => (s.requests[0]!.axes.mainGenre = { state: 'specified', value: 'no-such' }),
@@ -159,11 +212,9 @@ describe('自動保存（判断ポイント43・45）', () => {
 
   it('自動保存は正規化してから書く', () => {
     const s = structuredClone(vocalSong)
-    s.requests[0]!.axes.structure = { state: 'specified', value: ['intro'] }
     s.requests[0]!.axes.mood = { state: 'delegated', choices: { tense: 'use' } }
     saveAutosave(s)
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.song)!) as SongData
-    expect(saved.requests[0]!.axes.structure).toBeUndefined()
     expect(saved.requests[0]!.axes.mood).toEqual({ state: 'delegated' })
   })
 })

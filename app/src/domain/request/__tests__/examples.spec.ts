@@ -8,10 +8,18 @@ import { spec } from '@/data/spec'
 import { checkSaved } from '@/data/validation'
 import { generateRequestText } from '@/domain/request/generate'
 import type { SongData } from '@/domain/types/song'
-import { applyPatches, extractRequestText, type Patch } from './helpers'
+import { applyPatches, extractRequestText, toCurrentSong, type Patch } from './helpers'
 import {
   DEVELOPMENT_SHAPE_03,
   DP36_2,
+  DP50_AMOUNT,
+  DP50_B05G,
+  DP50_ROW_DELEGATED,
+  DP50_ROW_INST,
+  DP50_ROW_SPECIFIED,
+  DP50_TAG_BRIDGE,
+  DP50_TAG_INTRO,
+  DP50_UNSUNG,
   DP44_ALL_ENGLISH,
   DP49_KANJI,
   Q02_ORDER,
@@ -76,38 +84,93 @@ const CASES: Record<string, ExampleCase> = {
   '-11（chat-ai-instruction・長さ 3:00）': {
     md: 'rendered-11-new-vocal-lyrics-instruction-r2.md',
     input: 'rendered-11.json',
-    patches: [Q02_ORDER, T02, RAP, R6_TEXT, R5],
+    patches: [Q02_ORDER, T02, RAP, R6_TEXT, R5, DP50_ROW_DELEGATED, DP50_AMOUNT],
   },
   '-08（chat-ai-instruction・R-2 の反映前）': {
     md: 'rendered-08-new-vocal-lyrics-instruction.md',
     input: 'rendered-08.json',
-    patches: [Q02_ORDER, R2_52_INSTRUCTION, T02, RAP, R6_TEXT, R5, R2_LENGTH_ITEM, R3],
+    patches: [
+      Q02_ORDER,
+      R2_52_INSTRUCTION,
+      T02,
+      RAP,
+      R6_TEXT,
+      R5,
+      R2_LENGTH_ITEM,
+      R3,
+      DP50_ROW_DELEGATED,
+      DP50_AMOUNT,
+    ],
   },
   '-07（chat-ai・構成①・テーマ②）': {
     md: 'rendered-07-new-vocal-chat-ai.md',
     input: 'rendered-07.json',
-    patches: [Q02_ORDER, R2_52, T02, R1, RAP, R6_TEXT, R4_LY, R3, R4_OUT, DP49_KANJI],
+    patches: [
+      Q02_ORDER,
+      R2_52,
+      T02,
+      R1,
+      RAP,
+      R6_TEXT,
+      R4_LY,
+      R3,
+      R4_OUT,
+      DP49_KANJI,
+      DP50_ROW_SPECIFIED,
+      DP50_AMOUNT,
+      DP50_TAG_INTRO,
+      DP50_TAG_BRIDGE,
+      DP50_UNSUNG,
+    ],
   },
   '-09（requestScope = style）': {
     md: 'rendered-09-new-vocal-style-only.md',
     input: 'rendered-09.json',
-    patches: [Q02_ORDER, T02, RAP, R6_TEXT],
+    patches: [Q02_ORDER, T02, RAP, R6_TEXT, DP50_B05G, DP50_ROW_SPECIFIED],
   },
   '-10（requestScope = lyrics・曲名案）': {
     md: 'rendered-10-new-vocal-lyrics-only.md',
     input: 'rendered-10.json',
-    patches: [DP36_2, DP49_KANJI],
+    patches: [
+      DP36_2,
+      DP49_KANJI,
+      DP50_ROW_SPECIFIED,
+      DP50_AMOUNT,
+      DP50_TAG_INTRO,
+      DP50_TAG_BRIDGE,
+      DP50_UNSUNG,
+    ],
   },
   '-01-v4（インスト・除外あり・長さ 3:00）': {
     md: 'rendered-01-new-instrumental-v4.md',
     input: 'rendered-01-v4.json',
-    patches: [Q02_ORDER, R2_52, T02, ...V4_LABELS, STYLE_LEAN_ROW, V4_EXCLUSION, R6_TEXT, R3],
+    patches: [
+      Q02_ORDER,
+      R2_52,
+      T02,
+      ...V4_LABELS,
+      STYLE_LEAN_ROW,
+      V4_EXCLUSION,
+      R6_TEXT,
+      R3,
+      DP50_ROW_INST,
+    ],
     expectedWarnings: V4_WARNINGS,
   },
   '-05（インスト・バリエーション＝オフ）': {
     md: 'rendered-05-new-instrumental-variation-off.md',
     input: 'rendered-05.json',
-    patches: [Q02_ORDER_OFF, R2_52, T02, ...V4_LABELS, STYLE_LEAN_ROW, V4_EXCLUSION, R6_TEXT, R3],
+    patches: [
+      Q02_ORDER_OFF,
+      R2_52,
+      T02,
+      ...V4_LABELS,
+      STYLE_LEAN_ROW,
+      V4_EXCLUSION,
+      R6_TEXT,
+      R3,
+      DP50_ROW_INST,
+    ],
     expectedWarnings: V4_WARNINGS,
   },
   '-03（インスト・お任せ多め・除外なし・長さ Auto・案1・すべて英語）': {
@@ -122,6 +185,7 @@ const CASES: Record<string, ExampleCase> = {
       DEVELOPMENT_SHAPE_03,
       vocabLabel('導けない場合は「自然な」 | — |', '導けない場合は「自然な響き」 | — |'),
       R3,
+      DP50_ROW_INST,
     ],
   },
 }
@@ -141,7 +205,7 @@ describe('依頼文の生成器: 既存のレンダリング例との照合（U2
     it('例の §1 と、文書化された差を除いて1文字単位で一致する', () => {
       const md = readFileSync(resolve(EXAMPLES, c.md), 'utf-8')
       const expected = applyPatches(extractRequestText(md), c.patches)
-      expect(generateRequestText({ spec, req: input.requests[0]! })).toBe(expected)
+      expect(generateRequestText({ spec, req: toCurrentSong(input).requests[0]! })).toBe(expected)
     })
   })
 })

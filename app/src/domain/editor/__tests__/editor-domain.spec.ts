@@ -11,10 +11,13 @@ import { displayAxis, displayOutput, outputCardItems, stateCounts } from '@/doma
 import { createInitialSong } from '@/domain/editor/initial'
 import { findIncomplete, isIncomplete } from '@/domain/editor/incomplete'
 import { generateRequestText } from '@/domain/request/generate'
-import type { SongData, SongRequest } from '@/domain/types/song'
+import { toCurrentSong } from '@/domain/request/__tests__/helpers'
+import type { AxisValue, SongRequest } from '@/domain/types/song'
 
 const INPUTS = resolve(process.cwd(), '../design/v0/docs/examples/inputs')
-const vocalSong = JSON.parse(readFileSync(resolve(INPUTS, 'rendered-11.json'), 'utf8')) as SongData
+const vocalSong = toCurrentSong(
+  JSON.parse(readFileSync(resolve(INPUTS, 'rendered-11.json'), 'utf8')),
+)
 const vocalReq = vocalSong.requests[0]!
 const instReq = factoryProfiles[0]!.data.requests[0]!
 const field = (id: string) => spec.fieldById.get(id)!
@@ -81,7 +84,7 @@ describe('カードの構成（判断ポイント48）', () => {
     expect(visibleCards(vocalReq).map((c) => c.id)).toEqual(CARDS.map((c) => c.id))
   })
 
-  it('構成（structure）はインストのときだけ。歌詞カードは歌詞の3項目', () => {
+  it('曲の構成は、インストは構造カード、歌ありは歌詞カードの最後（判断ポイント74）', () => {
     const structure = CARDS.find((c) => c.id === 'structure')!
     const ids = (req: SongRequest) => cardSections(spec, structure, req).flatMap((s) => s.fieldIds)
     expect(ids(instReq)).toContain('structure')
@@ -91,7 +94,7 @@ describe('カードの構成（判断ポイント48）', () => {
     expect(cardSections(spec, lyrics, vocalReq).flatMap((s) => s.fieldIds)).toEqual([
       'lyricsTheme',
       'lyricsLanguage',
-      'lyricsStructure',
+      'structure',
     ])
   })
 
@@ -101,11 +104,11 @@ describe('カードの構成（判断ポイント48）', () => {
     const inst = ids(instReq)
     const vocal = ids(vocalReq)
     for (const xs of [inst, vocal]) expect(new Set(xs).size).toBe(xs.length)
-    // インストは歌詞の3項目、歌ありは構成（structure）を除く全項目
-    expect([...inst, 'lyricsTheme', 'lyricsLanguage', 'lyricsStructure'].sort()).toEqual(
+    // インストは歌詞の2項目を除く全項目、歌ありは全項目
+    expect([...inst, 'lyricsTheme', 'lyricsLanguage'].sort()).toEqual(
       [...spec.fieldById.keys()].sort(),
     )
-    expect([...vocal, 'structure'].sort()).toEqual([...spec.fieldById.keys()].sort())
+    expect([...vocal].sort()).toEqual([...spec.fieldById.keys()].sort())
   })
 
   it('複数のグループを持つカードだけ小見出しを出す', () => {
@@ -132,12 +135,12 @@ describe('依頼文の範囲で依頼文に出ない項目（淡く表示。判�
     expect(outOf(vocalReq)).toEqual([])
   })
 
-  it('style: 歌詞の3項目・作詞の主体・曲名案', () => {
+  it('style: 歌詞の2項目・曲の構成・作詞の主体・曲名案（歌ありの曲の構成は歌詞カードの項目。判断ポイント74）', () => {
     expect(outOf(withScope(vocalReq, 'style')).sort()).toEqual(
       [
         'lyricsTheme',
         'lyricsLanguage',
-        'lyricsStructure',
+        'structure',
         'lyricsAuthor',
         'titleSuggestions',
         'titleCount',
@@ -194,6 +197,19 @@ describe('値の表示', () => {
     )
   })
 
+  it('曲の構成の歌なしの印は、歌ありのときだけ出す（インストで覚えている印は出さない。判断ポイント74）', () => {
+    const a: AxisValue = {
+      state: 'specified',
+      value: [
+        { id: 'intro', sung: false },
+        { id: 'verse', sung: true },
+      ],
+    }
+    expect(displayAxis(spec, field('structure'), a, true).text).toBe('イントロ（歌なし） → Aメロ')
+    expect(displayAxis(spec, field('structure'), a, false).text).toBe('イントロ → Aメロ')
+    expect(displayAxis(spec, field('structure'), a).text).toBe('イントロ → Aメロ')
+  })
+
   it('①指定は種類ごとの表示（語の表示名・3値・自由記述・BPM・長さ・構成）', () => {
     const genre = spec.vocabularyById.get('genre')!.items.find((i) => i.id === 'orchestral')!
     expect(
@@ -214,7 +230,10 @@ describe('値の表示', () => {
     ).toBe('90〜100')
     expect(displayAxis(spec, field('length'), { state: 'specified', value: 185 }).text).toBe('3:05')
     expect(
-      displayAxis(spec, field('structure'), { state: 'specified', value: ['intro', 'outro'] }).text,
+      displayAxis(spec, field('structure'), {
+        state: 'specified',
+        value: [{ id: 'intro' }, { id: 'outro' }],
+      }).text,
     ).toMatch(/ → /)
     expect(
       displayAxis(spec, field('lyricsLanguage'), { state: 'specified', value: 'mixed' }).text,

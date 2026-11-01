@@ -2,7 +2,7 @@
 // 依頼文は変えず、UI で案内する。文面・閾値・一言は、初版は UI の定数（ツールプロファイルに属性を足さない）
 import type { Spec } from '../spec'
 import type { SongRequest } from '../types/song'
-import { INSTRUMENTAL_ONLY_FIELDS, VOCAL_ONLY_FIELDS } from '../validation/check-saved'
+import { VOCAL_ONLY_FIELDS } from '../validation/check-saved'
 import { isOutOfScope, requestScopeOf } from './cards'
 import { currentState } from './edit'
 
@@ -87,7 +87,7 @@ export function diffAxisNotice(
   const option = spec.outputById.get('diffAxis')?.options?.find((o) => o.id === out('diffAxis'))
   const targets = option?.targetGroups
   if (!targets && option?.id !== DIFF_AXIS_INTERPRETATION) return null
-  const invalid = new Set(req.vocalMode === 'vocal' ? INSTRUMENTAL_ONLY_FIELDS : VOCAL_ONLY_FIELDS)
+  const invalid = new Set(req.vocalMode === 'vocal' ? [] : VOCAL_ONLY_FIELDS)
   const fields = spec.fieldsDef.fields.filter(
     (f) =>
       !invalid.has(f.id) &&

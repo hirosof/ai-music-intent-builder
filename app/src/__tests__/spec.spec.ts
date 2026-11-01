@@ -4,13 +4,13 @@ import presetIndex from '@spec/presets/index.json'
 import { spec, specSummary } from '@/data/spec'
 import { buildSpec, fieldItemIds, profileParam } from '@/domain/spec'
 
-// 期待値は check_fields.py の出力（項目 29＋10、語彙 19、ツールプロファイル 1）と同じ
+// 期待値は check_fields.py の出力（項目 28＋10、語彙 18、ツールプロファイル 1）と同じ
 describe('仕様の JSON の読み込み', () => {
   it('件数が check_fields.py と一致する', () => {
     expect(specSummary).toEqual({
-      songFields: 29,
+      songFields: 28,
       outputFields: 10,
-      vocabularies: 19,
+      vocabularies: 18,
       toolProfiles: 1,
     })
   })

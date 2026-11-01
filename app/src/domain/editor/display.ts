@@ -34,11 +34,13 @@ export function termLabel(spec: Spec, field: FieldDef, id: string): string {
 }
 
 const SEP = ' ／ '
+/** 歌の印が「歌なし」の要素に付ける印（依頼文と同じ表記。文面の判断ポイント50） */
+const UNSUNG_MARK = '（歌なし）'
 
 const formatSeconds = (sec: number) =>
   `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`
 
-function formatSpecified(spec: Spec, field: FieldDef, a: AxisValue): string {
+function formatSpecified(spec: Spec, field: FieldDef, a: AxisValue, vocal: boolean): string {
   const parts: string[] = []
   const v = a.value
   switch (field.kind) {
@@ -66,20 +68,35 @@ function formatSpecified(spec: Spec, field: FieldDef, a: AxisValue): string {
       if (typeof v === 'number') parts.push(formatSeconds(v))
       break
     case 'sectionList':
-      if (Array.isArray(v)) parts.push(v.map((id) => termLabel(spec, field, id)).join(' → '))
+      if (Array.isArray(v))
+        parts.push(
+          v
+            .map(
+              (x) => termLabel(spec, field, x.id) + (vocal && x.sung === false ? UNSUNG_MARK : ''),
+            )
+            .join(' → '),
+        )
       break
   }
   if (field.freeText && a.freeText?.trim()) parts.push(`自由記述: ${a.freeText.trim()}`)
   return parts.join(SEP)
 }
 
-/** 項目の値の表示。省略された項目は初期状態として表示する（input-items.md §5） */
-export function displayAxis(spec: Spec, field: FieldDef, a: AxisValue | undefined): DisplayValue {
+/**
+ * 項目の値の表示。省略された項目は初期状態として表示する（input-items.md §5）。
+ * vocal: 歌ありのとき真。曲の構成の歌なしの要素に印を付ける（インストで覚えている印は出さない。判断ポイント74）
+ */
+export function displayAxis(
+  spec: Spec,
+  field: FieldDef,
+  a: AxisValue | undefined,
+  vocal = false,
+): DisplayValue {
   const state = a?.state ?? field.initialState
   const label = stateLabel(spec, state)
   let text: string
   if (state === 'specified') {
-    text = formatSpecified(spec, field, a ?? { state })
+    text = formatSpecified(spec, field, a ?? { state }, vocal)
   } else if (state === 'delegated') {
     // 「足させない」項目の②は、AI が追加しないことを添える（議論ログ17 §2 の D）
     text = field.states.delegated?.rule === 'leave' ? `${label}（追加しない）` : label

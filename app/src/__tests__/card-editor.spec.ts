@@ -65,6 +65,10 @@ async function setNumber(testid: string, value: string) {
   await flushPromises()
 }
 const rowText = (id: string) => $(`row-${id}`)?.textContent ?? ''
+const setVocalModeInUi = (mode: 'instrumental' | 'vocal') =>
+  $('input-vocalMode')!
+    .querySelectorAll<HTMLElement>('button[role="radio"]')
+    [mode === 'instrumental' ? 0 : 1]!.click()
 const songWith = (mutate: (r: SongRequest) => void): SongData => {
   const s = createInitialSong(spec)
   mutate(s.requests[0]!)
@@ -245,24 +249,108 @@ describe('BPM（K5・判断ポイント56）', () => {
 describe('構成（K6）', () => {
   it('上へ・下へ・削除。最後の1つは消せない', async () => {
     await mountApp(
-      songWith((r) => (r.axes.structure = { state: 'specified', value: ['intro', 'outro'] })),
+      songWith(
+        (r) =>
+          (r.axes.structure = { state: 'specified', value: [{ id: 'intro' }, { id: 'outro' }] }),
+      ),
     )
     await click('edit-structure')
     await click('down-structure-0')
-    expect(req().axes.structure!.value).toEqual(['outro', 'intro'])
+    expect(req().axes.structure!.value).toEqual([{ id: 'outro' }, { id: 'intro' }])
     expect($<HTMLButtonElement>('up-structure-0')!.disabled).toBe(true)
     await click('remove-structure-1')
-    expect(req().axes.structure!.value).toEqual(['outro'])
+    expect(req().axes.structure!.value).toEqual([{ id: 'outro' }])
     expect($<HTMLButtonElement>('remove-structure-0')!.disabled).toBe(true)
   })
 
-  it('歌ありでは構成は出ない（歌詞カードの歌詞の構成を使う）', async () => {
+  it('歌ありでは曲の構成は歌詞カードに出る（構造カードには出ない。判断ポイント74）', async () => {
     await mountApp(songWith((r) => (r.vocalMode = 'vocal')))
     await click('edit-structure')
     expect($('editor-structure')).toBeNull()
     await click('editor-close')
     await click('edit-lyrics')
-    expect($('editor-lyricsStructure')).not.toBeNull()
+    expect($('editor-structure')).not.toBeNull()
+  })
+
+  it('歌の印の切り替えは歌ありのときだけ。押すと歌あり／歌なしが入れ替わる', async () => {
+    await mountApp(
+      songWith((r) => {
+        r.vocalMode = 'vocal'
+        r.axes.structure = {
+          state: 'specified',
+          value: [
+            { id: 'intro', sung: false },
+            { id: 'chorus', sung: true },
+          ],
+        }
+      }),
+    )
+    await click('edit-lyrics')
+    expect($('sung-structure-0')!.textContent).toContain('歌なし')
+    expect($('sung-structure-1')!.textContent).toContain('歌あり')
+    await click('sung-structure-0')
+    await click('sung-structure-1')
+    expect(req().axes.structure!.value).toEqual([
+      { id: 'intro', sung: true },
+      { id: 'chorus', sung: false },
+    ])
+    expect($('sung-structure-0')!.getAttribute('aria-pressed')).toBe('true')
+    expect($('sung-structure-1')!.getAttribute('aria-pressed')).toBe('false')
+    await click('editor-close')
+    expect(rowText('structure')).toContain('イントロ → サビ（歌なし）')
+  })
+
+  it('インストでは歌の印を出さない。切り替えても印を覚えていて、歌ありに戻すと復元する', async () => {
+    await mountApp(
+      songWith((r) => {
+        r.vocalMode = 'vocal'
+        r.lyricsAuthor = 'chat-ai'
+        r.axes.structure = {
+          state: 'specified',
+          value: [
+            { id: 'chorus', sung: false },
+            { id: 'intro', sung: true },
+          ],
+        }
+      }),
+    )
+    const { savedSong } = useSongEditor()
+    await click('edit-songType')
+    setVocalModeInUi('instrumental')
+    await flushPromises()
+    await click('editor-close')
+    expect(rowText('structure')).toContain('サビ → イントロ')
+    expect(rowText('structure')).not.toContain('歌なし')
+    // 保存する形からは外れる
+    expect(savedSong.value.requests[0]!.axes.structure!.value).toEqual([
+      { id: 'chorus' },
+      { id: 'intro' },
+    ])
+    await click('edit-structure')
+    expect($('sung-structure-0')).toBeNull()
+    await click('editor-close')
+    await click('edit-songType')
+    setVocalModeInUi('vocal')
+    await flushPromises()
+    expect(req().axes.structure!.value).toEqual([
+      { id: 'chorus', sung: false },
+      { id: 'intro', sung: true },
+    ])
+  })
+
+  it('印を覚えていない要素は、歌ありに切り替えたとき defaultSung を当てる', async () => {
+    await mountApp(
+      songWith((r) => {
+        r.axes.structure = { state: 'specified', value: [{ id: 'intro' }, { id: 'chorus' }] }
+      }),
+    )
+    await click('edit-songType')
+    setVocalModeInUi('vocal')
+    await flushPromises()
+    expect(req().axes.structure!.value).toEqual([
+      { id: 'intro', sung: false },
+      { id: 'chorus', sung: true },
+    ])
   })
 })
 

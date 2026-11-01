@@ -8,11 +8,12 @@ import { checkSaved } from '@/data/validation'
 import { GenerationError } from '@/domain/request/errors'
 import { generateRequestText } from '@/domain/request/generate'
 import type { SongData, SongRequest } from '@/domain/types/song'
+import { toCurrentSong } from './helpers'
 import factory from '@spec/factory-profiles.json'
 import songExample from '@spec/song.example.json'
 
 function base(): SongRequest {
-  return structuredClone((input as unknown as SongData).requests[0]!)
+  return structuredClone(toCurrentSong(input).requests[0]!)
 }
 const gen = (req: SongRequest) => generateRequestText({ spec, req })
 
@@ -69,15 +70,99 @@ describe('依頼文の生成器: 分岐', () => {
     expect(t).toContain('1. 案ごとの出力（1 案）')
   })
 
-  it('歌詞の構成が①指定のとき: B-05g の展開の1文（R-1）と、指示文の要件に構成（R-5 の①側）', () => {
+  const VOCAL_STRUCTURE = [
+    { id: 'intro', sung: false },
+    { id: 'verse', sung: true },
+    { id: 'chorus', sung: true },
+    { id: 'outro', sung: false },
+  ]
+
+  it('曲の構成が①指定のとき: B-05g の展開の1文（R-1）と、指示文の要件に構成（R-5 の①側）', () => {
     const req = base()
-    req.axes.lyricsStructure = { state: 'specified', value: ['intro', 'verse', 'chorus', 'outro'] }
+    req.axes.structure = { state: 'specified', value: VOCAL_STRUCTURE }
     const t = gen(req)
     expect(t).toContain(
-      '- スタイル欄の「展開」の記述は、§6 の「歌詞の構成」と矛盾しないようにしてください',
+      '- スタイル欄の「展開」の記述は、§6 の「曲の構成」と矛盾しないようにしてください',
     )
     expect(t).toContain('指示文には、§6 の G の要件（テーマ・言語・構成）を含めてください。')
-    expect(t).toContain('| 歌詞の構成 | 指定 | イントロ → Aメロ → サビ → アウトロ | 保持 |')
+    expect(t).toContain(
+      '| 曲の構成 | 指定 | イントロ（歌なし） → Aメロ → サビ → アウトロ（歌なし） | 保持 |',
+    )
+    // 指示文のときは B-LY-t を出さない（タグの1文も）
+    expect(t).not.toContain('「（歌なし）」を付けたまとまりは')
+  })
+
+  describe('曲の構成の統合（文面の判断ポイント50）', () => {
+    const chatAi = (value: { id: string; sung?: boolean }[]) => {
+      const req = base()
+      req.lyricsAuthor = 'chat-ai'
+      req.axes.structure = { state: 'specified', value }
+      return gen(req)
+    }
+    const UNSUNG =
+      '「（歌なし）」を付けたまとまりは、構成タグだけを書き、歌詞は書かないでください。'
+
+    it('歌なしの要素があるときだけ、B-LY-t にタグの1文を足す。タグの対応の後ろ', () => {
+      const t = chatAi(VOCAL_STRUCTURE)
+      expect(t).toContain(`- アウトロ: [Outro]\n\n${UNSUNG}\n`)
+      expect(chatAi(VOCAL_STRUCTURE.map((x) => ({ ...x, sung: true })))).not.toContain(UNSUNG)
+    })
+
+    it('全部が歌ありなら「（歌なし）」は出ない', () => {
+      const t = chatAi([{ id: 'verse', sung: true }])
+      expect(t).toContain('| 曲の構成 | 指定 | Aメロ | 保持 |')
+      expect(t).not.toContain('（歌なし）')
+    })
+
+    it('同じ語が歌あり・歌なしで2回出ても、タグの対応は1回', () => {
+      const t = chatAi([
+        { id: 'chorus', sung: true },
+        { id: 'chorus', sung: false },
+      ])
+      expect(t).toContain('| 曲の構成 | 指定 | サビ → サビ（歌なし） | 保持 |')
+      expect(t.split('- サビ: [Chorus]').length - 1).toBe(1)
+      expect(t).toContain(UNSUNG)
+    })
+
+    it('歌ありの曲の構成は G の表に、最後の行として出る。E の表には出ない', () => {
+      const t = chatAi(VOCAL_STRUCTURE)
+      const e = t.slice(t.indexOf('### E.'), t.indexOf('### F.'))
+      const g = t.slice(t.indexOf('### G.'))
+      expect(e).not.toContain('曲の構成')
+      expect(g.indexOf('| 歌詞本文の言語 |')).toBeLessThan(g.indexOf('| 曲の構成 |'))
+    })
+
+    it('インストは E の表に出し、印は付けない（編集中に覚えている sung も無視する）', () => {
+      const req = structuredClone(toCurrentSong(songExample).requests[0]!)
+      req.axes.structure = { state: 'specified', value: VOCAL_STRUCTURE }
+      const t = gen(req)
+      const e = t.slice(t.indexOf('### E.'), t.indexOf('### F.'))
+      expect(e).toContain('| 曲の構成 | 指定 | イントロ → Aメロ → サビ → アウトロ | 保持 |')
+      expect(t).not.toContain('（歌なし）')
+      expect(t).not.toContain('[Intro]')
+    })
+
+    it('依頼文の範囲 lyrics でも G の表に出る。style では参照用の G の表に出る', () => {
+      const lyrics = base()
+      lyrics.lyricsAuthor = 'chat-ai'
+      lyrics.output.requestScope = 'lyrics'
+      lyrics.axes.structure = { state: 'specified', value: VOCAL_STRUCTURE }
+      expect(gen(lyrics)).toContain('| 曲の構成 | 指定 | イントロ（歌なし）')
+      const style = structuredClone(lyrics)
+      style.output.requestScope = 'style'
+      const s = gen(style)
+      expect(s.slice(s.indexOf('### G.'))).toContain('| 曲の構成 | 指定 | イントロ（歌なし）')
+    })
+
+    it('B-LY-t の②: 「歌詞の構成は指定されていません」は変えない。B-LY-B の②は「曲の構成」', () => {
+      const a = base()
+      a.lyricsAuthor = 'chat-ai'
+      a.axes.structure = { state: 'delegated' }
+      expect(gen(a)).toContain('歌詞の構成は指定されていません。構成タグは付けず')
+      const b = base()
+      b.axes.structure = { state: 'delegated' }
+      expect(gen(b)).toContain('曲の構成は指定がないため、指示文に含めないでください。')
+    })
   })
 
   it('歌詞の言語が①指定の english のとき: B-LY-ja は出ない', () => {
@@ -321,11 +406,11 @@ describe('依頼文の生成器: 利用者が入力した文字列（判断ポ�
 
 describe('依頼文の生成器: ファクトリープロファイル（同梱のデータ）はすべて生成できる', () => {
   it.each(factory.profiles.map((p) => [p.name, p] as const))('%s', (_name, p) => {
-    const t = generateRequestText({ spec, req: (p.data as unknown as SongData).requests[0]! })
+    const t = generateRequestText({ spec, req: toCurrentSong(p.data).requests[0]! })
     expect(t).toContain('# 音楽生成AI用プロンプト作成依頼')
   })
 
-  it('song.example.json（1件目と同じ）の主旋律の自由記述', () => {
+  it('song.example.json（1件目を移行したものと同じ）の主旋律の自由記述', () => {
     const t = generateRequestText({ spec, req: (songExample as unknown as SongData).requests[0]! })
     expect(t).toContain(
       '| 主旋律を担う楽器 | 指定 | 尺八, 自由記述: 「尺八が旋律をとる」 | Guitar | 拡張可 |',

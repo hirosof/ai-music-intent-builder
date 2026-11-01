@@ -1,8 +1,8 @@
 // 入力の操作（U4b）。編集中の依頼（画面上の形）を直接書き換える。
 // 状態を変えても値は消さない（一時保持。判断ポイント30・U4b の決定 K8）。保存するときの正規化（判断ポイント45）で、①以外の値は落ちる
-import type { Spec } from '../spec'
+import { defaultSung, STRUCTURE_FIELD_ID, type Spec } from '../spec'
 import type { FieldDef, StateId } from '../types/fields'
-import type { AxisValue, Choice, SongRequest } from '../types/song'
+import type { AxisValue, Choice, SectionElement, SongRequest } from '../types/song'
 import { stateLabel, termLabel } from './display'
 
 /** 項目の値（なければ初期状態で作る） */
@@ -119,7 +119,8 @@ export function selectMenu(
   for (const g of groups) {
     const members = words.filter((o) => groupOf.get(o.value) === g.id)
     if (members.length === 0) continue
-    out.push({ type: 'separator' }, { type: 'label', label: g.label }, ...members.map(item))
+    if (out.length > 0) out.push({ type: 'separator' })
+    out.push({ type: 'label', label: g.label }, ...members.map(item))
   }
   return out
 }
@@ -235,7 +236,7 @@ export function setSpecifiedValue(req: SongRequest, field: FieldDef, value: Axis
 // 構成（セクションの並び。K6）。空の並びは書き込まない（最後の1つは消せない）
 // ---------------------------------------------------------------------------
 
-export function moveSection(list: readonly string[], index: number, delta: -1 | 1): string[] {
+export function moveSection<T>(list: readonly T[], index: number, delta: -1 | 1): T[] {
   const j = index + delta
   if (j < 0 || j >= list.length) return [...list]
   const out = [...list]
@@ -243,9 +244,32 @@ export function moveSection(list: readonly string[], index: number, delta: -1 | 
   return out
 }
 
-export function removeSection(list: readonly string[], index: number): string[] {
+export function removeSection<T>(list: readonly T[], index: number): T[] {
   if (list.length <= 1) return [...list]
   return list.filter((_, i) => i !== index)
+}
+
+/** 足す要素。歌ありのときは、語彙の defaultSung を歌の印の初期値にする（UI 判断ポイント74） */
+export function newSection(spec: Spec, req: SongRequest, id: string): SectionElement {
+  return req.vocalMode === 'vocal' ? { id, sung: defaultSung(spec, id) } : { id }
+}
+
+/** 行の歌の印を切り替える */
+export function toggleSung(list: readonly SectionElement[], index: number): SectionElement[] {
+  return list.map((x, i) => (i === index ? { ...x, sung: x.sung === false } : x))
+}
+
+/**
+ * ボーカル区分を変える。印はインストのあいだも要素に残して覚える（保存では外す。UI 判断ポイント73・74）。
+ * 歌ありにするとき、印を覚えていない要素には defaultSung を当てる
+ */
+export function setVocalMode(spec: Spec, req: SongRequest, mode: SongRequest['vocalMode']): void {
+  req.vocalMode = mode
+  const a = req.axes[STRUCTURE_FIELD_ID]
+  if (mode === 'vocal' && a && Array.isArray(a.value))
+    a.value = a.value.map((x) =>
+      x.sung === undefined ? { ...x, sung: defaultSung(spec, x.id) } : x,
+    )
 }
 
 // ---------------------------------------------------------------------------

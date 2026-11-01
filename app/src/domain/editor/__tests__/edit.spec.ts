@@ -2,8 +2,12 @@
 import { describe, it, expect } from 'vitest'
 
 import { spec } from '@/data/spec'
+import { defaultSung } from '@/domain/spec'
 import { checkSaved } from '@/data/validation'
 import {
+  newSection,
+  setVocalMode,
+  toggleSung,
   formatLength,
   moveSection,
   checkBpmRange,
@@ -308,8 +312,85 @@ describe('BPM・数（判断ポイント56）', () => {
     const req = fresh()
     setSpecifiedValue(req, field('length'), 150)
     setSpecifiedValue(req, field('bpm'), { min: 90, max: 100 })
-    setSpecifiedValue(req, field('structure'), ['intro', 'outro'])
-    expect(checkSaved(JSON.stringify({ schemaVersion: 1, requests: [req] })).errors).toEqual([])
+    setSpecifiedValue(req, field('structure'), [{ id: 'intro' }, { id: 'outro' }])
+    expect(checkSaved(JSON.stringify({ schemaVersion: 2, requests: [req] })).errors).toEqual([])
+  })
+})
+
+describe('歌の印（UI 判断ポイント73・74）', () => {
+  it('足す要素: 歌ありは defaultSung が初期値、インストは印なし', () => {
+    const req = fresh()
+    expect(newSection(spec, req, 'chorus')).toEqual({ id: 'chorus' })
+    req.vocalMode = 'vocal'
+    expect(newSection(spec, req, 'chorus')).toEqual({ id: 'chorus', sung: true })
+    expect(newSection(spec, req, 'intro')).toEqual({ id: 'intro', sung: false })
+    expect(newSection(spec, req, 'theme')).toEqual({ id: 'theme', sung: false })
+  })
+
+  it('全部の語の defaultSung は「歌もの向け」だけが真', () => {
+    const items = spec.vocabularyById.get('section')!.items
+    for (const i of items) expect(defaultSung(spec, i.id)).toBe(i.group === 'vocal')
+    expect(items).toHaveLength(12)
+    expect(defaultSung(spec, 'ない語')).toBe(false)
+  })
+
+  it('切り替えは該当の行だけ。引数は書き換えない', () => {
+    const list = [
+      { id: 'intro', sung: false },
+      { id: 'verse', sung: true },
+    ]
+    expect(toggleSung(list, 0)).toEqual([
+      { id: 'intro', sung: true },
+      { id: 'verse', sung: true },
+    ])
+    expect(toggleSung(list, 1)).toEqual([
+      { id: 'intro', sung: false },
+      { id: 'verse', sung: false },
+    ])
+    expect(list[0]!.sung).toBe(false)
+  })
+
+  it('歌ありにするとき、印のない要素だけに defaultSung を当てる。状態が②でも覚えている値に当てる', () => {
+    const req = fresh()
+    req.axes.structure = {
+      state: 'delegated',
+      value: [{ id: 'chorus', sung: false }, { id: 'verse' }, { id: 'intro' }],
+    }
+    setVocalMode(spec, req, 'vocal')
+    expect(req.vocalMode).toBe('vocal')
+    expect(req.axes.structure.value).toEqual([
+      { id: 'chorus', sung: false },
+      { id: 'verse', sung: true },
+      { id: 'intro', sung: false },
+    ])
+  })
+
+  it('インストにするときは、印を消さない。値がなくても落ちない', () => {
+    const req = fresh()
+    setVocalMode(spec, req, 'vocal')
+    req.axes.structure = { state: 'specified', value: [{ id: 'chorus', sung: false }] }
+    setVocalMode(spec, req, 'instrumental')
+    expect(req.axes.structure.value).toEqual([{ id: 'chorus', sung: false }])
+    // 印のない要素に、インストでは初期値を当てない
+    req.axes.structure = { state: 'specified', value: [{ id: 'chorus' }] }
+    setVocalMode(spec, req, 'instrumental')
+    expect(req.axes.structure.value).toEqual([{ id: 'chorus' }])
+  })
+
+  it('追加の選択肢は3グループに見出し（先頭に区切り線を置かない）', () => {
+    const f = field('structure')
+    const items = spec.vocabularyById.get('section')!.items
+    const menu = selectMenu(
+      spec,
+      f,
+      items.map((i) => ({ value: i.id, label: i.label, pseudo: false })),
+    )
+    expect(menu[0]).toEqual({ type: 'label', label: '共通' })
+    expect(menu.filter((x) => x.type === 'separator')).toHaveLength(2)
+    expect(
+      menu.filter((x) => x.type === 'label').map((x) => (x as { label: string }).label),
+    ).toEqual(['共通', '歌もの向け', 'インスト向け'])
+    expect(menu.filter((x) => x.type === 'item')).toHaveLength(12)
   })
 })
 
