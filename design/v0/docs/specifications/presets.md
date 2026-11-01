@@ -158,7 +158,7 @@ presets/
 
 ---
 
-## 3. 語彙の一覧（2026-09-19 時点。2026-10-18 に `section-vocal` を追記）
+## 3. 語彙の一覧（2026-09-19 時点。2026-10-18 に `section-vocal` を追記。2026-10-28 に `era` を更新〔判断ポイント214〕）
 
 | 語彙 id | 軸 | 構造 | 表示 / 非表示 | ソース |
 |---|---|---|---|---|
@@ -167,7 +167,7 @@ presets/
 | `genre` | B | categorized（16カテゴリ） | 205 / 180 | `genres/*.md` |
 | `region-style` | B | flat | 11 / 0 | `region-style.md` |
 | `style-lean` | B | flat | 3 / 0 | `small-choices.md` |
-| `era` | B | flat | 9 / 0 | `small-choices.md` |
+| `era` | B | flat | 14 / 0 | `small-choices.md` |
 | `emotion` | C | flat | 12 / 0 | `emotion.md` |
 | `intensity` | C | flat | 3 / 0 | `small-choices.md` |
 | `brightness` | C | flat | 3 / 0 | `small-choices.md` |
@@ -329,7 +329,7 @@ S11 は欠番。語数のスナップショットは検証しない（語彙の�
 | 語彙 id | 項目 | 選択肢 |
 |---|---|---|
 | `listening-environment` | 想定する聴取環境 | 再生のされ方を想定しない（`no-playback`）／ループ再生する／通して聴く |
-| `era` | 年代・時代感 | 年代を特定しない（`no-era`）／1950年代以前／1960年代〜2020年代（10年区切り、8区分） |
+| `era` | 年代・時代感 | 年代を特定しない（`no-era`）／1950年代以前／1960年代〜2020年代（10年区切り、8区分）。2026-10-28 に明治〜令和（元号5つ）を足し、グループ「西暦」「和暦」に分けた（判断ポイント214） |
 | `voice-treatment` | 声の扱い | 声を入れない（`no-voice`）／合唱／言葉のない合唱／言葉のない独唱／ハミング／スキャット |
 | `intensity` | 強度 | 控えめ／中程度（id `medium`）／強い |
 | `brightness` | 明暗 | 明るい／中間／暗い |

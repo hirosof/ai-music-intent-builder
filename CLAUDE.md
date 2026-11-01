@@ -21,6 +21,7 @@ design/v0/   設計（生きた仕様。実装中も直接更新する。「正�
 - 仕様の JSON は `app/` に写さない。エイリアス `@spec`（→ `design/v0/docs/specifications`。`vite.config.ts` と `tsconfig.app.json`）で直接読み、ビルドに組み込む
 - `base: './'`（相対）とハッシュ方式のルーターで、GitHub Pages とローカル IIS のどちらのサブパスにも同じビルドで置ける
 - GitHub Pages への公開は `.github/workflows/deploy.yml`（手動実行。利用者が行う）
+- Cloudflare Workers（バックアップの公開先）: `deploy.yml` のジョブ `deploy-cloudflare`、設定は `app/wrangler.jsonc`。同じビルドを置く（`design/v0/docs/decisions/ui-and-nonfunctional.md` 判断ポイント72）
 
 ## 読む順序
 

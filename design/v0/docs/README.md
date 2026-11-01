@@ -2,7 +2,7 @@
 
 本プロジェクト（音楽生成AI用プロンプト作成依頼文ビルダー）のドキュメント一式。
 
-- 最終更新: 2026-10-25（整合性の調査〔`../think/audit-2026-10-25.md`〕による修正: 登録漏れ〔`lyrics.md`・`factory-profiles.json`・`rendered-06-input-songs/`・`suno-test-02-results/`〕、`tools/` の位置、§6 の進捗）。〔経緯〕2026-10-18
+- 最終更新: 2026-11-01（整合性の調査〔`../think/audit-2026-11-01.md`〕M-03: 最終更新の行）。〔経緯〕2026-10-26〜28（`tools/check-docs/`・レンダリング例 `-14`・お試しの記録 `chat-test-01` の登録）。〔経緯〕2026-10-25（整合性の調査〔`../think/audit-2026-10-25.md`〕による修正: 登録漏れ〔`lyrics.md`・`factory-profiles.json`・`rendered-06-input-songs/`・`suno-test-02-results/`〕、`tools/` の位置、§6 の進捗）。〔経緯〕2026-10-18
 - 作業用フォルダ: リポジトリ `ai-music-intent-builder`（`E:\Developments\ClaudeCode\ai-music-intent-builder\`）の **`design/v0/`**（2026-10-18 に移動。旧: `E:\AI_Works\Claude\ai-music-prompt-request-support\`。旧フォルダは移した時点の写しで、以後はリポジトリ側を正とする）。**本書中の `docs/`・`tools/` のパスやコマンドは、`design/v0/` 基準**。リポジトリ直下の `CLAUDE.md` が実装（Claude Code）の入口
 - 想定: 要件・仕様の議論をチャット側で行い、実装は自前開発または Claude Code 側で行う
 - 利用者: 本人のみ（認証・マルチユーザー対応は不要）

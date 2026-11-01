@@ -1,6 +1,6 @@
 # 語彙（選択肢の中身）
 
-- 最終更新: 2026-09-19
+- 最終更新: 2026-11-01（判断ポイント215: `section-vocal` を `section` に統合。213 に矢印）。〔経緯〕2026-10-28（判断ポイント214: `era` の元号とグループ）。〔経緯〕2026-10-18（判断ポイント213: 語彙をまたぐ同一 id の例外）。〔経緯〕2026-09-19
 - 状態: 暫定（ジャンルの16カテゴリをすべて作成「段階4a まで」。次は段階4b。**全軸（A〜F）の語彙作成が完了**（`instruments/`、`region-style.md`、`emotion.md`、`usage.md`、`temporal-structure.md`、`production-quality.md`）。プリセットのJSONスキーマ確定と落とし込みも完了。2026-09-19、判断ポイント203〜210。`../../specifications/presets.md`。少数の択一項目7つの語彙も作成した（`small-choices.md`、判断ポイント210））
 - 関連: `../presets.md`（選択肢の設計）、`../input-items.md`（入力項目）
 

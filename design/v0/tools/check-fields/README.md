@@ -34,7 +34,7 @@ F1 は、jsonschema 4.18 以降（`referencing` を含む）が必要。なく�
 保存データ（`--song`）の検証は、`song-file.md` §9-2 に一覧がある（F0〜F9。依頼ごとに、既存の S・R・O 系も適用する）。形は自動判別する（`exportType` があればエクスポートファイル、`profiles` があればストア、`requests` があれば楽曲データ）。
 
 - **P0〜P11**: ツールプロファイル（`tool-profiles/*.json`）の検証。スキーマ適合、id の一意性、参照の整合、`fields.json` の `optionsFrom`／`rangeFrom`／`itemsFrom` との整合。仕様は `docs/specifications/tool-profile.md` §10-2。このツールプロファイルが、保存データの F7（既知の `toolId`、`toolVersion` の比較先）と F9（`derivedFrom.operation`）、長さの範囲（S4）、`variation` の選択肢（O2）も決める
-- **負例テスト**: `test_check_fields.py`（212ケース）。検査を変えたら実行する。ツールプロファイルや `fields.json` の違反は、`docs/specifications` の写しに変更を加えて `--spec` で検証する。`jsonschema` がなければ、F1 と、スキーマを使うケースはスキップされる
+- **負例テスト**: `test_check_fields.py`（件数と最新の結果は `../../docs/implementation-guide.md` §6）。検査を変えたら実行する。ツールプロファイルや `fields.json` の違反は、`docs/specifications` の写しに変更を加えて `--spec` で検証する。`jsonschema` がなければ、F1 と、スキーマを使うケースはスキップされる
 
 - **アプリとの照合**: アプリ（`app/src/domain/validation/check-saved.ts`）は、保存データの検証（F・S・R・O）を、文言も含めて移植している。`export_parity_cases.py` が、`test_check_fields.py` の保存データのケース（仕様のファイルに違反を仕込むケースを除く）の入力と、本スクリプトの実際の指摘を `app/src/domain/__tests__/fixtures/check-fields-cases.json` に書き出し、アプリの Vitest が照合する。**検査やテストを変えたら、書き出し直してアプリのテストを流す**（`jsonschema` が必要）
 

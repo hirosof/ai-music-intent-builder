@@ -108,7 +108,7 @@
 | `specifications/tool-profiles/suno.json` | Suno（v6）のツールプロファイル。画面3、モード2、操作15、欄5、パラメータ7、`bindings` 4件など | 手書き |
 | `specifications/request-blocks.md` | **依頼文ブロックの出力条件とデータの出所**（初版。手がかりの絞り込み C1、「足させない」値 D1、目標値の規則、§5-2／§7-7 の出し分け、節番号の解決、§3-2にB-DFレーン）。文面の正は `decisions/request-text.md` のまま | 手書き |
 | `tools/build-presets/` | 語彙の統合・検証・生成 | — |
-| `tools/check-fields/` | 項目定義と語彙の整合（D1〜D12）、ツールプロファイルの検証（P0〜P11）、保存データ（楽曲データ／エクスポートファイル／ストア）の検証（S・R・O・F系）、項目一覧の表の生成、負例テスト（`test_check_fields.py`、212ケース〔2026-10-25〕。2026-10-17 にF12・S6（L-01。宿題38）を追加して194→199。`--spec` で仕様書の写しに違反を仕込む） | — |
+| `tools/check-fields/` | 項目定義と語彙の整合（D1〜D13。D13 は2026-10-29）、ツールプロファイルの検証（P0〜P11）、保存データ（楽曲データ／エクスポートファイル／ストア）の検証（S・R・O・F系）、項目一覧の表の生成、負例テスト（`test_check_fields.py`、212ケース〔2026-10-25〕。2026-10-17 にF12・S6（L-01。宿題38）を追加して194→199。`--spec` で仕様書の写しに違反を仕込む） | — |
 | `tools/measure-logs/` | 検証ログの機械測定（日本語の混入・否定の形・文字数など。`measure_logs.py`、`length_summary.py`） | — |
 | `examples/inputs/` | 描画例の入力（`rendered-*.json`）と生成器の出力。アプリの照合テストの正解データ | 一部生成 |
 | `implementation-guide.md`（docs 直下）、リポジトリ直下の `CLAUDE.md` | Claude Code の入口と、実装の単位・結果・教訓の記録 | 手書き（主に Claude Code） |
