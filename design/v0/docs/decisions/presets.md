@@ -416,6 +416,7 @@ Dance-pop と Synth-pop のように普通に併用する組み合わせまで�
 | 212 | 辞典での別名（`aliases`）の見せ方（§11-5） | 項目内の階層テーブルではツールチップで表示。辞典設定画面では列を直接追加（`../discussions/2026-09/17_ui-spec.md`） |
 | 213 | （プリセットの JSON。語彙をまたぐ同一 id の例外の追加） | → `vocabulary/README.md` §5。`section` と `section-vocal` を共有を許す組にした |
 | 214 | （年代・時代感の元号と、flat 語彙のグループ） | → `vocabulary/README.md` §5。`era` に元号5つ、flat 語彙の `groups`・`group` |
+| 215 | （構成のセクションの語彙の統合） | → `vocabulary/README.md` §5。`section-vocal` を `section` に統合（12語・3グループ）。`bridge` は Cメロ、つなぎは新しい id `transition`。語の属性 `defaultSung` |
 
 ### 検討したが採らなかった案
 
