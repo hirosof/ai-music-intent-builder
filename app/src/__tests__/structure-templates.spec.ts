@@ -182,7 +182,7 @@ describe('ひな型として保存', () => {
     expect(localStorage.getItem(STORAGE_KEYS.structureTemplates)).toBe(bad)
   })
 
-  it('保存の失敗（容量の超過など）は理由を出し、ダイアログを閉じない', async () => {
+  it('保存の失敗（容量の超過など）は理由を出し、範囲を閉じない', async () => {
     await mountApp(instrumental())
     await openEditor()
     await click('template-save-open')
@@ -400,6 +400,199 @@ describe('ひな型から読み込む', () => {
     expect($('template-load-rejected')!.textContent).toContain('不明な語 id: no-such-term')
     expect($('template-list')).toBeNull()
     expect(localStorage.getItem(STORAGE_KEYS.structureTemplates)).toBe(bad)
+  })
+})
+
+describe("見せ方: その場で開く範囲（判断ポイント75 の細部 (c')）", () => {
+  const dialogs = () => document.querySelectorAll('[role="dialog"], [role="alertdialog"]')
+  const expanded = (testid: string) => $(testid)!.getAttribute('aria-expanded')
+
+  it.each([
+    ['template-save-open', 'template-save-panel'],
+    ['template-load-open', 'template-load-panel'],
+  ])(
+    '%s: オーバーレイを重ねず、カードのポップアップの中の、ボタンのすぐ下に開く',
+    async (open, id) => {
+      await mountApp(instrumental())
+      await openEditor()
+      const before = [...dialogs()]
+      expect(before).toHaveLength(1)
+      expect($(id)).toBeNull()
+      await click(open)
+      expect([...dialogs()]).toEqual(before)
+      const p = $(id)!
+      expect(p.closest('[role="dialog"]')).toBe(before[0])
+      // 入力欄の部品の中で、ボタンの並びの次の要素
+      expect(p.previousElementSibling).toBe($(open)!.parentElement)
+      expect($('sections-structure')!.parentElement).toBe(p.parentElement)
+    },
+  )
+
+  it('確認に切り替えても、オーバーレイを重ねない（置き換え・削除・名前の変更・上書き）', async () => {
+    seedTemplates(tpl('あ', SAVED_SECTIONS))
+    await mountApp(instrumental())
+    await openEditor()
+    await click('template-load-open')
+    for (const b of ['template-select', 'template-rename', 'template-delete']) {
+      rowButton('あ', b).click()
+      await flushPromises()
+      expect(dialogs()).toHaveLength(1)
+      await click('template-cancel')
+    }
+    await click('template-save-open')
+    await type('template-save-name', 'あ')
+    await click('template-save-submit')
+    expect($('template-save-confirm')).not.toBeNull()
+    expect(dialogs()).toHaveLength(1)
+  })
+
+  it('2つの範囲は同時に開かない', async () => {
+    await mountApp(instrumental())
+    await openEditor()
+    await click('template-save-open')
+    expect(expanded('template-save-open')).toBe('true')
+    await click('template-load-open')
+    expect($('template-save-panel')).toBeNull()
+    expect($('template-load-panel')).not.toBeNull()
+    expect(expanded('template-save-open')).toBe('false')
+    expect(expanded('template-load-open')).toBe('true')
+    await click('template-save-open')
+    expect($('template-load-panel')).toBeNull()
+    expect($('template-save-panel')).not.toBeNull()
+  })
+
+  it('同じボタンをもう一度押すと閉じる', async () => {
+    await mountApp(instrumental())
+    await openEditor()
+    await click('template-load-open')
+    await click('template-load-open')
+    expect($('template-load-panel')).toBeNull()
+    expect(expanded('template-load-open')).toBe('false')
+    await click('template-save-open')
+    await click('template-save-open')
+    expect($('template-save-panel')).toBeNull()
+  })
+
+  it('「キャンセル」「閉じる」で閉じる。確認の中では前に戻るだけ', async () => {
+    seedTemplates(tpl('あ', SAVED_SECTIONS))
+    await mountApp(instrumental())
+    await openEditor()
+    await click('template-save-open')
+    await click('template-save-cancel')
+    expect($('template-save-panel')).toBeNull()
+    await click('template-load-open')
+    rowButton('あ', 'template-delete').click()
+    await flushPromises()
+    await click('template-cancel')
+    expect($('template-list')).not.toBeNull()
+    await click('template-cancel')
+    expect($('template-load-panel')).toBeNull()
+  })
+
+  it('保存が終わったら閉じる', async () => {
+    await mountApp(instrumental())
+    await openEditor()
+    await click('template-save-open')
+    await type('template-save-name', '基本')
+    await click('template-save-submit')
+    expect($('template-save-panel')).toBeNull()
+    expect(storedTemplates().templates).toHaveLength(1)
+  })
+
+  it('読み込みが終わったら閉じる（確認なし・確認あり）', async () => {
+    seedTemplates(tpl('あ', SAVED_SECTIONS))
+    await mountApp(songWith((r) => (r.axes.structure = { state: 'delegated' })))
+    await openEditor()
+    await click('template-load-open')
+    rowButton('あ', 'template-select').click()
+    await flushPromises()
+    expect($('template-load-panel')).toBeNull()
+    await click('template-load-open')
+    rowButton('あ', 'template-select').click()
+    await flushPromises()
+    await click('template-submit')
+    expect($('template-load-panel')).toBeNull()
+  })
+
+  it('名前の変更・削除のあとは、閉じずに一覧へ戻る', async () => {
+    seedTemplates(tpl('あ', SAVED_SECTIONS), tpl('い', SAVED_SECTIONS))
+    await mountApp(instrumental())
+    await openEditor()
+    await click('template-load-open')
+    rowButton('あ', 'template-delete').click()
+    await flushPromises()
+    await click('template-submit')
+    expect($('template-list')).not.toBeNull()
+    rowButton('い', 'template-rename').click()
+    await flushPromises()
+    await type('template-rename-name', 'う')
+    await click('template-submit')
+    expect($('template-row-う')).not.toBeNull()
+  })
+
+  it('開き直すと、前の入力・確認を持ち越さない', async () => {
+    seedTemplates(tpl('あ', SAVED_SECTIONS))
+    await mountApp(instrumental())
+    await openEditor()
+    await click('template-save-open')
+    await type('template-save-name', 'あ')
+    await click('template-save-submit')
+    expect($('template-save-confirm')).not.toBeNull()
+    await click('template-save-open')
+    await click('template-save-open')
+    expect($('template-save-confirm')).toBeNull()
+    const root = $('template-save-name')!
+    const input = root instanceof HTMLInputElement ? root : root.querySelector('input')!
+    expect(input.value).toBe('')
+    await click('template-load-open')
+    rowButton('あ', 'template-delete').click()
+    await flushPromises()
+    await click('template-load-open')
+    await click('template-load-open')
+    expect($('template-confirm-delete')).toBeNull()
+    expect($('template-list')).not.toBeNull()
+  })
+
+  // 重ねないので、範囲を開いたまま入力欄を操作できる
+  it('保存の範囲を開いたまま並びを変えると、表示も保存する値も今の並びになる', async () => {
+    await mountApp(instrumental())
+    await openEditor()
+    await click('template-save-open')
+    await click('down-structure-0')
+    expect($('template-save-sections')!.textContent).toContain('サビ → イントロ → アウトロ')
+    await type('template-save-name', '基本')
+    await click('template-save-submit')
+    expect(storedTemplates().templates[0].sections).toEqual([
+      { id: 'chorus' },
+      { id: 'intro' },
+      { id: 'outro' },
+    ])
+  })
+
+  it('保存の範囲を開いたまま①指定をやめると閉じる（読み込みの範囲は閉じない）', async () => {
+    await mountApp(instrumental())
+    await openEditor()
+    await click('template-save-open')
+    await click('state-structure-delegated')
+    expect($('template-save-panel')).toBeNull()
+    expect(button('template-save-open').disabled).toBe(true)
+    await click('state-structure-specified')
+    expect($('template-save-panel')).toBeNull()
+    await click('template-load-open')
+    await click('state-structure-delegated')
+    expect($('template-load-panel')).not.toBeNull()
+  })
+
+  it('読み込みの範囲を開いたまま並びが空でなくなると、確認を出す', async () => {
+    seedTemplates(tpl('あ', SAVED_SECTIONS))
+    await mountApp(songWith((r) => (r.axes.structure = { state: 'delegated' })))
+    await openEditor()
+    await click('template-load-open')
+    req().axes.structure = { state: 'specified', value: [{ id: 'intro' }] }
+    await flushPromises()
+    rowButton('あ', 'template-select').click()
+    await flushPromises()
+    expect($('template-confirm-replace')).not.toBeNull()
   })
 })
 

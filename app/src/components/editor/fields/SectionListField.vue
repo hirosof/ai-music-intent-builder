@@ -3,7 +3,7 @@
 // 行の先頭のハンドルからドラッグでも並び替えられる（判断ポイント76）。
 // 空の並びはデータに入れない（最後の1つは消せない。①をやめるときは状態を切り替える）。
 // 歌ありのときだけ、各行に歌の印の切り替えを出す（押すと歌あり／歌なしが入れ替わる）。追加の選択肢は語彙のグループごとに見出しを付ける。
-// 「ひな型として保存」「ひな型から読み込む」は判断ポイント75
+// 「ひな型として保存」「ひな型から読み込む」は判断ポイント75。入力欄の下に、その場で開く（ダイアログを重ねない。細部 (c')）
 import { useSortable } from '@vueuse/integrations/useSortable'
 import type { SortableEvent } from 'sortablejs'
 import { computed, ref, useTemplateRef, watch } from 'vue'
@@ -28,8 +28,8 @@ import {
 import type { FieldDef } from '@/domain/types/fields'
 import type { SectionElement, SongRequest } from '@/domain/types/song'
 import StateToggle from './StateToggle.vue'
-import TemplateLoadDialog from './TemplateLoadDialog.vue'
-import TemplateSaveDialog from './TemplateSaveDialog.vue'
+import TemplateLoadPanel from './TemplateLoadPanel.vue'
+import TemplateSavePanel from './TemplateSavePanel.vue'
 
 const props = defineProps<{ field: FieldDef; request: SongRequest }>()
 
@@ -93,10 +93,16 @@ const { option: sortableOption } = useSortable(listEl, list, {
 })
 watch(disabled, (v) => sortableOption('disabled', v))
 
-// 構成のひな型（判断ポイント75）
-const saveOpen = ref(false)
-const loadOpen = ref(false)
+// 構成のひな型（判断ポイント75）。開いている範囲は1つだけ（片方を開くと、もう片方は閉じる）
+const panel = ref<'save' | 'load' | null>(null)
+function togglePanel(p: 'save' | 'load') {
+  panel.value = panel.value === p ? null : p
+}
 const canSaveTemplate = computed(() => !disabled.value && list.value.length > 0)
+// 保存の範囲を開いたまま①指定をやめたら閉じる（保存は①指定のときだけ）
+watch(canSaveTemplate, (can) => {
+  if (!can && panel.value === 'save') panel.value = null
+})
 const templateSections = computed(() =>
   sectionsForTemplate(spec, list.value, props.request.vocalMode),
 )
@@ -202,29 +208,37 @@ function applyTemplate(t: StructureTemplate) {
       <UButton
         size="xs"
         color="neutral"
-        variant="outline"
+        :variant="panel === 'save' ? 'subtle' : 'outline'"
         icon="i-lucide-bookmark-plus"
         label="ひな型として保存"
         :disabled="!canSaveTemplate"
+        :aria-expanded="panel === 'save'"
         data-testid="template-save-open"
-        @click="saveOpen = true"
+        @click="togglePanel('save')"
       />
       <UButton
         size="xs"
         color="neutral"
-        variant="outline"
+        :variant="panel === 'load' ? 'subtle' : 'outline'"
         icon="i-lucide-bookmark"
         label="ひな型から読み込む"
+        :aria-expanded="panel === 'load'"
         data-testid="template-load-open"
-        @click="loadOpen = true"
+        @click="togglePanel('load')"
       />
     </div>
-    <TemplateSaveDialog v-model:open="saveOpen" :sections="templateSections" :label="label(list)" />
-    <TemplateLoadDialog
-      v-model:open="loadOpen"
+    <TemplateSavePanel
+      v-if="panel === 'save'"
+      :sections="templateSections"
+      :label="label(list)"
+      @close="panel = null"
+    />
+    <TemplateLoadPanel
+      v-if="panel === 'load'"
       :has-current="list.length > 0"
       :label-of="templateLabel"
       @select="applyTemplate"
+      @close="panel = null"
     />
   </div>
 </template>
