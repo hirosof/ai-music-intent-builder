@@ -473,20 +473,32 @@ describe("見せ方: その場で開く範囲（判断ポイント75 の細部 (
     expect($('template-save-panel')).toBeNull()
   })
 
-  it('「キャンセル」「閉じる」で閉じる。確認の中では前に戻るだけ', async () => {
+  it('「キャンセル」「一覧を閉じる」で閉じる。確認の中では前に戻るだけ', async () => {
     seedTemplates(tpl('あ', SAVED_SECTIONS))
     await mountApp(instrumental())
     await openEditor()
     await click('template-save-open')
+    expect($('template-save-cancel')!.textContent!.trim()).toBe('キャンセル')
     await click('template-save-cancel')
     expect($('template-save-panel')).toBeNull()
     await click('template-load-open')
+    expect($('template-cancel')!.textContent!.trim()).toBe('一覧を閉じる')
     rowButton('あ', 'template-delete').click()
     await flushPromises()
+    expect($('template-cancel')!.textContent!.trim()).toBe('キャンセル')
     await click('template-cancel')
     expect($('template-list')).not.toBeNull()
     await click('template-cancel')
     expect($('template-load-panel')).toBeNull()
+  })
+
+  it('一覧の閉じる操作は、ポップアップの「閉じる」と文言が違う（細部 (q)）', async () => {
+    await mountApp(instrumental())
+    await openEditor()
+    await click('template-load-open')
+    const labels = [...dialogs()[0]!.querySelectorAll('button')].map((b) => b.textContent!.trim())
+    expect(labels.filter((t) => t === '閉じる')).toHaveLength(1)
+    expect(labels.filter((t) => t === '一覧を閉じる')).toHaveLength(1)
   })
 
   it('保存が終わったら閉じる', async () => {

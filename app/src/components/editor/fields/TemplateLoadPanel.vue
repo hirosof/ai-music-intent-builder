@@ -219,7 +219,7 @@ function submit() {
       />
       <UButton
         size="sm"
-        :label="pending ? 'キャンセル' : '閉じる'"
+        :label="pending ? 'キャンセル' : '一覧を閉じる'"
         color="neutral"
         variant="outline"
         data-testid="template-cancel"
