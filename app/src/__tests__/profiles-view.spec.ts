@@ -120,10 +120,22 @@ const rows = () =>
     (e) => e.getAttribute('data-testid')!.replace(/^pm-/, ''),
   )
 const row = (kind: 'folder' | 'profile', name: string) => $(`pm-${kind}-${name}`)
-/** 行の操作を開いて、その操作を押す */
-async function act(kind: 'folder' | 'profile', name: string, action: string) {
-  await click('pm-actions', row(kind, name))
-  await click(action, row(kind, name))
+type MenuItem = { label: string; color?: string; onSelect: () => void }
+/** 行の［操作］のメニューの項目（区切り線で分けた組ごと） */
+function rowMenu(kind: 'folder' | 'profile', name: string) {
+  const menu = wrapper!.findAllComponents(UDropdownMenu).find((m) => {
+    const trigger = m.find('[data-testid="pm-actions"]')
+    return trigger.exists() && row(kind, name)!.contains(trigger.element)
+  })!
+  return (menu.props() as { items: MenuItem[][] }).items
+}
+/** 行のメニューの項目を選ぶ（開いた中身は jsdom で描けないので、項目の onSelect を呼ぶ） */
+async function act(kind: 'folder' | 'profile', name: string, label: string) {
+  rowMenu(kind, name)
+    .flat()
+    .find((i) => i.label === label)!
+    .onSelect()
+  await flushPromises()
 }
 async function select(kind: 'folder' | 'profile', name: string) {
   await click('pm-select', row(kind, name))
@@ -197,7 +209,7 @@ describe('パンくず＋一覧・並び・検索', () => {
     await click('pm-enter', row('folder', 'ゲーム'))
     expect(rows()).toEqual(['folder-ボス戦', 'profile-村'])
     expect($('pm-breadcrumb')!.textContent!.replace(/\s/g, '')).toBe('ルート＞ゲーム')
-    await act('folder', 'ボス戦', 'pm-open-folder')
+    await act('folder', 'ボス戦', '開く')
     expect(rows()).toEqual(['profile-第1形態'])
     expect($('pm-breadcrumb')!.textContent!.replace(/\s/g, '')).toBe('ルート＞ゲーム＞ボス戦')
     await click('pm-crumb-g')
@@ -237,12 +249,12 @@ describe('開く（判断ポイント52 の確認のあと、組み立ての画�
     putStore(sample())
     await mountApp()
     await click('pm-enter', row('folder', 'ゲーム'))
-    await act('profile', '村', 'pm-open')
+    await act('profile', '村', '開く')
     expect(document.body.textContent).toContain('「村」を開きますか')
     await click('confirm-cancel')
     expect(editor().song.value).toEqual(createInitialSong(spec))
     expect(router.currentRoute.value.path).toBe('/profiles')
-    await click('pm-open', row('profile', '村'))
+    await act('profile', '村', '開く')
     await click('confirm-ok')
     await flushPromises()
     expect(editor().song.value).toEqual(f1.data)
@@ -272,7 +284,7 @@ describe('行の操作', () => {
     await mountApp()
     editor().song.value.requests[0]!.output.variantCount = 7
     await click('pm-enter', row('folder', 'ゲーム'))
-    await act('profile', '村', 'pm-overwrite')
+    await act('profile', '村', '上書き保存')
     expect($('pm-dialog-ok')!.textContent).toContain('上書きする')
     await click('pm-dialog-ok')
     const p = stored()!.profiles.find((x) => x.id === 'p-village')!
@@ -287,7 +299,7 @@ describe('行の操作', () => {
     s.requests[0]!.axes.purpose = { state: 'specified' }
     localStorage.setItem(STORAGE_KEYS.song, JSON.stringify(s))
     await mountApp()
-    await act('profile', '古い曲', 'pm-overwrite')
+    await act('profile', '古い曲', '上書き保存')
     expect($('pm-overwrite-errors')).not.toBeNull()
     expect($<HTMLButtonElement>('pm-dialog-ok')!.disabled).toBe(true)
   })
@@ -297,7 +309,7 @@ describe('行の操作', () => {
     await mountApp()
     editor().currentProfileId.value = 'p-village'
     await click('pm-enter', row('folder', 'ゲーム'))
-    await act('profile', '村', 'pm-rename')
+    await act('profile', '村', '名前を変更')
     expect($<HTMLInputElement>('pm-name-input')!.value).toBe('村')
     await type('pm-name-input', ' ')
     expect($<HTMLButtonElement>('pm-dialog-ok')!.disabled).toBe(true)
@@ -320,13 +332,13 @@ describe('行の操作', () => {
     putStore(sample())
     const before = localStorage.getItem(STORAGE_KEYS.profiles)
     await mountApp()
-    await act('folder', 'ゲーム', 'pm-rename')
+    await act('folder', 'ゲーム', '名前を変更')
     await type('pm-name-input', '作業用')
     expect(document.body.textContent).toContain('その名前はすでにあります')
     expect($<HTMLButtonElement>('pm-dialog-ok')!.disabled).toBe(true)
     await click('pm-dialog-cancel')
     expect(localStorage.getItem(STORAGE_KEYS.profiles)).toBe(before)
-    await act('folder', 'ゲーム', 'pm-rename')
+    await act('folder', 'ゲーム', '名前を変更')
     await type('pm-name-input', 'ゲーム曲')
     await click('pm-dialog-ok')
     expect(stored()!.folders.find((f) => f.id === 'g')!.name).toBe('ゲーム曲')
@@ -336,7 +348,7 @@ describe('行の操作', () => {
   it('移動: 木の形で移動先を選ぶ。フォルダは自分自身・配下に移せない（選べない）', async () => {
     putStore(sample())
     await mountApp()
-    await act('folder', 'ゲーム', 'pm-move')
+    await act('folder', 'ゲーム', '移動')
     expect($<HTMLButtonElement>('pm-move-option-g')!.disabled).toBe(true)
     expect($<HTMLButtonElement>('pm-move-option-b')!.disabled).toBe(true)
     await click('pm-move-option-w')
@@ -351,7 +363,7 @@ describe('行の操作', () => {
     s.profiles.push(prof('p-dup', '村', null, '2026-10-04T00:00:00+09:00'))
     putStore(s)
     await mountApp()
-    await act('profile', '村', 'pm-move')
+    await act('profile', '村', '移動')
     await click('pm-move-option-g')
     expect($('pm-move-problems')!.textContent).toContain(
       '「ルート ＞ ゲーム」に、同じ名前のプロファイル「村」があります',
@@ -368,7 +380,7 @@ describe('行の操作', () => {
     putStore(sample())
     await mountApp()
     editor().currentProfileId.value = 'p-boss'
-    await act('folder', 'ゲーム', 'pm-delete')
+    await act('folder', 'ゲーム', '削除')
     expect($('pm-delete-text')!.textContent).toContain(
       'フォルダ 2 個、プロファイル 2 件を削除します',
     )
@@ -384,7 +396,7 @@ describe('行の操作', () => {
     await click('pm-enter', row('folder', 'ゲーム'))
     await click('pm-enter', row('folder', 'ボス戦'))
     await type('profiles-search', 'ボス')
-    await act('folder', 'ボス戦', 'pm-delete')
+    await act('folder', 'ボス戦', '削除')
     await click('pm-dialog-ok')
     await type('profiles-search', '')
     expect($('pm-breadcrumb')!.textContent!.replace(/\s/g, '')).toBe('ルート')
@@ -400,7 +412,7 @@ describe('行の操作', () => {
     putStore(sample())
     await mountApp()
     await click('pm-enter', row('folder', 'ゲーム'))
-    await act('folder', 'ボス戦', 'pm-delete')
+    await act('folder', 'ボス戦', '削除')
     expect($('pm-delete-text')!.textContent).toContain('フォルダ 1 個、プロファイル 1 件')
     await click('pm-dialog-ok')
     expect(rows()).toEqual(['profile-村'])
@@ -416,11 +428,88 @@ describe('行の操作', () => {
     await mountApp()
     await click('pm-enter', row('folder', 'ゲーム'))
     await click('pm-enter', row('folder', 'ボス戦'))
-    await act('profile', '第1形態', 'pm-export')
+    await act('profile', '第1形態', '書き出す')
     expect(downloads.map((d) => d.name)).toEqual(['第1形態.json'])
     const file = JSON.parse(await downloads[0]!.blob.text()) as ExportFile
     expect(file.folders.map((f) => f.name)).toEqual(['ゲーム', 'ボス戦'])
     expect(file.profiles.map((p) => p.id)).toEqual(['p-boss'])
+  })
+})
+
+describe('行の操作のメニュー（判断ポイント77）', () => {
+  const labels = (groups: MenuItem[][]) => groups.map((g) => g.map((i) => i.label))
+  it('プロファイル: 判断ポイント67 の並び（「開く」が先頭）。「削除」は区切り線の後ろで、危険な操作の色', async () => {
+    putStore(sample())
+    await mountApp()
+    const groups = rowMenu('profile', '古い曲')
+    expect(labels(groups)).toEqual([
+      ['開く', '上書き保存', '書き出す', '名前を変更', '移動'],
+      ['削除'],
+    ])
+    expect(groups[1]![0]!.color).toBe('error')
+    expect(
+      groups[0]!.every((i) => i.color === undefined),
+      '削除のほかは色を付けない',
+    ).toBe(true)
+  })
+
+  it('フォルダ: 開く／名前を変更／移動、区切り線の後ろに削除', async () => {
+    putStore(sample())
+    await mountApp()
+    const groups = rowMenu('folder', 'ゲーム')
+    expect(labels(groups)).toEqual([['開く', '名前を変更', '移動'], ['削除']])
+    expect(groups[1]![0]!.color).toBe('error')
+  })
+
+  it('フォルダの「開く」は中に入る。行ごとのメニューは、その行を対象にする', async () => {
+    putStore(sample())
+    await mountApp()
+    await act('folder', '作業用', '開く')
+    expect(rows()).toEqual([])
+    await click('pm-crumb-root')
+    await act('folder', 'ゲーム', '開く')
+    expect(rows()).toEqual(['folder-ボス戦', 'profile-村'])
+    await act('profile', '村', '削除')
+    expect($('pm-delete-text')!.textContent).toContain('プロファイル 1 件')
+    await click('pm-dialog-ok')
+    expect(rows()).toEqual(['folder-ボス戦'])
+    expect(stored()!.profiles.map((p) => p.name)).not.toContain('村')
+  })
+
+  it('行の中にボタンを並べない。［操作］は「閉じる」に切り替わらない', async () => {
+    putStore(sample())
+    await mountApp()
+    const r = row('profile', '古い曲')!
+    await click('pm-actions', r)
+    expect($('pm-actions', r)!.textContent).toContain('操作')
+    expect($('pm-row-actions')).toBeNull()
+    expect([...r.querySelectorAll('button:not([role="checkbox"])')]).toHaveLength(1)
+    expect(r.textContent).not.toContain('閉じる')
+  })
+
+  it('［操作］の押下は、行の選択にも範囲選択の起点にも伝えない', async () => {
+    putStore(sample())
+    await mountApp()
+    await select('folder', 'ゲーム')
+    await click('pm-actions', row('profile', '古い曲'))
+    expect($('pm-selection')!.textContent).toContain('1 件を選択')
+    expect(row('profile', '古い曲')!.getAttribute('data-selected')).toBe('false')
+    // 起点は「ゲーム」のまま: 「作業用」までの Shift＋押下で、間の行だけがそろう
+    row('folder', '作業用')!.dispatchEvent(
+      new MouseEvent('click', { bubbles: true, shiftKey: true }),
+    )
+    await flushPromises()
+    expect($('pm-selection')!.textContent).toContain('2 件を選択')
+  })
+
+  it('メニューから開いた確認を閉じても、選択は変わらない', async () => {
+    putStore(sample())
+    await mountApp()
+    await select('profile', '古い曲')
+    await act('profile', 'ルートの曲', '上書き保存')
+    await click('pm-dialog-cancel')
+    expect($('pm-selection')!.textContent).toContain('1 件を選択')
+    expect(row('profile', '古い曲')!.getAttribute('data-selected')).toBe('true')
   })
 })
 
@@ -539,7 +628,7 @@ describe('ストア拒否中・ダイアログのボタン', () => {
   it('実行するボタンを左、やめるボタンを右', async () => {
     putStore(sample())
     await mountApp()
-    await act('folder', 'ゲーム', 'pm-delete')
+    await act('folder', 'ゲーム', '削除')
     expect(
       [...document.querySelectorAll('[data-testid="dialog-buttons"] button')].map((b) =>
         b.getAttribute('data-testid'),
@@ -674,7 +763,7 @@ describe('空のフォルダの書き出し（細部 (k)）', () => {
     putStore(withEmpty())
     await mountApp()
     await click('pm-enter', row('folder', 'ゲーム'))
-    await act('profile', '村', 'pm-export')
+    await act('profile', '村', '書き出す')
     const file = JSON.parse(await downloads[0]!.blob.text()) as ExportFile
     expect(file.folders.map((f) => f.name)).toEqual(['ゲーム'])
   })
@@ -763,15 +852,14 @@ describe('一覧の選択の操作（判断ポイント71）', () => {
     expect($('pm-select', row('profile', 'ルートの曲'))!.getAttribute('aria-checked')).toBe('true')
   })
 
-  it('ボタン（［操作］・行の操作）とフォルダの名前を押しても、選択は切り替わらない', async () => {
+  it('［操作］・メニューの項目とフォルダの名前を押しても、選択は切り替わらない', async () => {
     putStore(sample())
     await mountApp()
     await click('pm-actions', row('profile', '古い曲'))
     expect(chosen()).toEqual([])
-    await click('pm-rename', row('profile', '古い曲'))
+    await act('profile', '古い曲', '名前を変更')
     await click('pm-dialog-cancel')
     expect(chosen()).toEqual([])
-    await click('pm-actions', row('folder', 'ゲーム'))
     await click('pm-actions', row('folder', 'ゲーム'))
     expect(chosen()).toEqual([])
     await click('pm-enter', row('folder', 'ゲーム'))
@@ -964,7 +1052,7 @@ describe('一覧の選択の操作（判断ポイント71）', () => {
       await mountApp()
       await press(row('profile', '古い曲'))
       await chooseSelect('updated', 'name')
-      await act('folder', 'ゲーム', 'pm-rename')
+      await act('folder', 'ゲーム', '名前を変更')
       await type('pm-name-input', 'ゲーム曲')
       await click('pm-dialog-ok')
       expect(chosen()).toEqual(['profile-古い曲'])

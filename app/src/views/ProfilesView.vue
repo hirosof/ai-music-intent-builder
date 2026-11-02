@@ -2,8 +2,9 @@
 // プロファイル管理の画面（ui-and-nonfunctional.md 判断ポイント67。プロファイルのポップアップを置き換える）。
 // タブ「ユーザー／ファクトリー」。ユーザーは、パンくず＋今のフォルダの中身（サブフォルダが先、プロファイルが後）。
 // 検索語があれば全フォルダから探し、パスの列を出す（対象は 両方／フォルダ／プロファイル から選べる。細部 (i)）。各行にチェックボックス（複数選択で 書き出す／移動／削除）と操作。
-// 選択は行全体の押下・一括選択・Shift の範囲選択でも切り替える（判断ポイント71）。
+// 選択は行全体の押下・一括選択・Shift の範囲選択でも切り替える（判断ポイント71）。行の操作は［操作］のメニュー（判断ポイント77）。
 // 確認・入力は1つのダイアログの中で切り替える（モーダルを重ねない。判断ポイント8）。開くは、判断ポイント52 の確認のあと組み立ての画面へ
+import type { DropdownMenuItem } from '@nuxt/ui'
 import { useToast } from '@nuxt/ui/composables'
 import { useFileDialog } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
@@ -154,16 +155,14 @@ function enter(id: string | null) {
   current.value = id
   query.value = ''
   clearSelection()
-  expanded.value = null
 }
 
 // ---------------------------------------------------------------------------
-// 選択と、行の操作の開閉（判断ポイント71）
+// 選択（判断ポイント71）
 // ---------------------------------------------------------------------------
 const selected = ref(new Set<string>())
 /** 範囲選択の起点（直前に切り替えた行の key） */
 const anchor = ref<string | null>(null)
-const expanded = ref<string | null>(null)
 function clearSelection() {
   selected.value = new Set()
   anchor.value = null
@@ -177,7 +176,7 @@ watch(rows, (rs) => {
     selected.value = new Set([...selected.value].filter((k) => keys.has(k)))
 })
 /**
- * 行（とそのチェックボックス）の押下。ボタン（［操作］・行の操作）とフォルダの名前は除く。
+ * 行（とそのチェックボックス）の押下。ボタン（［操作］）とフォルダの名前は除く。
  * Shift＋押下は、起点から押した行までを起点と同じ状態にそろえる（起点がなければ通常の押下）
  */
 function onRowClick(r: Row, e: MouseEvent) {
@@ -274,10 +273,6 @@ type Pending =
 // 中身（pending）は閉じても残す（閉じる間の表示が空にならないように）。開閉は dialogOpen
 const pending = ref<Pending | null>(null)
 const dialogOpen = ref(false)
-// 確認・入力を閉じたら（実行・キャンセルとも）、行の操作も閉じる
-watch(dialogOpen, (v) => {
-  if (!v) expanded.value = null
-})
 const nameInput = ref('')
 const moveTarget = ref<string | null>(null)
 const prepared = computed(() => prepareForSave(editor.song.value))
@@ -386,7 +381,6 @@ function confirm() {
     clearSelection()
     toast.add({ title: '削除しました', color: 'success' })
   }
-  expanded.value = null
   dialogOpen.value = false
 }
 
@@ -412,6 +406,33 @@ function openConfirmed() {
   })
   opening.value = null
   void router.push('/')
+}
+
+// ---------------------------------------------------------------------------
+// 行の操作のメニュー（判断ポイント77。項目と並びは判断ポイント67。「削除」は区切り線の後ろ）
+// ---------------------------------------------------------------------------
+function rowMenu(r: Row): DropdownMenuItem[][] {
+  const shared: DropdownMenuItem[] = [
+    { label: '名前を変更', onSelect: () => ask({ kind: 'rename', row: r }) },
+    { label: '移動', onSelect: () => ask({ kind: 'move', sel: rowSelection(r) }) },
+  ]
+  const head: DropdownMenuItem[] = r.profile
+    ? [
+        { label: '開く', onSelect: () => askOpen(r.profile!, r.id) },
+        { label: '上書き保存', onSelect: () => ask({ kind: 'overwrite', profile: r.profile! }) },
+        { label: '書き出す', onSelect: () => exportSelection(rowSelection(r), `「${r.name}」`) },
+      ]
+    : [{ label: '開く', onSelect: () => enter(r.id) }]
+  return [
+    [...head, ...shared],
+    [
+      {
+        label: '削除',
+        color: 'error',
+        onSelect: () => ask({ kind: 'delete', sel: rowSelection(r) }),
+      },
+    ],
+  ]
 }
 
 // ---------------------------------------------------------------------------
@@ -622,7 +643,7 @@ defineExpose({ receiveFile })
                     <li
                       v-for="r in rows"
                       :key="r.key"
-                      class="cursor-pointer space-y-2 p-2"
+                      class="flex cursor-pointer items-center gap-2 p-2"
                       :class="
                         selected.has(r.key)
                           ? 'bg-primary/10 hover:bg-primary/15'
@@ -633,108 +654,45 @@ defineExpose({ receiveFile })
                       @click="onRowClick(r, $event)"
                       @mousedown="onRowMouseDown"
                     >
-                      <div class="flex items-center gap-2">
-                        <!-- 押下は行で受ける（Shift の範囲選択も同じ）。キーボード・読み上げのために残す -->
-                        <UCheckbox
-                          :model-value="selected.has(r.key)"
-                          :aria-label="`${r.name} を選ぶ`"
-                          data-testid="pm-select"
-                        />
-                        <UIcon
-                          :name="r.kind === 'folder' ? 'i-lucide-folder' : 'i-lucide-file-music'"
-                          class="size-4 shrink-0 text-muted"
-                        />
-                        <div class="min-w-0 flex-1">
-                          <button
-                            v-if="r.kind === 'folder'"
-                            type="button"
-                            class="text-left font-medium break-all hover:underline"
-                            data-testid="pm-enter"
-                            @click="enter(r.id)"
-                          >
-                            {{ r.name }}
-                          </button>
-                          <div v-else class="font-medium break-all">{{ r.name }}</div>
-                          <div class="flex flex-wrap gap-x-3 text-xs text-muted">
-                            <span v-if="r.profile">{{
-                              formatDisplayTimestamp(r.profile.updatedAt)
-                            }}</span>
-                            <span v-if="r.path !== undefined" data-testid="pm-path">{{
-                              r.path
-                            }}</span>
-                          </div>
+                      <!-- 押下は行で受ける（Shift の範囲選択も同じ）。キーボード・読み上げのために残す -->
+                      <UCheckbox
+                        :model-value="selected.has(r.key)"
+                        :aria-label="`${r.name} を選ぶ`"
+                        data-testid="pm-select"
+                      />
+                      <UIcon
+                        :name="r.kind === 'folder' ? 'i-lucide-folder' : 'i-lucide-file-music'"
+                        class="size-4 shrink-0 text-muted"
+                      />
+                      <div class="min-w-0 flex-1">
+                        <button
+                          v-if="r.kind === 'folder'"
+                          type="button"
+                          class="text-left font-medium break-all hover:underline"
+                          data-testid="pm-enter"
+                          @click="enter(r.id)"
+                        >
+                          {{ r.name }}
+                        </button>
+                        <div v-else class="font-medium break-all">{{ r.name }}</div>
+                        <div class="flex flex-wrap gap-x-3 text-xs text-muted">
+                          <span v-if="r.profile">{{
+                            formatDisplayTimestamp(r.profile.updatedAt)
+                          }}</span>
+                          <span v-if="r.path !== undefined" data-testid="pm-path">{{
+                            r.path
+                          }}</span>
                         </div>
+                      </div>
+                      <UDropdownMenu :items="rowMenu(r)" :content="{ align: 'end' }">
                         <UButton
                           size="xs"
-                          :label="expanded === r.key ? '閉じる' : '操作'"
+                          label="操作"
                           color="neutral"
                           variant="ghost"
                           data-testid="pm-actions"
-                          @click="expanded = expanded === r.key ? null : r.key"
                         />
-                      </div>
-                      <!-- 行の操作 -->
-                      <div
-                        v-if="expanded === r.key"
-                        class="flex flex-wrap gap-1 pl-8"
-                        data-testid="pm-row-actions"
-                      >
-                        <template v-if="r.profile">
-                          <UButton
-                            size="xs"
-                            label="開く"
-                            data-testid="pm-open"
-                            @click="askOpen(r.profile, r.id)"
-                          />
-                          <UButton
-                            size="xs"
-                            label="上書き保存"
-                            color="neutral"
-                            variant="outline"
-                            data-testid="pm-overwrite"
-                            @click="ask({ kind: 'overwrite', profile: r.profile })"
-                          />
-                          <UButton
-                            size="xs"
-                            label="書き出す"
-                            color="neutral"
-                            variant="outline"
-                            data-testid="pm-export"
-                            @click="exportSelection(rowSelection(r), `「${r.name}」`)"
-                          />
-                        </template>
-                        <UButton
-                          v-else
-                          size="xs"
-                          label="開く"
-                          data-testid="pm-open-folder"
-                          @click="enter(r.id)"
-                        />
-                        <UButton
-                          size="xs"
-                          label="名前を変更"
-                          color="neutral"
-                          variant="outline"
-                          data-testid="pm-rename"
-                          @click="ask({ kind: 'rename', row: r })"
-                        />
-                        <UButton
-                          size="xs"
-                          label="移動"
-                          color="neutral"
-                          variant="outline"
-                          data-testid="pm-move"
-                          @click="ask({ kind: 'move', sel: rowSelection(r) })"
-                        />
-                        <UButton
-                          size="xs"
-                          label="削除"
-                          color="error"
-                          variant="outline"
-                          data-testid="pm-delete"
-                          @click="ask({ kind: 'delete', sel: rowSelection(r) })"
-                        />
-                      </div>
+                      </UDropdownMenu>
                     </li>
                   </ul>
                 </div>
