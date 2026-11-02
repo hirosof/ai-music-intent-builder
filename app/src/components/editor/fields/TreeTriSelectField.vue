@@ -68,7 +68,7 @@ const listOf = (c: Choice) =>
           @transfer="(t) => transferToFreeText(request, field, t)"
         >
           <template #cell-choice="{ item }">
-            <UFieldGroup size="xs">
+            <UFieldGroup size="xs" class="touch-separated">
               <UButton
                 v-for="c in CHOICES"
                 :key="String(c.value)"

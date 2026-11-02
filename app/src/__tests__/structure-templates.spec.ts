@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import ui from '@nuxt/ui/vue-plugin'
+import UDropdownMenu from '@nuxt/ui/components/DropdownMenu.vue'
 import Sortable from 'sortablejs'
 
 import App from '../App.vue'
@@ -39,6 +40,18 @@ async function mountApp(song: SongData) {
 const req = (): SongRequest => useSongEditor().request.value
 const $ = <T extends Element = HTMLElement>(testid: string) =>
   document.querySelector<T>(`[data-testid="${testid}"]`)
+/** 曲の構成の行のメニューの項目を選ぶ（判断ポイント79。開いた中身は jsdom で描けない） */
+async function sectionAct(i: number, label: string) {
+  const menu = wrapper!
+    .findAllComponents(UDropdownMenu)
+    .find((m) => m.find(`[data-testid="actions-structure-${i}"]`).exists())!
+  const items = (menu.props() as { items: { label: string; onSelect: () => void }[][] }).items
+  items
+    .flat()
+    .find((x) => x.label === label)!
+    .onSelect()
+  await flushPromises()
+}
 async function click(testid: string) {
   const el = $(testid)
   if (!el) throw new Error(`見つからない: ${testid}`)
@@ -308,7 +321,7 @@ describe('ひな型から読み込む', () => {
     await click('template-load-open')
     rowButton('あ', 'template-select').click()
     await flushPromises()
-    await click('down-structure-0')
+    await sectionAct(0, '下へ')
     expect(req().axes.structure!.value).toEqual([{ id: 'chorus' }, { id: 'verse' }])
     await click('template-load-open')
     expect($('template-row-あ')!.textContent).toContain('Aメロ → サビ')
@@ -570,7 +583,7 @@ describe("見せ方: その場で開く範囲（判断ポイント75 の細部 (
     await mountApp(instrumental())
     await openEditor()
     await click('template-save-open')
-    await click('down-structure-0')
+    await sectionAct(0, '下へ')
     expect($('template-save-sections')!.textContent).toContain('サビ → イントロ → アウトロ')
     await type('template-save-name', '基本')
     await click('template-save-submit')
@@ -620,7 +633,7 @@ describe('ドラッグでの並び替え（判断ポイント76）', () => {
     await flushPromises()
   }
   const shownIds = () =>
-    [...$('sections-structure')!.children].map((e) => e.textContent!.match(/\.\s*(\S+?)上へ/)?.[1])
+    [...$('sections-structure')!.children].map((e) => e.textContent!.match(/\.\s*(\S+?)…/)?.[1])
 
   it('ハンドルからだけドラッグを始める。各行の先頭にある', async () => {
     await mountApp(instrumental())
@@ -656,7 +669,7 @@ describe('ドラッグでの並び替え（判断ポイント76）', () => {
     await mountApp(instrumental())
     await openEditor()
     await drag(2, 1)
-    await click('up-structure-1')
+    await sectionAct(1, '上へ')
     expect(shownIds()).toEqual(['アウトロ', 'イントロ', 'サビ'])
     await drag(2, 0)
     expect(shownIds()).toEqual(['サビ', 'アウトロ', 'イントロ'])
@@ -729,16 +742,16 @@ describe('ドラッグでの並び替え（判断ポイント76）', () => {
     expect(sortable().option('disabled')).toBe(false)
   })
 
-  it('「上へ」「下へ」は残す', async () => {
+  it('「上へ」「下へ」はメニューに残す', async () => {
     await mountApp(instrumental())
     await openEditor()
-    await click('down-structure-0')
+    await sectionAct(0, '下へ')
     expect(req().axes.structure!.value).toEqual([
       { id: 'chorus' },
       { id: 'intro' },
       { id: 'outro' },
     ])
-    await click('up-structure-1')
+    await sectionAct(1, '上へ')
     expect(req().axes.structure!.value).toEqual([
       { id: 'intro' },
       { id: 'chorus' },

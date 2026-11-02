@@ -1,9 +1,10 @@
 <script setup lang="ts">
-// 曲の構成（U4b の決定 K6。UI 判断ポイント74〜76）: 並びの行ごとに「上へ」「下へ」「削除」、末尾に「追加」。
+// 曲の構成（U4b の決定 K6。UI 判断ポイント74〜76・79）: 並びの行ごとに「上へ」「下へ」「削除」のメニュー（…）、末尾に「追加」。
 // 行の先頭のハンドルからドラッグでも並び替えられる（判断ポイント76）。
 // 空の並びはデータに入れない（最後の1つは消せない。①をやめるときは状態を切り替える）。
 // 歌ありのときだけ、各行に歌の印の切り替えを出す（押すと歌あり／歌なしが入れ替わる）。追加の選択肢は語彙のグループごとに見出しを付ける。
 // 「ひな型として保存」「ひな型から読み込む」は判断ポイント75。入力欄の下に、その場で開く（ダイアログを重ねない。細部 (c')）
+import type { DropdownMenuItem } from '@nuxt/ui'
 import { useSortable } from '@vueuse/integrations/useSortable'
 import type { SortableEvent } from 'sortablejs'
 import { computed, ref, useTemplateRef, watch } from 'vue'
@@ -73,6 +74,28 @@ function add(id: string) {
   addKey.value++
 }
 
+// 行の操作のメニュー（判断ポイント79。「削除」は区切り線の後ろ。端の行の移動と、最後の1つの削除は無効の項目）
+function rowMenu(i: number): DropdownMenuItem[][] {
+  return [
+    [
+      { label: '上へ', disabled: i === 0, onSelect: () => write(moveSection(list.value, i, -1)) },
+      {
+        label: '下へ',
+        disabled: i === list.value.length - 1,
+        onSelect: () => write(moveSection(list.value, i, 1)),
+      },
+    ],
+    [
+      {
+        label: '削除',
+        color: 'error',
+        disabled: list.value.length <= 1,
+        onSelect: () => write(removeSection(list.value, i)),
+      },
+    ],
+  ]
+}
+
 // ドラッグでの並び替え（判断ポイント76）。Sortable が動かした行を元の位置に戻してから値を書き、DOM は Vue に任せる。
 // 末尾の行は v-for の終わりの目印の前に戻す（目印より後ろに置くと、次の追加で順序が崩れる）
 function onDragUpdate(e: SortableEvent) {
@@ -137,7 +160,7 @@ function applyTemplate(t: StructureTemplate) {
         :key="`${i}-${section.id}`"
         class="flex flex-wrap items-center gap-2 bg-default"
       >
-        <!-- つかむ所（判断ポイント76）。キーボード・読み上げは「上へ」「下へ」で操作するので、読み上げからは隠す。
+        <!-- つかむ所（判断ポイント76）。キーボード・読み上げはメニューの「上へ」「下へ」で操作するので、読み上げからは隠す。
              data-vaul-no-drag: スマホ幅のドロワーが、ここからのドラッグを閉じる操作と取り違えないように -->
         <span
           data-drag-handle
@@ -163,33 +186,16 @@ function applyTemplate(t: StructureTemplate) {
           :data-testid="`sung-${field.id}-${i}`"
           @click="write(toggleSung(list, i))"
         />
-        <UButton
-          size="xs"
-          color="neutral"
-          variant="outline"
-          label="上へ"
-          :disabled="disabled || i === 0"
-          :data-testid="`up-${field.id}-${i}`"
-          @click="write(moveSection(list, i, -1))"
-        />
-        <UButton
-          size="xs"
-          color="neutral"
-          variant="outline"
-          label="下へ"
-          :disabled="disabled || i === list.length - 1"
-          :data-testid="`down-${field.id}-${i}`"
-          @click="write(moveSection(list, i, 1))"
-        />
-        <UButton
-          size="xs"
-          color="error"
-          variant="outline"
-          label="削除"
-          :disabled="disabled || list.length <= 1"
-          :data-testid="`remove-${field.id}-${i}`"
-          @click="write(removeSection(list, i))"
-        />
+        <UDropdownMenu :items="rowMenu(i)" :disabled="disabled" :content="{ align: 'end' }">
+          <UButton
+            size="xs"
+            color="neutral"
+            variant="outline"
+            label="…"
+            :aria-label="`${i + 1}番目（${termLabel(spec, field, section.id)}）の操作`"
+            :data-testid="`actions-${field.id}-${i}`"
+          />
+        </UDropdownMenu>
       </li>
     </ol>
     <USelect

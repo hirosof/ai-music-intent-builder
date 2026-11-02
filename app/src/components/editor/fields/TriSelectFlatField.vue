@@ -65,14 +65,14 @@ const choiceOf = (id: string): Choice | null => a.value?.choices?.[id] ?? null
         <li
           v-for="t in terms"
           :key="t.id"
-          class="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5"
+          class="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 pointer-coarse:py-0"
           :data-testid="`term-${field.id}-${t.id}`"
         >
           <span class="text-sm"
             >{{ t.label
             }}<span v-if="t.hidden" class="ml-1 text-xs text-muted">（非表示の語）</span></span
           >
-          <UFieldGroup size="xs">
+          <UFieldGroup size="xs" class="touch-separated">
             <UButton
               v-for="c in CHOICES"
               :key="String(c.value)"

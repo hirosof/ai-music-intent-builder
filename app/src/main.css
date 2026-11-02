@@ -1,2 +1,88 @@
 @import 'tailwindcss';
 @import '@nuxt/ui';
+
+/*
+ * 指で操作する端末の押せる要素（ui-and-nonfunctional.md 判断ポイント78）。高さ・幅とも 44px 以上。PC の見た目は変えない。
+ * 層の外に書くので、Tailwind と Nuxt UI のクラス（層の中）より優先される。
+ * Nuxt UI の内部の印（data-slot）に頼っている。版を上げたら、指の端末の模擬で実測し直す。
+ */
+@media (pointer: coarse) {
+  /* 除くのは Nuxt UI の四角だけ。フォルダの選択（FolderPicker）は role="radio" の行で、ここに入る */
+  button:not([data-slot='base']:is([role='checkbox'], [role='radio'], [role='switch'])),
+  a[href],
+  [role='menuitem'],
+  [role='menuitemcheckbox'],
+  [role='menuitemradio'],
+  [role='option'],
+  input:not([type='checkbox'], [type='radio'], [type='hidden'], [aria-hidden='true']),
+  [data-drag-handle] {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* 文字より広くなるボタンの中身は中央に（選択欄は左寄せのまま） */
+  button[data-slot='base']:not(
+      [role='checkbox'],
+      [role='radio'],
+      [role='switch'],
+      [role='combobox']
+    ) {
+    justify-content: center;
+  }
+
+  /* 1行で始まる入力欄（楽器の自由記述）も届かせる。複数行のものは、すでに届いている */
+  textarea {
+    min-height: 44px;
+  }
+
+  /* line-height で高さを取る（開閉の印と文字の並びを崩さない） */
+  summary {
+    line-height: 44px;
+  }
+
+  /*
+   * チェックボックス・ラジオ・スイッチ: 見た目の四角はそのまま、押せる範囲だけを疑似要素で広げる。
+   * 範囲は四角の左端から右へ 44px（左の隣に出ない）。外側に 44px 四方を確保するので、隣と重ならない
+   */
+  [data-slot='root']:not(.touch-target-exempt):has(
+      > [data-slot='container'] > :is([role='checkbox'], [role='switch'])
+    ),
+  [data-slot='item']:has(> [data-slot='container'] > [role='radio']) {
+    align-items: center;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  [data-slot='root']:not(.touch-target-exempt)
+    > [data-slot='container']
+    > :is([role='checkbox'], [role='switch']),
+  [data-slot='item'] > [data-slot='container'] > [role='radio'] {
+    position: relative;
+    /* 部品の overflow-hidden のままだと、広げた範囲が切れて押せない。角の丸めは中身に引き継ぐ */
+    overflow: visible;
+  }
+  [role='checkbox'] > [data-slot='indicator'],
+  [role='radio'] > [data-slot='indicator'] {
+    border-radius: inherit;
+  }
+  [data-slot='root']:not(.touch-target-exempt)
+    > [data-slot='container']
+    > :is([role='checkbox'], [role='switch'])::after,
+  [data-slot='item'] > [data-slot='container'] > [role='radio']::after {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 44px;
+    height: 44px;
+    content: '';
+    translate: 0 -50%;
+  }
+
+  /* 反対の意味のボタンが接している3択（使用する／使用しない／—）に、区切りの余白を入れる */
+  .touch-separated {
+    column-gap: 6px;
+  }
+  .touch-separated > * {
+    margin-inline: 0;
+    border-radius: calc(var(--ui-radius) * 1.5);
+  }
+}

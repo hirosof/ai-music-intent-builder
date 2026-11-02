@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // プロファイル管理の画面（ui-and-nonfunctional.md 判断ポイント67。プロファイルのポップアップを置き換える）。
 // タブ「ユーザー／ファクトリー」。ユーザーは、パンくず＋今のフォルダの中身（サブフォルダが先、プロファイルが後）。
-// 検索語があれば全フォルダから探し、パスの列を出す（対象は 両方／フォルダ／プロファイル から選べる。細部 (i)）。各行にチェックボックス（複数選択で 書き出す／移動／削除）と操作。
+// 検索語があれば全フォルダから探し、パスの列を出す（対象は 両方／フォルダ／プロファイル から選べる。細部 (i)）。各行にチェックボックス（複数選択で 書き出す／移動／削除のメニュー。判断ポイント80）と操作。
 // 選択は行全体の押下・一括選択・Shift の範囲選択でも切り替える（判断ポイント71）。行の操作は［操作］のメニュー（判断ポイント77）。
 // 確認・入力は1つのダイアログの中で切り替える（モーダルを重ねない。判断ポイント8）。開くは、判断ポイント52 の確認のあと組み立ての画面へ
 import type { DropdownMenuItem } from '@nuxt/ui'
@@ -435,6 +435,24 @@ function rowMenu(r: Row): DropdownMenuItem[][] {
   ]
 }
 
+// 複数選択の操作のメニュー（判断ポイント80。「削除」は区切り線の後ろ）
+const selectionMenu = computed<DropdownMenuItem[][]>(() => [
+  [
+    {
+      label: '書き出す',
+      onSelect: () => exportSelection(selectionOf(selected.value), '選んだもの'),
+    },
+    { label: '移動', onSelect: () => ask({ kind: 'move', sel: selectionOf(selected.value) }) },
+  ],
+  [
+    {
+      label: '削除',
+      color: 'error',
+      onSelect: () => ask({ kind: 'delete', sel: selectionOf(selected.value) }),
+    },
+  ],
+])
+
 // ---------------------------------------------------------------------------
 // 読込（取り込み先の初期値は今のフォルダ。判断ポイント69）
 // ---------------------------------------------------------------------------
@@ -610,33 +628,20 @@ defineExpose({ receiveFile })
                         data-testid="pm-select-menu"
                       />
                     </UDropdownMenu>
-                    <template v-if="selected.size">
-                      <span data-testid="pm-selection">{{ selected.size }} 件を選択</span>
+                    <UDropdownMenu
+                      v-if="selected.size"
+                      :items="selectionMenu"
+                      :content="{ align: 'start' }"
+                    >
                       <UButton
                         size="xs"
-                        label="書き出す"
+                        :label="`選択した ${selected.size} 件`"
+                        trailing-icon="i-lucide-chevron-down"
                         color="neutral"
                         variant="outline"
-                        data-testid="pm-sel-export"
-                        @click="exportSelection(selectionOf(selected), '選んだもの')"
+                        data-testid="pm-selection"
                       />
-                      <UButton
-                        size="xs"
-                        label="移動"
-                        color="neutral"
-                        variant="outline"
-                        data-testid="pm-sel-move"
-                        @click="ask({ kind: 'move', sel: selectionOf(selected) })"
-                      />
-                      <UButton
-                        size="xs"
-                        label="削除"
-                        color="error"
-                        variant="outline"
-                        data-testid="pm-sel-delete"
-                        @click="ask({ kind: 'delete', sel: selectionOf(selected) })"
-                      />
-                    </template>
+                    </UDropdownMenu>
                   </div>
                   <ul class="divide-y divide-default">
                     <!-- 行全体で選択を切り替える。選んだ行に背景色、PC では重ねると背景を薄く変える -->
@@ -654,8 +659,9 @@ defineExpose({ receiveFile })
                       @click="onRowClick(r, $event)"
                       @mousedown="onRowMouseDown"
                     >
-                      <!-- 押下は行で受ける（Shift の範囲選択も同じ）。キーボード・読み上げのために残す -->
+                      <!-- 押下は行で受ける（Shift の範囲選択も同じ）。キーボード・読み上げのために残す（指の大きさの例外。判断ポイント78） -->
                       <UCheckbox
+                        class="touch-target-exempt"
                         :model-value="selected.has(r.key)"
                         :aria-label="`${r.name} を選ぶ`"
                         data-testid="pm-select"

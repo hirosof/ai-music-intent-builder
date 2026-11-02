@@ -57,12 +57,13 @@ watch(showHidden, () => {
 
 // filterFromLeafRows（子が一致すれば親を残す）は、型の上では列の絞り込みの設定。実行時は同じ表の設定に入る（試作は global-filter-options に渡していた）
 // 公式の tree data の例と同じ指定で、展開用の空のセルの余白と罫線を消す
+// 指の端末では、セルの上下の余白を詰めて、表の長さの増え方を抑える（判断ポイント78）
 const tableUi = {
   base: 'border-separate border-spacing-0',
   tbody: '[&>tr]:last:[&>td]:border-b-0',
   tr: 'group',
   th: 'whitespace-nowrap',
-  td: 'empty:p-0 group-has-[td:not(:empty)]:border-b border-default py-1.5',
+  td: 'relative empty:p-0 group-has-[td:not(:empty)]:border-b border-default py-1.5 pointer-coarse:py-0',
 }
 
 const tooltip = (item: TreeItem) =>
@@ -101,9 +102,10 @@ const asItem = (r: Row) => r as TreeItem
       class="h-[55vh] rounded-md border border-default"
     >
       <template #label-cell="{ row }">
+        <!-- 開閉はセル全体で押せる（疑似要素をセルいっぱいに広げる。見た目は変えない。判断ポイント78） -->
         <div
           v-if="row.original.kind === 'category'"
-          class="flex cursor-pointer items-center gap-1 font-semibold"
+          class="flex cursor-pointer items-center gap-1 font-semibold after:absolute after:inset-0 pointer-coarse:min-h-11"
           :data-testid="`${testid}-cat-${row.original.id}`"
           @click="row.toggleExpanded()"
         >

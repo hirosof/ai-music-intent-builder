@@ -3,6 +3,7 @@ import { afterEach, describe, it, expect } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import ui from '@nuxt/ui/vue-plugin'
+import UDropdownMenu from '@nuxt/ui/components/DropdownMenu.vue'
 
 import App from '../App.vue'
 import EditorView from '@/views/EditorView.vue'
@@ -37,6 +38,27 @@ async function mountApp(song?: SongData) {
 const req = (): SongRequest => useSongEditor().request.value
 const $ = <T extends Element = HTMLElement>(testid: string) =>
   document.querySelector<T>(`[data-testid="${testid}"]`)
+/** 曲の構成の行のメニュー（判断ポイント79）。開いた中身は jsdom で描けないので、項目の props を読む */
+interface SectionMenuItem {
+  label: string
+  disabled?: boolean
+  color?: string
+  onSelect: () => void
+}
+function sectionMenu(i: number) {
+  const menu = wrapper!
+    .findAllComponents(UDropdownMenu)
+    .find((m) => m.find(`[data-testid="actions-structure-${i}"]`).exists())!
+  return menu.props() as { items: SectionMenuItem[][]; disabled?: boolean }
+}
+const sectionItem = (i: number, label: string) =>
+  sectionMenu(i)
+    .items.flat()
+    .find((x) => x.label === label)!
+async function sectionAct(i: number, label: string) {
+  sectionItem(i, label).onSelect()
+  await flushPromises()
+}
 async function click(testid: string) {
   const el = $(testid)
   if (!el) throw new Error(`見つからない: ${testid}`)
@@ -255,12 +277,98 @@ describe('構成（K6）', () => {
       ),
     )
     await click('edit-structure')
-    await click('down-structure-0')
+    expect(sectionItem(0, '削除').disabled).toBe(false)
+    await sectionAct(0, '下へ')
     expect(req().axes.structure!.value).toEqual([{ id: 'outro' }, { id: 'intro' }])
-    expect($<HTMLButtonElement>('up-structure-0')!.disabled).toBe(true)
-    await click('remove-structure-1')
+    expect(sectionItem(0, '上へ').disabled).toBe(true)
+    await sectionAct(1, '削除')
     expect(req().axes.structure!.value).toEqual([{ id: 'outro' }])
-    expect($<HTMLButtonElement>('remove-structure-0')!.disabled).toBe(true)
+    expect(sectionItem(0, '削除').disabled).toBe(true)
+  })
+
+  describe('行の操作のメニュー（判断ポイント79）', () => {
+    const three = () =>
+      songWith(
+        (r) =>
+          (r.axes.structure = {
+            state: 'specified',
+            value: [{ id: 'intro' }, { id: 'chorus' }, { id: 'outro' }],
+          }),
+      )
+    const shape = (i: number) =>
+      sectionMenu(i).items.map((g) => g.map((x) => [x.label, x.color ?? null, !!x.disabled]))
+
+    it('並びは 上へ・下へ、区切り線、削除（危険の色）。真ん中の行はすべて押せる', async () => {
+      await mountApp(three())
+      await click('edit-structure')
+      expect(shape(1)).toEqual([
+        [
+          ['上へ', null, false],
+          ['下へ', null, false],
+        ],
+        [['削除', 'error', false]],
+      ])
+    })
+
+    it('端の行の移動は無効の項目。先頭は上へ、末尾は下へ', async () => {
+      await mountApp(three())
+      await click('edit-structure')
+      expect(sectionItem(0, '上へ').disabled).toBe(true)
+      expect(sectionItem(0, '下へ').disabled).toBe(false)
+      expect(sectionItem(2, '上へ').disabled).toBe(false)
+      expect(sectionItem(2, '下へ').disabled).toBe(true)
+    })
+
+    it('項目はその行に効く', async () => {
+      await mountApp(three())
+      await click('edit-structure')
+      await sectionAct(1, '上へ')
+      expect(req().axes.structure!.value).toEqual([
+        { id: 'chorus' },
+        { id: 'intro' },
+        { id: 'outro' },
+      ])
+      await sectionAct(1, '下へ')
+      expect(req().axes.structure!.value).toEqual([
+        { id: 'chorus' },
+        { id: 'outro' },
+        { id: 'intro' },
+      ])
+      await sectionAct(0, '削除')
+      expect(req().axes.structure!.value).toEqual([{ id: 'outro' }, { id: 'intro' }])
+    })
+
+    it('ボタンが行に残らない。ハンドルは残る', async () => {
+      await mountApp(three())
+      await click('edit-structure')
+      for (const id of ['up-structure-1', 'down-structure-1', 'remove-structure-1'])
+        expect($(id)).toBeNull()
+      expect($('handle-structure-1')).not.toBeNull()
+    })
+
+    it('①指定なら開ける。読み上げ用の名前で行が分かる', async () => {
+      await mountApp(three())
+      await click('edit-structure')
+      expect(sectionMenu(1).disabled).toBe(false)
+      expect($<HTMLButtonElement>('actions-structure-1')!.disabled).toBe(false)
+      expect($('actions-structure-1')!.getAttribute('aria-label')).toMatch(/^2番目（.+）の操作$/)
+    })
+
+    it('①指定以外ではメニューを開けない', async () => {
+      await mountApp(
+        songWith(
+          (r) =>
+            (r.axes.structure = {
+              state: 'specified',
+              value: [{ id: 'intro' }, { id: 'outro' }],
+            }),
+        ),
+      )
+      await click('edit-structure')
+      await click('state-structure-delegated')
+      expect(sectionMenu(1).disabled).toBe(true)
+      expect($<HTMLButtonElement>('actions-structure-1')!.disabled).toBe(true)
+    })
   })
 
   it('歌ありでは曲の構成は歌詞カードに出る（構造カードには出ない。判断ポイント74）', async () => {

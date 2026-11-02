@@ -137,6 +137,21 @@ async function act(kind: 'folder' | 'profile', name: string, label: string) {
     .onSelect()
   await flushPromises()
 }
+/** 複数選択のメニュー（判断ポイント80）の項目 */
+function selectionMenu() {
+  const menu = wrapper!.findAllComponents(UDropdownMenu).find((m) => {
+    const trigger = m.find('[data-testid="pm-selection"]')
+    return trigger.exists()
+  })!
+  return (menu.props() as { items: MenuItem[][] }).items
+}
+async function selectionAct(label: string) {
+  selectionMenu()
+    .flat()
+    .find((i) => i.label === label)!
+    .onSelect()
+  await flushPromises()
+}
 async function select(kind: 'folder' | 'profile', name: string) {
   await click('pm-select', row(kind, name))
 }
@@ -418,7 +433,7 @@ describe('行の操作', () => {
     expect(rows()).toEqual(['profile-村'])
     await click('pm-crumb-root')
     await select('folder', 'ゲーム')
-    await click('pm-sel-delete')
+    await selectionAct('削除')
     await click('pm-dialog-ok')
     expect(rows()).toEqual(['folder-作業用', 'profile-ルートの曲', 'profile-古い曲'])
   })
@@ -492,14 +507,14 @@ describe('行の操作のメニュー（判断ポイント77）', () => {
     await mountApp()
     await select('folder', 'ゲーム')
     await click('pm-actions', row('profile', '古い曲'))
-    expect($('pm-selection')!.textContent).toContain('1 件を選択')
+    expect($('pm-selection')!.textContent).toContain('選択した 1 件')
     expect(row('profile', '古い曲')!.getAttribute('data-selected')).toBe('false')
     // 起点は「ゲーム」のまま: 「作業用」までの Shift＋押下で、間の行だけがそろう
     row('folder', '作業用')!.dispatchEvent(
       new MouseEvent('click', { bubbles: true, shiftKey: true }),
     )
     await flushPromises()
-    expect($('pm-selection')!.textContent).toContain('2 件を選択')
+    expect($('pm-selection')!.textContent).toContain('選択した 2 件')
   })
 
   it('メニューから開いた確認を閉じても、選択は変わらない', async () => {
@@ -508,8 +523,75 @@ describe('行の操作のメニュー（判断ポイント77）', () => {
     await select('profile', '古い曲')
     await act('profile', 'ルートの曲', '上書き保存')
     await click('pm-dialog-cancel')
-    expect($('pm-selection')!.textContent).toContain('1 件を選択')
+    expect($('pm-selection')!.textContent).toContain('選択した 1 件')
     expect(row('profile', '古い曲')!.getAttribute('data-selected')).toBe('true')
+  })
+})
+
+describe('複数選択の操作のメニュー（判断ポイント80）', () => {
+  const menuShape = () =>
+    selectionMenu().map((group) => group.map((i) => [i.label, i.color ?? null]))
+
+  it('並びは 書き出す・移動、区切り線、削除（危険の色）', async () => {
+    putStore(sample())
+    await mountApp()
+    await select('profile', 'ルートの曲')
+    expect(menuShape()).toEqual([
+      [
+        ['書き出す', null],
+        ['移動', null],
+      ],
+      [['削除', 'error']],
+    ])
+  })
+
+  it('選んでいないときは出さない。件数はメニューのボタンに出る', async () => {
+    putStore(sample())
+    await mountApp()
+    expect($('pm-selection')).toBeNull()
+    await select('profile', 'ルートの曲')
+    await select('profile', '古い曲')
+    expect($('pm-selection')!.textContent).toContain('選択した 2 件')
+    await select('profile', '古い曲')
+    await select('profile', 'ルートの曲')
+    expect($('pm-selection')).toBeNull()
+  })
+
+  it('ボタンが帯に残らない（1つのメニューにまとめる）', async () => {
+    putStore(sample())
+    await mountApp()
+    await select('profile', 'ルートの曲')
+    for (const id of ['pm-sel-export', 'pm-sel-move', 'pm-sel-delete']) expect($(id)).toBeNull()
+  })
+
+  it('メニューのボタンを押しても選択は変わらない', async () => {
+    putStore(sample())
+    await mountApp()
+    await select('profile', 'ルートの曲')
+    await click('pm-selection')
+    expect(row('profile', 'ルートの曲')!.getAttribute('data-selected')).toBe('true')
+    expect($('pm-selection')!.textContent).toContain('選択した 1 件')
+  })
+
+  it('項目は今の選択に効く: 削除の確認は選んだものの件数を出す', async () => {
+    putStore(sample())
+    await mountApp()
+    await select('profile', 'ルートの曲')
+    await select('profile', '古い曲')
+    await selectionAct('削除')
+    expect($('pm-delete-text')!.textContent).toContain('プロファイル 2 件')
+    await click('pm-dialog-cancel')
+    expect(rows()).toContain('profile-古い曲')
+  })
+
+  it('項目は今の選択に効く: 移動の確認を出し、選んだものだけを動かす', async () => {
+    putStore(sample())
+    await mountApp()
+    await select('profile', 'ルートの曲')
+    await selectionAct('移動')
+    await click('pm-move-option-g')
+    await click('pm-dialog-ok')
+    expect(rows()).toEqual(['folder-ゲーム', 'folder-作業用', 'profile-古い曲'])
   })
 })
 
@@ -519,8 +601,8 @@ describe('複数選択', () => {
     await mountApp()
     await select('folder', 'ゲーム')
     await select('profile', 'ルートの曲')
-    expect($('pm-selection')!.textContent).toContain('2 件を選択')
-    await click('pm-sel-export')
+    expect($('pm-selection')!.textContent).toContain('選択した 2 件')
+    await selectionAct('書き出す')
     const file = JSON.parse(await downloads[0]!.blob.text()) as ExportFile
     expect(file.profiles.map((p) => p.name).sort()).toEqual(['ルートの曲', '村', '第1形態'].sort())
     expect(file.folders.map((f) => f.name)).toEqual(['ゲーム', 'ボス戦'])
@@ -531,7 +613,7 @@ describe('複数選択', () => {
     putStore(sample())
     await mountApp()
     await select('folder', '作業用')
-    await click('pm-sel-export')
+    await selectionAct('書き出す')
     expect(downloads).toHaveLength(0)
     expect($('pm-failure')!.textContent).toContain('書き出すプロファイルがありません')
   })
@@ -541,7 +623,7 @@ describe('複数選択', () => {
     await mountApp()
     await select('profile', 'ルートの曲')
     await select('profile', '古い曲')
-    await click('pm-sel-move')
+    await selectionAct('移動')
     await click('pm-move-option-w')
     await click('pm-dialog-ok')
     expect([where('ルートの曲'), where('古い曲')]).toEqual(['ルート/作業用', 'ルート/作業用'])
@@ -552,7 +634,7 @@ describe('複数選択', () => {
     expect($('pm-selection')).toBeNull()
     await select('folder', 'ゲーム')
     await select('folder', '作業用')
-    await click('pm-sel-delete')
+    await selectionAct('削除')
     expect($('pm-delete-text')!.textContent).toContain('フォルダ 3 個、プロファイル 4 件')
     await click('pm-dialog-ok')
     expect(stored()).toEqual({ ...emptyStore() })
@@ -722,7 +804,7 @@ describe('空のフォルダの書き出し（細部 (k)）', () => {
     putStore(withEmpty())
     let w = await mountApp()
     await select('folder', 'ゲーム')
-    await click('pm-sel-export')
+    await selectionAct('書き出す')
     const text = await downloads[0]!.blob.text()
     const file = JSON.parse(text) as ExportFile
     expect(file.folders.map((f) => f.name)).toEqual(['ゲーム', 'ボス戦', '空', '空の下'])
@@ -773,7 +855,7 @@ describe('空のフォルダの書き出し（細部 (k)）', () => {
     await mountApp()
     await click('pm-enter', row('folder', 'ゲーム'))
     await select('folder', '空')
-    await click('pm-sel-export')
+    await selectionAct('書き出す')
     expect(downloads).toHaveLength(0)
     expect($('pm-failure')!.textContent).toContain(
       '書き出すプロファイルがありません（空のフォルダは書き出せません）',
@@ -837,7 +919,7 @@ describe('一覧の選択の操作（判断ポイント71）', () => {
     await mountApp()
     await press(rowText('profile', '古い曲'))
     expect(chosen()).toEqual(['profile-古い曲'])
-    expect($('pm-selection')!.textContent).toContain('1 件を選択')
+    expect($('pm-selection')!.textContent).toContain('選択した 1 件')
     expect(document.body.textContent).not.toContain('を開きますか')
     expect(router.currentRoute.value.path).toBe('/profiles')
     await press(row('profile', '古い曲')!.querySelector('.text-muted'))
@@ -876,7 +958,7 @@ describe('一覧の選択の操作（判断ポイント71）', () => {
     await click('pm-select-all')
     expect(allState()).toBe('true')
     expect(chosen()).toEqual(rows())
-    expect($('pm-selection')!.textContent).toContain('4 件を選択')
+    expect($('pm-selection')!.textContent).toContain('選択した 4 件')
     await click('pm-select-all')
     expect(allState()).toBe('false')
     expect($('pm-selection')).toBeNull()
@@ -910,7 +992,7 @@ describe('一覧の選択の操作（判断ポイント71）', () => {
     expect(rows()).toEqual(['profile-ルートの曲', 'profile-古い曲'])
     await click('pm-select-all')
     expect(chosen()).toEqual(['profile-ルートの曲', 'profile-古い曲'])
-    await click('pm-sel-move')
+    await selectionAct('移動')
     await click('pm-move-option-w')
     await click('pm-dialog-ok')
     expect([where('ルートの曲'), where('古い曲'), where('村')]).toEqual([
