@@ -273,6 +273,13 @@ class TestA6(unittest.TestCase):
         with tree({CHECKLIST: text}) as t:
             self.assertEqual(kinds(t.active("A6")), ["checked"] * 6)
 
+    def test_result_children(self):
+        text = "- **A-01** 項目\n  - チェック結果\n    - [ ] OK\n    - [x] NG：崩れる\n    - [X] OK\n"
+        with tree({CHECKLIST: text}) as t:
+            fs = t.active("A6")
+            self.assertEqual(kinds(fs), ["checked", "checked"])
+            self.assertEqual([f.line for f in fs], [4, 5])
+
     def test_mark_in_prose_is_not_checked(self):
         with tree({CHECKLIST: "チェック済みの印 `- [x]` は付けない。[x] と [X]\n- [ ] 配列 a[x] を見る\n"}) as t:
             self.assertEqual(t.active("A6"), [])
@@ -300,6 +307,206 @@ class TestA6(unittest.TestCase):
                 code = check_docs.main(["--root", str(t.dir), "--allowlist", str(t.allow)])
             self.assertEqual(code, 1)
             self.assertIn("A6: エラー 1 件", out.getvalue())
+
+
+def item(no="A-01", fields=None, note=False, result=None):
+    """A7 の正しい項目。fields・result で崩す"""
+    lines = ["- **%s** 確かめること" % no]
+    if fields is None:
+        fields = ["  - 端末: PC", "  - 手順: 押す", "  - 期待: 出る", "  - 関係: UI 1・語彙 2・入力項目 3・文面 4・ツール 5"]
+        if note:
+            fields.append("  - 注意: 仮のデータで確かめる")
+    if result is None:
+        result = ["  - チェック結果", "    - [ ] OK", "    - [ ] NG"]
+    return "\n".join(lines + fields + result) + "\n"
+
+
+def sheet(body):
+    return "# c\n\n## 使い方\n\n- 説明の箇条書き\n\n## A. 短い確認\n\n説明の文。\n\n" + body
+
+
+FIELDS = ["  - 端末: PC", "  - 手順: 押す", "  - 期待: 出る", "  - 関係: UI 1"]
+
+
+class TestA7(unittest.TestCase):
+    def found(self, body):
+        with tree({CHECKLIST: sheet(body)}) as t:
+            return kinds(t.active("A7"))
+
+    def test_good(self):
+        body = item() + item("A-02", note=True) + "\n### A-1. 小節\n\n" + item("A-03") + "\n## B. 機能\n\n" + item("B-01")
+        self.assertEqual(self.found(body), [])
+
+    def test_lists_before_sections_are_ignored(self):
+        with tree({CHECKLIST: "- [ ] 形の違う箇条書き\n\n## 使い方\n\n- 説明\n  - 字下げ\n\n## A. 節\n\n" + item()}) as t:
+            self.assertEqual(t.active("A7"), [])
+
+    def test_section_other_than_letter_ends_items(self):
+        self.assertEqual(self.found(item() + "\n## 補足\n\n- 説明\n  - 字下げ\n"), [])
+
+    def test_head_checkbox(self):
+        self.assertEqual(self.found(item().replace("- **A-01**", "- [ ] **A-01**")), ["head-checkbox"])
+
+    def test_head_checked_is_also_a6(self):
+        with tree({CHECKLIST: sheet(item().replace("- **A-01**", "- [x] **A-01**"))}) as t:
+            self.assertEqual(kinds(t.active("A7")), ["head-checkbox"])
+            self.assertEqual(kinds(t.active("A6")), ["checked"])
+
+    def test_head_forms(self):
+        for bad in ("- A-01 確かめること", "- **A-1** 確かめること", "- **A-001** 確かめること", "- **A01** 確かめること",
+                    "- **A-01**", "* **A-01** 確かめること", "1. **A-01** 確かめること"):
+            with self.subTest(bad):
+                self.assertEqual(self.found(item().replace("- **A-01** 確かめること", bad)), ["head"])
+
+    def test_letter(self):
+        self.assertEqual(self.found(item("B-01")), ["letter"])
+
+    def test_letter_is_taken_from_the_nearest_section(self):
+        self.assertEqual(self.found(item() + "\n## B. 機能\n\n" + item("A-02")), ["letter"])
+
+    def test_duplicate(self):
+        self.assertEqual(self.found(item() + item()), ["duplicate"])
+
+    def test_duplicate_after_gap(self):
+        self.assertEqual(self.found(item() + item("A-02") + item("A-01")), ["duplicate"])
+
+    def test_sequence_gap(self):
+        self.assertEqual(self.found(item() + item("A-03")), ["sequence"])
+
+    def test_sequence_must_start_at_01(self):
+        self.assertEqual(self.found(item("A-02")), ["sequence"])
+
+    def test_sequence_is_per_letter(self):
+        self.assertEqual(self.found(item() + item("A-02") + "\n## B. 機能\n\n" + item("B-01") + item("B-02")), [])
+
+    def test_sequence_continues_over_subsections(self):
+        self.assertEqual(self.found(item() + "\n### A-1. 小節\n\n" + item("A-03")), ["sequence"])
+
+    def test_missing_each_field(self):
+        for i in range(4):
+            with self.subTest(FIELDS[i]):
+                self.assertEqual(self.found(item(fields=FIELDS[:i] + FIELDS[i + 1:])), ["fields"])
+
+    def test_field_order(self):
+        self.assertEqual(self.found(item(fields=[FIELDS[1], FIELDS[0]] + FIELDS[2:])), ["fields"])
+
+    def test_note_after_result_is_wrong(self):
+        body = item(result=["  - チェック結果", "    - [ ] OK", "    - [ ] NG", "  - 注意: 仮のデータで確かめる"])
+        self.assertEqual(self.found(body), ["fields"])
+
+    def test_note_before_related_is_wrong(self):
+        body = item(fields=FIELDS[:3] + ["  - 注意: 仮のデータで確かめる", FIELDS[3]])
+        self.assertEqual(self.found(body), ["fields"])
+
+    def test_unknown_field(self):
+        self.assertEqual(self.found(item(fields=FIELDS + ["  - 補足: 何か"])), ["fields"])
+
+    def test_empty_value(self):
+        for bad in ("  - 手順:", "  - 手順: "):
+            with self.subTest(bad):
+                self.assertEqual(self.found(item(fields=FIELDS[:1] + [bad] + FIELDS[2:])), ["fields"])
+
+    def test_missing_result(self):
+        self.assertEqual(self.found(item(result=[])), ["fields"])
+
+    def test_result_forms(self):
+        for bad in (["  - チェック結果", "    - [ ] OK"],
+                    ["  - チェック結果", "    - [ ] NG"],
+                    ["  - チェック結果", "    - [ ] NG", "    - [ ] OK"],
+                    ["    - [ ] OK", "    - [ ] NG"],
+                    ["    - チェック結果", "    - [ ] OK", "    - [ ] NG"],
+                    ["  - チェック結果", "    - OK", "    - NG"],
+                    ["  - チェック結果", "  - [ ] OK", "  - [ ] NG"],
+                    ["  - チェック結果", "    - [ ] OK：よい", "    - [ ] NG"],
+                    ["  - チェック結果", "    - [ ] OK", "    - [ ] NG", "    - [ ] 保留"]):
+            with self.subTest(bad):
+                self.assertEqual(self.found(item(result=bad)), ["fields"])
+
+    def test_checked_result_is_left_to_a6(self):
+        with tree({CHECKLIST: sheet(item(result=["  - チェック結果", "    - [x] OK", "    - [X] NG"]))}) as t:
+            self.assertEqual(t.active("A7"), [])
+            self.assertEqual(kinds(t.active("A6")), ["checked", "checked"])
+
+    def test_device_value(self):
+        self.assertEqual(self.found(item(fields=["  - 端末: タブレット"] + FIELDS[1:])), ["device"])
+
+    def test_device_values_allowed(self):
+        for v in ("PC", "スマホ", "両方"):
+            with self.subTest(v):
+                self.assertEqual(self.found(item(fields=["  - 端末: " + v] + FIELDS[1:])), [])
+
+    def test_note_text(self):
+        self.assertEqual(self.found(item(fields=FIELDS + ["  - 注意: データが消える"])), ["note"])
+
+    def test_related_form(self):
+        for bad in ("UI1", "判断ポイント38", "UI 1、UI 2", "UI 1・", "なし"):
+            with self.subTest(bad):
+                self.assertEqual(self.found(item(fields=FIELDS[:3] + ["  - 関係: " + bad])), ["related"])
+
+    def test_blank_line_inside_item(self):
+        lines = item().split("\n")
+        body = "\n".join(lines[:3] + [""] + lines[3:])
+        self.assertEqual(self.found(body), ["fields", "orphan", "orphan", "orphan", "orphan", "orphan"])
+
+    def test_orphan_indented_line(self):
+        self.assertEqual(self.found(item() + "\n  - 端末: PC\n"), ["orphan"])
+
+    def test_last_item_is_checked(self):
+        self.assertEqual(self.found(item() + "- **A-02** 確かめること\n"), ["fields"])
+
+    def test_last_item_without_newline_is_checked(self):
+        self.assertEqual(self.found(item() + "- **A-02** 確かめること"), ["fields"])
+
+    def test_any_section_letter(self):
+        self.assertEqual(self.found(item() + "\n## Z. 節\n\n" + item("Z-02")), ["sequence"])
+
+    def test_item_before_heading_is_checked(self):
+        self.assertEqual(self.found("- **A-01** 確かめること\n### 小節\n" + item("A-02")), ["fields"])
+
+    def test_line_numbers(self):
+        with tree({CHECKLIST: sheet(item() + item("A-03"))}) as t:
+            fs = t.active("A7")
+            text = sheet(item() + item("A-03")).split("\n")
+            self.assertEqual(fs[0].line, text.index("- **A-03** 確かめること") + 1)
+
+    def test_no_item_section(self):
+        with tree({CHECKLIST: "# c\n\n## 使い方\n\n- 説明\n"}) as t:
+            self.assertEqual(kinds(t.active("A7")), ["no-items"])
+
+    def test_section_without_items(self):
+        self.assertEqual(self.found("説明だけ。\n"), ["no-items"])
+
+    def test_every_file_is_checked(self):
+        for bad in (CHECKLIST, D + "checklists/sub/b.md"):
+            good = CHECKLIST if bad != CHECKLIST else D + "checklists/sub/b.md"
+            with self.subTest(bad), tree({good: sheet(item()), bad: sheet(item("A-02"))}) as t:
+                fs = t.active("A7")
+                self.assertEqual(kinds(fs), ["sequence"])
+                self.assertEqual(fs[0].file, bad)
+
+    def test_numbering_is_per_file(self):
+        with tree({CHECKLIST: sheet(item()), D + "checklists/b.md": sheet(item())}) as t:
+            self.assertEqual(t.active("A7"), [])
+
+    def test_outside_checklists_is_ignored(self):
+        with tree({D + "a.md": sheet(item("A-09")), "temp/user-check.md": sheet(item("A-09"))}) as t:
+            self.assertEqual(t.active("A7"), [])
+
+    def test_non_markdown_is_ignored(self):
+        with tree({D + "checklists/a.txt": "- 形の違うもの\n"}) as t:
+            self.assertEqual(t.active("A7"), [])
+
+    def test_no_folder_is_clean(self):
+        with tree() as t:
+            self.assertEqual(t.active("A7"), [])
+
+    def test_gives_exit_1(self):
+        with tree({CHECKLIST: sheet(item("A-02"))}) as t:
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code = check_docs.main(["--root", str(t.dir), "--allowlist", str(t.allow)])
+            self.assertEqual(code, 1)
+            self.assertIn("A7: エラー 1 件", out.getvalue())
 
 
 class TestAllowlistFile(unittest.TestCase):

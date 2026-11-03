@@ -34,7 +34,6 @@ const Popup = computed(() => (desktop.value ? UModal : UDrawer))
     :title="title"
     description="変更はすぐに反映されます。"
     :scrollable="desktop || undefined"
-    :should-scale-background="desktop ? undefined : true"
     :ui="desktop ? { content: 'sm:max-w-2xl' } : undefined"
   >
     <template #body>

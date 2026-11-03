@@ -153,7 +153,7 @@ docs/
 ### checklists/
 
 - `user-check.md` はひな形。**書き込まない。** 確かめるときは、リポジトリ直下の `temp/` に写して、写しにチェックを付ける。結果は残さず、気になった点は設計スレッドの議題にする（2026-11-03。引き継ぎ書の追記54）
-- 利用者から見える振る舞いを変えたら、同じコミットで直す（`implementation-guide.md` §3-4）。チェック済みの印は `tools/check-docs/check_docs.py` の A6 がエラーにする
+- 利用者から見える振る舞いを変えたら、同じコミットで直す（`implementation-guide.md` §3-4）。チェック済みの印は `tools/check-docs/check_docs.py` の A6 が、項目の形の崩れは A7 がエラーにする
 
 ### research/
 

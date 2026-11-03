@@ -12,6 +12,7 @@
     A4 文字の破損（U+FFFD、\\uXXXX のまま残った日本語、全角数字、CR）
     A5 「次の番号」の記載（警告）
     A6 チェックシートのひな形（docs/checklists/）のチェック済みの印
+    A7 チェックシートのひな形の全項目の形（番号・欄の並び・チェック結果）
 
 意図した例・過去からある欠番は、allowlist.json に理由つきで入れる。
 標準ライブラリだけで動く。ネットワークは使わない。
@@ -80,8 +81,21 @@ HISTORY_LINE = re.compile(r"^- 20\d\d-\d\d-\d\d (追記|注)")
 HISTORY_FROM = {DOCS + "/handoff-next-thread.md": r"^## 8\. "}
 # A5 で見ない（議論ログ・検証例は時系列の記録）
 A5_SKIP_DIRS = (DOCS + "/discussions/", DOCS + "/examples/")
-# A6 の対象（ひな形。確かめるときは temp/ に写すので、ここにチェックは付かない）
+# A6・A7 の対象（ひな形。確かめるときは temp/ に写すので、ここにチェックは付かない）
 CHECKLISTS = DOCS + "/checklists"
+# A7 で項目を見る節（「## A. …」の形）と、項目の形
+ITEM_SECTION = re.compile(r"^## ([A-Z])\. ")
+ITEM_HEAD = re.compile(r"^- \*\*([A-Z])-(\d{2})\*\* \S")
+ITEM_HEAD_CHECKBOX = re.compile(r"^(?:[-*+]|\d+[.)])\s+\[.\]")
+ITEM_LIST = re.compile(r"^(?:[-*+]|\d+[.)])\s")
+ITEM_FIELD = re.compile(r"^  - (端末|手順|期待|関係|注意): (\S.*)$")
+ITEM_RESULT = "  - チェック結果"
+ITEM_RESULT_MARK = re.compile(r"^    - \[[ xX]\] (OK|NG)$")  # 印そのものは A6 が見る
+ITEM_FIELDS = ["端末", "手順", "期待", "関係", "チェック結果", "OK", "NG"]
+ITEM_FIELDS_NOTE = ["端末", "手順", "期待", "関係", "注意", "チェック結果", "OK", "NG"]
+ITEM_DEVICE = ("PC", "スマホ", "両方")
+ITEM_NOTE = "仮のデータで確かめる"
+ITEM_RELATED = re.compile(r"^(?:UI|語彙|入力項目|文面|ツール) \d+(?:・(?:UI|語彙|入力項目|文面|ツール) \d+)*$")
 
 ROW = re.compile(r"^\|\s*(?:~~)?\**(\d+)\**(?:~~)?\s*\|")
 MD_LINK = re.compile(r"\]\(([^)\s]+)\)")
@@ -100,7 +114,7 @@ NEXT_PATTERNS = [
 
 class Finding:
     def __init__(self, check, level, file, line, message, kind="", number=None, system=None, text=""):
-        self.check = check  # A1〜A6
+        self.check = check  # A1〜A7
         self.level = level  # error / warning / note
         self.file = file
         self.line = line
@@ -372,17 +386,109 @@ def check_a5(root, nexts):
     return findings
 
 
+def checklist_files(root):
+    out = []
+    for dp, dn, fn in os.walk(Path(root) / CHECKLISTS):
+        for f in fn:
+            if f.endswith(".md"):
+                out.append((Path(dp) / f).relative_to(root).as_posix())
+    return sorted(out)
+
+
 def check_a6(root):
     findings = []
-    for dp, dn, fn in os.walk(Path(root) / CHECKLISTS):
-        for f in sorted(fn):
-            if not f.endswith(".md"):
-                continue
-            rel = (Path(dp) / f).relative_to(root).as_posix()
-            for no, line in enumerate(read_text(root, rel).split("\n"), 1):
-                if CHECKED_ITEM.match(line):
-                    findings.append(Finding("A6", "error", rel, no, "ひな形にチェック済みの印がある（temp/ に写して使う）",
-                                            kind="checked", text=line))
+    for rel in checklist_files(root):
+        for no, line in enumerate(read_text(root, rel).split("\n"), 1):
+            if CHECKED_ITEM.match(line):
+                findings.append(Finding("A6", "error", rel, no, "ひな形にチェック済みの印がある（temp/ に写して使う）",
+                                        kind="checked", text=line))
+    return findings
+
+
+def check_item_fields(rel, no, head, children):
+    """項目の子の行（[(行番号, 行)]）の形を見る"""
+    findings = []
+    names = []
+    for cno, line in children:
+        field = ITEM_FIELD.match(line)
+        mark = ITEM_RESULT_MARK.match(line)
+        if field:
+            names.append(field.group(1))
+            value = field.group(2)
+            if field.group(1) == "端末" and value not in ITEM_DEVICE:
+                findings.append(Finding("A7", "error", rel, cno, "端末の値が違う: %s" % value, kind="device", text=line))
+            if field.group(1) == "注意" and value != ITEM_NOTE:
+                findings.append(Finding("A7", "error", rel, cno, "注意の文言が違う: %s" % value, kind="note", text=line))
+            if field.group(1) == "関係" and not ITEM_RELATED.match(value):
+                findings.append(Finding("A7", "error", rel, cno, "関係の形が違う: %s" % value, kind="related", text=line))
+        elif mark:
+            names.append(mark.group(1))
+        elif line == ITEM_RESULT:
+            names.append("チェック結果")
+        else:
+            names.append("?")
+    if names != ITEM_FIELDS and names != ITEM_FIELDS_NOTE:
+        findings.append(Finding("A7", "error", rel, no, "欄が違う（%s）: %s" % ("・".join(ITEM_FIELDS_NOTE), "・".join(names) or "なし"),
+                                kind="fields", text=head))
+    return findings
+
+
+def check_checklist_form(rel, text):
+    findings = []
+    letter = None
+    has_item = False
+    last = {}
+    seen = set()
+    item = None  # (行番号, 先頭の行, 子の行)
+
+    def finish():
+        nonlocal item
+        if item:
+            findings.extend(check_item_fields(rel, item[0], item[1], item[2]))
+        item = None
+
+    for no, line in enumerate(text.split("\n"), 1):
+        if item and line.startswith(" ") and line.strip():
+            item[2].append((no, line))
+            continue
+        finish()
+        if line.startswith("## "):
+            m = ITEM_SECTION.match(line)
+            letter = m.group(1) if m else None
+        elif letter is None or not line.strip():
+            continue
+        elif line.startswith(" "):
+            findings.append(Finding("A7", "error", rel, no, "項目に属さない字下げの行がある", kind="orphan", text=line))
+        elif ITEM_LIST.match(line):
+            m = ITEM_HEAD.match(line)
+            item = (no, line, [])
+            has_item = True
+            if ITEM_HEAD_CHECKBOX.match(line):
+                findings.append(Finding("A7", "error", rel, no, "項目の先頭にチェックボックスがある", kind="head-checkbox", text=line))
+            elif not m:
+                findings.append(Finding("A7", "error", rel, no, "項目の先頭の行の形が違う（- **A-01** …）", kind="head", text=line))
+            elif m.group(1) != letter:
+                findings.append(Finding("A7", "error", rel, no, "番号の記号が節（%s）と違う: %s-%s" % (letter, m.group(1), m.group(2)),
+                                        kind="letter", text=line))
+            else:
+                n = int(m.group(2))
+                if (letter, n) in seen:
+                    findings.append(Finding("A7", "error", rel, no, "番号が重複している: %s-%02d" % (letter, n), kind="duplicate", text=line))
+                elif n != last.get(letter, 0) + 1:
+                    findings.append(Finding("A7", "error", rel, no, "番号が連番でない: %s-%02d の次が %s-%02d" % (
+                        letter, last.get(letter, 0), letter, n), kind="sequence", text=line))
+                seen.add((letter, n))
+                last[letter] = n
+    finish()
+    if not has_item:
+        findings.append(Finding("A7", "error", rel, 0, "項目の節（## A. …）または項目が見つからない", kind="no-items"))
+    return findings
+
+
+def check_a7(root):
+    findings = []
+    for rel in checklist_files(root):
+        findings += check_checklist_form(rel, read_text(root, rel))
     return findings
 
 
@@ -422,7 +528,7 @@ def allowed(f, allow):
 def run(root, allowlist_path):
     allow = load_allowlist(allowlist_path)
     a1, nexts = check_a1(root)
-    findings = a1 + check_a2(root) + check_a3(root) + check_a4(root) + check_a5(root, nexts) + check_a6(root)
+    findings = a1 + check_a2(root) + check_a3(root) + check_a4(root) + check_a5(root, nexts) + check_a6(root) + check_a7(root)
     used = set()
     result = []
     for f in findings:
@@ -480,7 +586,7 @@ def main(argv=None):
 
     print()
     total_err = 0
-    for c in ("A1", "A2", "A3", "A4", "A5", "A6"):
+    for c in ("A1", "A2", "A3", "A4", "A5", "A6", "A7"):
         fs = [f for f in findings if f.check == c]
         err = sum(1 for f in fs if f.level == "error" and not f.allowed)
         warn = sum(1 for f in fs if f.level == "warning" and not f.allowed)
