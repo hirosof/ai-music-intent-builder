@@ -32,6 +32,7 @@ ai-music-intent-builder/
 ├── LICENSE
 ├── README.md             3行（題名と一言）
 ├── app/                  アプリ本体（Vite＋Vue＋TypeScript＋Nuxt UI。U0 で作成。構成は CLAUDE.md）
+├── copy_user-check.bat   チェックシートのひな形を temp\user-check\ に日時つきの名前で写す（利用者が作成、2026-11-04）
 └── design/v0/            設計（生きた仕様。実装中も直接更新する）
     ├── docs/             仕様・決定・検証例・調査・議論ログ
     ├── tools/            check-fields / build-presets（Python）、suno-audio-compare

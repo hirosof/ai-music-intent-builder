@@ -20,6 +20,7 @@ design/v0/   設計（生きた仕様。実装中も直接更新する。「正�
 - アプリのコードの置き場所: **リポジトリ直下の `app/`**（利用者の承認済み。create-vue の構成を利用者が作成）。`.gitattributes` で改行コードは LF に統一
 - 仕様の JSON は `app/` に写さない。エイリアス `@spec`（→ `design/v0/docs/specifications`。`vite.config.ts` と `tsconfig.app.json`）で直接読み、ビルドに組み込む
 - `base: './'`（相対）とハッシュ方式のルーターで、GitHub Pages とローカル IIS のどちらのサブパスにも同じビルドで置ける
+- `copy_user-check.bat`（リポジトリ直下）: チェックシートのひな形を `temp\user-check\` に日時つきの名前で写す（利用者が実行する。使い方は `design/v0/docs/checklists/user-check.md`）
 - GitHub Pages への公開は `.github/workflows/deploy.yml`（手動実行。利用者が行う）
 - Cloudflare Workers（バックアップの公開先）: `deploy.yml` のジョブ `deploy-cloudflare`、設定は `app/wrangler.jsonc`。同じビルドを置く（`design/v0/docs/decisions/ui-and-nonfunctional.md` 判断ポイント72）
 
