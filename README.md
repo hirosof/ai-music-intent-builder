@@ -13,4 +13,11 @@
 
 ## 関連ツール
 
-[利用者の目での動作確認のチェックシート(ひな型)](./design/v0/docs/checklists/user-check.md)
+### 利用者の目での動作確認のチェックシート
+
+* ひな型(Markdownドキュメント) : [user-check.md](./design/v0/docs/checklists/user-check.md)
+* ひな型のコピーツール ：[copy_user-check.bat](copy_user-check.bat)
+  
+
+
+
