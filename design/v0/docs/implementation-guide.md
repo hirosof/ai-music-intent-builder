@@ -21,18 +21,19 @@
 
 ---
 
-## 2. リポジトリの現状（2026-10-18。2026-10-25 に `app/`・`.github/`・`CLAUDE.md` を足した）
+## 2. リポジトリの現状（2026-10-18。2026-10-25 に `app/`・`.github/`・`CLAUDE.md` を足した。2026-11-04 に `copy_user-check.bat`・`temp/` を足し、`README.md`・`deploy.yml` の記述を直した）
 
 ```
 ai-music-intent-builder/
 ├── .gitignore            Node 系のテンプレート
 ├── .gitattributes        改行コードを LF に統一（2026-10-18 作成）
-├── .github/workflows/    deploy.yml（GitHub Pages への公開。手動実行。利用者が行う）
+├── .github/workflows/    deploy.yml（GitHub Pages と Cloudflare Workers〔バックアップ〕への公開。手動実行。利用者が行う）
 ├── CLAUDE.md             Claude Code の入口（現在地・コマンド・実行環境）
 ├── LICENSE
-├── README.md             3行（題名と一言）
+├── README.md             公開先の URL と関連ツール（内容は README.md が正）
 ├── app/                  アプリ本体（Vite＋Vue＋TypeScript＋Nuxt UI。U0 で作成。構成は CLAUDE.md）
 ├── copy_user-check.bat   チェックシートのひな形を temp\user-check\ に日時つきの名前で写す（利用者が作成、2026-11-04）
+├── temp/                 ローカルの一時フォルダ（.gitignore 済み。チェックシートの写しなど）
 └── design/v0/            設計（生きた仕様。実装中も直接更新する）
     ├── docs/             仕様・決定・検証例・調査・議論ログ
     ├── tools/            check-fields / build-presets（Python）、suno-audio-compare
@@ -275,7 +276,7 @@ ai-music-intent-builder/
 
 ---
 
-## 9. 利用者への確認事項（2026-10-18 に回答済み。残りは 6 のみ）
+## 9. 利用者への確認事項（すべて回答済み。6 は 2026-11-04）
 
 実装を止めるものではない。該当する作業の前に確認する。
 
@@ -286,7 +287,7 @@ ai-music-intent-builder/
 | 3 | ~~`UI案.drawio`（と `.png`）が見当たらない~~ | **解決**: `think/UI案.drawio`・`think/UI案.drawio.png` に配置済み（2026-10-18。サイズは旧フォルダと一致） |
 | 4 | ~~アプリのコードの置き場所~~ | **決定**: リポジトリ直下の `app/`（利用者の承認、2026-10-18） |
 | 5 | ~~`.gitattributes`（改行コード）~~ | **解決**: 作成済み（`* text=auto eol=lf`、バイナリ、`.bat`・`.cmd`・`.ps1` は CRLF）。既にコミット済みのファイルが CRLF のときの `--renormalize` は、利用者に確認 |
-| 6 | `README.md`（リポジトリ直下）が1行のみ | 実装が進んでから整える |
+| 6 | ~~`README.md`（リポジトリ直下）が1行のみ~~ | **解決**: 利用者が整えた（`44920b7`・`3feeadb`。公開先の URL と備考、関連ツール） |
 
 ---
 
