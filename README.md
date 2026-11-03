@@ -6,7 +6,11 @@
 ## インスタンスURL
 
 
-|デプロイ先|URL|
-|---|---|
-|Github Pages|https://hirosof.github.io/ai-music-intent-builder/|
-|Cloudflare Workers|https://ai-music-intent-builder.hirosof.workers.dev/|
+|デプロイ先|URL|備考|
+|---|---|---|
+|Github Pages|https://hirosof.github.io/ai-music-intent-builder/|メインインスタンス|
+|Cloudflare Workers|https://ai-music-intent-builder.hirosof.workers.dev/|バックアップインスタンス|
+
+## 関連ツール
+
+[利用者の目での動作確認のチェックシート(ひな型)](./design/v0/docs/checklists/user-check.md)
