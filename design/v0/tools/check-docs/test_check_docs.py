@@ -250,6 +250,58 @@ class TestA5(unittest.TestCase):
             self.assertEqual(t.active("A5"), [])
 
 
+CHECKLIST = D + "checklists/user-check.md"
+
+
+class TestA6(unittest.TestCase):
+    def test_unchecked_is_clean(self):
+        with tree({CHECKLIST: "# c\n\n- [ ] **A-01** 項目\n  - 期待: 出る\n"}) as t:
+            self.assertEqual(t.active("A6"), [])
+
+    def test_checked_lower(self):
+        with tree({CHECKLIST: "- [ ] a\n- [x] b\n"}) as t:
+            fs = t.active("A6")
+            self.assertEqual(kinds(fs), ["checked"])
+            self.assertEqual((fs[0].line, fs[0].level), (2, "error"))
+
+    def test_checked_upper(self):
+        with tree({CHECKLIST: "- [X] b\n"}) as t:
+            self.assertEqual(kinds(t.active("A6")), ["checked"])
+
+    def test_other_list_forms(self):
+        text = "  - [x] 字下げ\n* [x] 星\n+ [x] 足す\n1. [x] 番号\n2) [X] 括弧\n> - [x] 引用\n"
+        with tree({CHECKLIST: text}) as t:
+            self.assertEqual(kinds(t.active("A6")), ["checked"] * 6)
+
+    def test_mark_in_prose_is_not_checked(self):
+        with tree({CHECKLIST: "チェック済みの印 `- [x]` は付けない。[x] と [X]\n- [ ] 配列 a[x] を見る\n"}) as t:
+            self.assertEqual(t.active("A6"), [])
+
+    def test_subfolder_is_checked(self):
+        with tree({D + "checklists/sub/a.md": "- [x] b\n"}) as t:
+            self.assertEqual(kinds(t.active("A6")), ["checked"])
+
+    def test_outside_checklists_is_ignored(self):
+        with tree({D + "a.md": "- [x] b\n", "temp/user-check.md": "- [x] b\n"}) as t:
+            self.assertEqual(t.active("A6"), [])
+
+    def test_non_markdown_is_ignored(self):
+        with tree({D + "checklists/a.txt": "- [x] b\n"}) as t:
+            self.assertEqual(t.active("A6"), [])
+
+    def test_no_folder_is_clean(self):
+        with tree() as t:
+            self.assertEqual(t.active("A6"), [])
+
+    def test_gives_exit_1(self):
+        with tree({CHECKLIST: "- [x] b\n"}) as t:
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code = check_docs.main(["--root", str(t.dir), "--allowlist", str(t.allow)])
+            self.assertEqual(code, 1)
+            self.assertIn("A6: エラー 1 件", out.getvalue())
+
+
 class TestAllowlistFile(unittest.TestCase):
     def test_reason_required(self):
         with tree(allow={"a3": [{"file": D + "a.md", "path": "./x.md"}]}) as t:

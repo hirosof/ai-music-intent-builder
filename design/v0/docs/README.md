@@ -2,7 +2,7 @@
 
 本プロジェクト（音楽生成AI用プロンプト作成依頼文ビルダー）のドキュメント一式。
 
-- 最終更新: 2026-11-01（整合性の調査〔`../think/audit-2026-11-01.md`〕M-03: 最終更新の行）。〔経緯〕2026-10-26〜28（`tools/check-docs/`・レンダリング例 `-14`・お試しの記録 `chat-test-01` の登録）。〔経緯〕2026-10-25（整合性の調査〔`../think/audit-2026-10-25.md`〕による修正: 登録漏れ〔`lyrics.md`・`factory-profiles.json`・`rendered-06-input-songs/`・`suno-test-02-results/`〕、`tools/` の位置、§6 の進捗）。〔経緯〕2026-10-18
+- 最終更新: 2026-11-03（`checklists/` を足した。引き継ぎ書の追記54）。〔経緯〕2026-11-01（整合性の調査〔`../think/audit-2026-11-01.md`〕M-03: 最終更新の行）。〔経緯〕2026-10-26〜28（`tools/check-docs/`・レンダリング例 `-14`・お試しの記録 `chat-test-01` の登録）。〔経緯〕2026-10-25（整合性の調査〔`../think/audit-2026-10-25.md`〕による修正: 登録漏れ〔`lyrics.md`・`factory-profiles.json`・`rendered-06-input-songs/`・`suno-test-02-results/`〕、`tools/` の位置、§6 の進捗）。〔経緯〕2026-10-18
 - 作業用フォルダ: リポジトリ `ai-music-intent-builder`（`E:\Developments\ClaudeCode\ai-music-intent-builder\`）の **`design/v0/`**（2026-10-18 に移動。旧: `E:\AI_Works\Claude\ai-music-prompt-request-support\`。旧フォルダは移した時点の写しで、以後はリポジトリ側を正とする）。**本書中の `docs/`・`tools/` のパスやコマンドは、`design/v0/` 基準**。リポジトリ直下の `CLAUDE.md` が実装（Claude Code）の入口
 - 想定: 要件・仕様の議論をチャット側で行い、実装は自前開発または Claude Code 側で行う
 - 利用者: 本人のみ（認証・マルチユーザー対応は不要）
@@ -17,6 +17,8 @@ docs/
 ├── handoff-next-thread.md     次スレッドへの引き継ぎ（現在地、次の議題、作業の型）
 ├── implementation-readiness.md  実装フェーズへの移行判断（宿題の棚卸し、判定基準、Phase 0、実装の進め方の提案。2026-10-18）
 ├── implementation-guide.md   実装ガイド（Claude Code 向け。Phase 0、単位ごとの読むファイルと受け入れ基準、作業の約束、教訓。入口はリポジトリ直下の CLAUDE.md。2026-10-18）
+├── checklists/               利用者の目での動作確認のチェックシート（ひな形。書き込まず、リポジトリ直下の temp/ に写して使う）
+│   └── user-check.md         A デプロイ後の短い確認、B 機能ごとの確認、C スマホの確認
 ├── decisions/                確定事項（「今どうなっているか」が正）
 │   ├── README.md             ID一覧と状態（最初に読む）
 │   ├── scope.md              R-xx（スコープ・方針）、L-01（作詞）
@@ -147,6 +149,11 @@ docs/
 | 撤回 | 一度採用したが取り下げた。理由を残す |
 
 - 決定を変更したときは、`discussions/` に変更の経緯を追記する。
+
+### checklists/
+
+- `user-check.md` はひな形。**書き込まない。** 確かめるときは、リポジトリ直下の `temp/` に写して、写しにチェックを付ける。結果は残さず、気になった点は設計スレッドの議題にする（2026-11-03。引き継ぎ書の追記54）
+- 利用者から見える振る舞いを変えたら、同じコミットで直す（`implementation-guide.md` §3-4）。チェック済みの印は `tools/check-docs/check_docs.py` の A6 がエラーにする
 
 ### research/
 

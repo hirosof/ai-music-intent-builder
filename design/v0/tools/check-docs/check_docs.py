@@ -11,6 +11,7 @@
     A3 相対リンク切れ
     A4 文字の破損（U+FFFD、\\uXXXX のまま残った日本語、全角数字、CR）
     A5 「次の番号」の記載（警告）
+    A6 チェックシートのひな形（docs/checklists/）のチェック済みの印
 
 意図した例・過去からある欠番は、allowlist.json に理由つきで入れる。
 標準ライブラリだけで動く。ネットワークは使わない。
@@ -79,12 +80,15 @@ HISTORY_LINE = re.compile(r"^- 20\d\d-\d\d-\d\d (追記|注)")
 HISTORY_FROM = {DOCS + "/handoff-next-thread.md": r"^## 8\. "}
 # A5 で見ない（議論ログ・検証例は時系列の記録）
 A5_SKIP_DIRS = (DOCS + "/discussions/", DOCS + "/examples/")
+# A6 の対象（ひな形。確かめるときは temp/ に写すので、ここにチェックは付かない）
+CHECKLISTS = DOCS + "/checklists"
 
 ROW = re.compile(r"^\|\s*(?:~~)?\**(\d+)\**(?:~~)?\s*\|")
 MD_LINK = re.compile(r"\]\(([^)\s]+)\)")
 BT_PATH = re.compile(r"`(\.\.?/[^`\s]+?)`")
 UESC = re.compile(r"\\u(30[0-9a-fA-F]{2}|[4-9][0-9a-fA-F]{3}|[fF][fF][0-9a-fA-F]{2})")
 FW_DIGIT = re.compile(r"[０-９]")
+CHECKED_ITEM = re.compile(r"^[\s>]*(?:[-*+]|\d+[.)])\s+\[[xX]\]")
 FFFD = chr(0xFFFD)  # 置換文字（ソースに文字そのものを書かない）
 NEXT_PATTERNS = [
     re.compile(r"次は\s*\*\*(\d+)\*\*"),
@@ -96,7 +100,7 @@ NEXT_PATTERNS = [
 
 class Finding:
     def __init__(self, check, level, file, line, message, kind="", number=None, system=None, text=""):
-        self.check = check  # A1〜A5
+        self.check = check  # A1〜A6
         self.level = level  # error / warning / note
         self.file = file
         self.line = line
@@ -368,6 +372,20 @@ def check_a5(root, nexts):
     return findings
 
 
+def check_a6(root):
+    findings = []
+    for dp, dn, fn in os.walk(Path(root) / CHECKLISTS):
+        for f in sorted(fn):
+            if not f.endswith(".md"):
+                continue
+            rel = (Path(dp) / f).relative_to(root).as_posix()
+            for no, line in enumerate(read_text(root, rel).split("\n"), 1):
+                if CHECKED_ITEM.match(line):
+                    findings.append(Finding("A6", "error", rel, no, "ひな形にチェック済みの印がある（temp/ に写して使う）",
+                                            kind="checked", text=line))
+    return findings
+
+
 def load_allowlist(path):
     if path is None or not Path(path).is_file():
         return {}
@@ -404,7 +422,7 @@ def allowed(f, allow):
 def run(root, allowlist_path):
     allow = load_allowlist(allowlist_path)
     a1, nexts = check_a1(root)
-    findings = a1 + check_a2(root) + check_a3(root) + check_a4(root) + check_a5(root, nexts)
+    findings = a1 + check_a2(root) + check_a3(root) + check_a4(root) + check_a5(root, nexts) + check_a6(root)
     used = set()
     result = []
     for f in findings:
@@ -462,7 +480,7 @@ def main(argv=None):
 
     print()
     total_err = 0
-    for c in ("A1", "A2", "A3", "A4", "A5"):
+    for c in ("A1", "A2", "A3", "A4", "A5", "A6"):
         fs = [f for f in findings if f.check == c]
         err = sum(1 for f in fs if f.level == "error" and not f.allowed)
         warn = sum(1 for f in fs if f.level == "warning" and not f.allowed)

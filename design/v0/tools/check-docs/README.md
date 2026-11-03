@@ -27,6 +27,7 @@ python tools/check-docs/test_check_docs.py         # 負例テスト（一時フ
 | A3 | 相対リンク切れ。Markdown のリンクと、バッククォートの中の `./`・`../` で始まるパス | エラー |
 | A4 | 文字の破損: U+FFFD（置換文字）、`\uXXXX` のまま残った日本語（かな・漢字・全角の範囲）、全角数字、CR | エラー |
 | A5 | 「次の番号」の記載。実際の次の番号と違えば警告、合っていても注（値は文書に書かない約束のため） | 警告・注 |
+| A6 | チェックシートのひな形（`docs/checklists/` 配下の `.md`）のチェック済みの印。リストの項目の `[x]`・`[X]`。文の中の `[x]` は見ない。ひな形には書き込まず、`temp/` に写して使うため | エラー |
 
 ### 判断ポイントの表の読み方（A1・A2・`--next`）
 
@@ -41,6 +42,7 @@ python tools/check-docs/test_check_docs.py         # 負例テスト（一時フ
 
 - Markdown: `design/v0/docs/` 配下のすべての `.md`、リポジトリ直下の `CLAUDE.md`、`design/v0/tools/*/README.md`
 - JSON（A4 だけ）: `design/v0/docs/specifications/` 配下のすべての `.json`（`presets/` を含む）
+- A6 は、`docs/checklists/` 配下だけを見る（A3〜A5 は、このフォルダも上の Markdown に含めて見る）
 - A3 は、コードブロック（3連のバッククォートで囲んだ部分）の中と、`*`・`{}`・`<>`・`…` を含むパス（雛形の書き方）を見ない
 - A4 の CR は、作業ツリーのファイルを見る（Git の中身ではない）
 - A5 は、次を数えない: `docs/discussions/`・`docs/examples/`（時系列の記録）、引き継ぎ書の追記の行（`- 2026-10-25 追記36…` のように始まる行）と §8（前回までの引き継ぎ）以降
