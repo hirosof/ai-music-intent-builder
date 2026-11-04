@@ -25,6 +25,7 @@ import {
 } from '@/domain/storage/profiles'
 import type { ExportFile, Profile } from '@/domain/types/song'
 import FolderPicker from './FolderPicker.vue'
+import VocalBadge from './VocalBadge.vue'
 
 const open = defineModel<boolean>('open', { required: true })
 const props = withDefaults(
@@ -285,6 +286,7 @@ function replace() {
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-baseline gap-x-2">
                   <span class="font-medium break-all">{{ pv.name }}</span>
+                  <VocalBadge v-if="pv.vocal" />
                   <span class="text-xs text-muted">{{ pv.updatedAt }}</span>
                   <UBadge
                     v-if="pv.hasWarnings"

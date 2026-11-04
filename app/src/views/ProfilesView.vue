@@ -12,6 +12,7 @@ import { useRouter } from 'vue-router'
 import ConfirmReplaceDialog from '@/components/ConfirmReplaceDialog.vue'
 import FolderPicker from '@/components/storage/FolderPicker.vue'
 import ImportDialog from '@/components/storage/ImportDialog.vue'
+import VocalBadge from '@/components/storage/VocalBadge.vue'
 import { useProfileStore } from '@/composables/useProfileStore'
 import { useProfilesView } from '@/composables/useProfilesView'
 import { useSongEditor } from '@/composables/useSongEditor'
@@ -35,6 +36,7 @@ import {
   type SearchTarget,
   type Selection,
 } from '@/domain/storage/manage'
+import { isVocalSong } from '@/domain/storage/preview'
 import { buildExportFile, renameError, renameProfile, saveProfile } from '@/domain/storage/profiles'
 import { formatDisplayTimestamp } from '@/domain/storage/timestamp'
 import type { ExportFile, Folder, Profile, ProfileStore, UserProfile } from '@/domain/types/song'
@@ -680,7 +682,10 @@ defineExpose({ receiveFile })
                         >
                           {{ r.name }}
                         </button>
-                        <div v-else class="font-medium break-all">{{ r.name }}</div>
+                        <div v-else class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                          <span class="min-w-0 font-medium break-all">{{ r.name }}</span>
+                          <VocalBadge v-if="r.profile && isVocalSong(r.profile.data)" />
+                        </div>
                         <div class="flex flex-wrap gap-x-3 text-xs text-muted">
                           <span v-if="r.profile">{{
                             formatDisplayTimestamp(r.profile.updatedAt)
@@ -713,7 +718,10 @@ defineExpose({ receiveFile })
                 class="flex items-center justify-between gap-2 py-2"
                 :data-testid="`factory-${p.name}`"
               >
-                <span class="min-w-0 break-all">{{ p.name }}</span>
+                <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+                  <span class="min-w-0 break-all">{{ p.name }}</span>
+                  <VocalBadge v-if="isVocalSong(p.data)" />
+                </div>
                 <UButton
                   size="xs"
                   label="開く"

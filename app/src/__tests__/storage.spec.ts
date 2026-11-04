@@ -5,6 +5,7 @@ import { resolve } from 'node:path'
 import { afterEach, describe, it, expect, vi } from 'vitest'
 
 import { copyFactoryData, factoryProfiles } from '@/data/factory'
+import { spec } from '@/data/spec'
 import {
   STORAGE_KEYS,
   commitProfileStore,
@@ -65,7 +66,36 @@ describe('ファクトリープロファイル', () => {
     const r = checkSaved(JSON.stringify(factoryJson))
     expect(r.errors).toEqual([])
     expect(r.warnings).toEqual([])
-    expect(factoryProfiles).toHaveLength(6)
+    expect(factoryProfiles).toHaveLength(9)
+  })
+
+  it('歌ありの3件は、検証済みの入力の項目を変えない（判断ポイント81）', () => {
+    const named = [
+      ['夏祭りの盆踊り（日本語の歌・チャットAIが作詞）', 'rendered-15.json'],
+      ['シティポップの歌もの（Suno の作詞AIに指示）', 'rendered-11.json'],
+      ['自作の歌詞に合わせてスタイルだけ作る（シティポップ）', 'rendered-09.json'],
+    ] as const
+    expect(factoryProfiles.slice(6).map((p) => p.name)).toEqual(named.map(([n]) => n))
+    for (const [name, file] of named) {
+      const input = toCurrentSong(JSON.parse(readFileSync(resolve(INPUTS, file), 'utf8')))
+      expect(copyFactoryData(name)).toEqual(input)
+    }
+  })
+
+  it('すべての入力項目を少なくとも1件が①指定で使う。作詞の主体の2値と範囲 style も使う（判断ポイント39・81）', () => {
+    const reqs = factoryProfiles.flatMap((p) => p.data.requests)
+    const specified = new Set(
+      reqs.flatMap((r) =>
+        Object.entries(r.axes)
+          .filter(([, ax]) => ax?.state === 'specified')
+          .map(([id]) => id),
+      ),
+    )
+    expect(spec.fieldsDef.fields.map((f) => f.id).filter((id) => !specified.has(id))).toEqual([])
+    expect(new Set(reqs.map((r) => r.lyricsAuthor))).toEqual(
+      new Set([null, 'chat-ai', 'chat-ai-instruction']),
+    )
+    expect(reqs.map((r) => r.output.requestScope)).toContain('style')
   })
 
   it('読み込みは複製で、同梱のデータを書き換えない', () => {

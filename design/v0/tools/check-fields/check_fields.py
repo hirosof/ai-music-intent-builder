@@ -1106,6 +1106,32 @@ def markdown(fields):
     return "\n".join(lines)
 
 
+def check_factory(fields, report):
+    """F18 同梱のファクトリープロファイルの決まり（UI 判断ポイント39・81）。形と中身の整合は --song で見る。"""
+    path = SPEC / "factory-profiles.json"
+    try:
+        factory = load_json(path)
+        profiles = factory["profiles"]
+        reqs = [r for p in profiles for r in p["data"]["requests"]]
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        report.error("F18 factory-profiles.json を読めない: %s" % e)
+        return
+    if factory.get("schemaVersion") != 1:
+        report.error("F18 同梱ファイルの外側の版は 1: %r" % (factory.get("schemaVersion"),))
+    for p in profiles:
+        if p["data"].get("schemaVersion") != SUPPORTED_SCHEMA_VERSION:
+            report.error("F18 同梱の楽曲データの版が %d でない: %s" % (SUPPORTED_SCHEMA_VERSION, p.get("name")))
+    used = {fid for r in reqs for fid, ax in r.get("axes", {}).items() if ax.get("state") == "specified"}
+    for f in fields["fields"]:
+        if f["id"] not in used:
+            report.error("F18 どのファクトリープロファイルも①指定で使っていない項目: %s" % f["id"])
+    for author in VOCAL_LYRICS_AUTHORS:
+        if not any(r.get("lyricsAuthor") == author for r in reqs):
+            report.error("F18 どのファクトリープロファイルも使っていない作詞の主体: %s" % author)
+    if not any(r.get("output", {}).get("requestScope") == "style" for r in reqs):
+        report.error("F18 どのファクトリープロファイルも使っていない依頼文の範囲: style")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--song", metavar="FILE", help="保存データ（楽曲データ／エクスポートファイル／プロファイルのストア。形は自動判別）も検証する")
@@ -1128,6 +1154,7 @@ def main():
     fk = check_definitions(fields, vocabs, report)
     entries = load_tool_profiles(report)
     check_tool_profiles(entries, fields, fk, report)
+    check_factory(fields, report)
     if args.song:
         check_saved_file(args.song, fields, fk, vocabs, index_profiles(entries), report)
 

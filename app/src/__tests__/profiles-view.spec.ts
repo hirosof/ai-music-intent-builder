@@ -293,6 +293,42 @@ describe('開く（判断ポイント52 の確認のあと、組み立ての画�
   })
 })
 
+describe('「歌あり」の印（判断ポイント82）', () => {
+  const vocal = factoryProfiles[6]!
+  const badge = (el: Element | null) => el!.querySelector('[data-testid="vocal-badge"]')
+  const vocalStore = (): ProfileStore => ({
+    ...sample(),
+    profiles: [
+      prof('p-inst', 'インストの曲', null, '2026-10-03T00:00:00+09:00'),
+      prof('p-vocal', '歌の曲', null, '2026-10-04T00:00:00+09:00', vocal.data),
+    ],
+  })
+
+  it('ユーザーの一覧: 歌ありの行だけに出る。インストとフォルダの行には出ない', async () => {
+    putStore(vocalStore())
+    await mountApp()
+    expect(badge(row('profile', '歌の曲'))!.textContent).toBe('歌あり')
+    expect(badge(row('profile', 'インストの曲'))).toBeNull()
+    expect(badge(row('folder', 'ゲーム'))).toBeNull()
+  })
+
+  it('検索の結果にも出る', async () => {
+    putStore(vocalStore())
+    await mountApp()
+    await type('profiles-search', '曲')
+    expect(badge(row('profile', '歌の曲'))).not.toBeNull()
+    expect(badge(row('profile', 'インストの曲'))).toBeNull()
+  })
+
+  it('ファクトリーの一覧: 歌ありの3件だけに出る', async () => {
+    putStore(sample())
+    await mountApp()
+    await factoryTab()
+    const marked = factoryProfiles.filter((p) => badge($(`factory-${p.name}`)))
+    expect(marked.map((p) => p.name)).toEqual(factoryProfiles.slice(6).map((p) => p.name))
+  })
+})
+
 describe('行の操作', () => {
   it('上書き保存は確認を挟み、編集中の内容で上書きする（id・位置・フォルダは保つ）', async () => {
     putStore(sample())

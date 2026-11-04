@@ -3,7 +3,7 @@
 // 表示名と値は、カードと同じ表示の関数（display.ts）から作る
 import { displayAxis, stateCounts } from '../editor/display'
 import type { Spec } from '../spec'
-import type { Profile } from '../types/song'
+import type { Profile, SongData } from '../types/song'
 import { VOCAL_ONLY_FIELDS } from '../validation/check-saved'
 import { formatDisplayTimestamp } from './timestamp'
 
@@ -15,6 +15,8 @@ export interface ProfilePreview {
   tool: string
   /** 用途・主ジャンルの表示（要約に出す2項目） */
   summary: { label: string; text: string }[]
+  /** 歌あり（判断ポイント82） */
+  vocal: boolean
   hasWarnings: boolean
   /** 「指定」の項目（表示名と値。fields.json の並び） */
   specified: { label: string; text: string }[]
@@ -24,6 +26,11 @@ export interface ProfilePreview {
 
 /** 要約に出す項目（判断ポイント65 (2) の「用途、主ジャンル」） */
 const SUMMARY_FIELDS = ['purpose', 'mainGenre']
+
+/** 一覧に「歌あり」の印を出すか。ボーカル区分から決める。依頼は1件目（初版は1件。判断ポイント82） */
+export function isVocalSong(data: SongData): boolean {
+  return data.requests[0]?.vocalMode === 'vocal'
+}
 
 /** プロファイルのプレビュー。依頼は1件目（初版は1件）。今の vocalMode で無効な項目は数えない */
 export function profilePreview(
@@ -45,6 +52,7 @@ export function profilePreview(
       const x = shown.find((s) => s.f.id === id)
       return x ? [{ label: x.f.label, text: x.d.text }] : []
     }),
+    vocal: isVocalSong(profile.data),
     hasWarnings: warnings.length > 0,
     specified: shown
       .filter((s) => s.d.state === 'specified')

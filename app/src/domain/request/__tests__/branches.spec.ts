@@ -410,7 +410,7 @@ describe('依頼文の生成器: ファクトリープロファイル（同梱�
     expect(t).toContain('# 音楽生成AI用プロンプト作成依頼')
   })
 
-  it('song.example.json（1件目を移行したものと同じ）の主旋律の自由記述', () => {
+  it('song.example.json（1件目と同じ）の主旋律の自由記述', () => {
     const t = generateRequestText({ spec, req: (songExample as unknown as SongData).requests[0]! })
     expect(t).toContain(
       '| 主旋律を担う楽器 | 指定 | 尺八, 自由記述: 「尺八が旋律をとる」 | Guitar | 拡張可 |',

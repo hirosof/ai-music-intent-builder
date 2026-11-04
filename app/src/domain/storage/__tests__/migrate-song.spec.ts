@@ -134,20 +134,11 @@ describe('読み込みの経路', () => {
     expect(r.value).toEqual(exportExample)
   })
 
-  it('ファクトリーは版1 のまま置き、読むときに移行する。1件目は song.example.json の data と同じ', () => {
+  it('ファクトリーは外側を版1、楽曲データを版2 で置き、読むときに変わらない。1件目は song.example.json と同じ（UI 判断ポイント81）', () => {
     expect(rawFactory.schemaVersion).toBe(1)
-    expect(rawFactory.profiles[0]!.data.schemaVersion).toBe(1)
-    for (const p of factoryProfiles) expect(p.data.schemaVersion).toBe(2)
-    expect(factoryProfiles[0]!.data).toEqual(songExample)
-  })
-
-  it('ファクトリーの bridge（つなぎ）は transition に付け替わる', () => {
-    const withBridge = rawFactory.profiles.findIndex((p) =>
-      JSON.stringify(p.data).includes('"bridge"'),
-    )
-    expect(withBridge).toBeGreaterThanOrEqual(0)
-    expect(JSON.stringify(factoryProfiles[withBridge]!.data)).not.toContain('"bridge"')
-    expect(JSON.stringify(factoryProfiles[withBridge]!.data)).toContain('"transition"')
+    for (const p of rawFactory.profiles) expect(p.data.schemaVersion).toBe(2)
+    expect(factoryProfiles.map((p) => p.data)).toEqual(rawFactory.profiles.map((p) => p.data))
+    expect(rawFactory.profiles[0]!.data).toEqual(songExample)
   })
 
   it('UI 設定の版は 1 のまま（楽曲データの版とは独立）', () => {

@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest'
 import { spec } from '@/data/spec'
 import { displayAxis } from '@/domain/editor/display'
 import { createInitialSong } from '@/domain/editor/initial'
-import { profilePreview } from '@/domain/storage/preview'
+import { isVocalSong, profilePreview } from '@/domain/storage/preview'
 import type { Profile } from '@/domain/types/song'
 
 const profileOf = (edit: (p: Profile) => void = () => {}): Profile => {
@@ -20,6 +20,19 @@ const req = (p: Profile) => p.data.requests[0]!
 const genre = spec.vocabularyById.get('genre')!.items[0]!
 
 describe('プロファイルのプレビュー', () => {
+  it('「歌あり」の印は、ボーカル区分から決める（判断ポイント82）', () => {
+    const vocal = profileOf((x) => {
+      req(x).vocalMode = 'vocal'
+    })
+    const inst = profileOf((x) => {
+      req(x).vocalMode = 'instrumental'
+    })
+    expect(isVocalSong(vocal.data)).toBe(true)
+    expect(isVocalSong(inst.data)).toBe(false)
+    expect(profilePreview(spec, vocal, []).vocal).toBe(true)
+    expect(profilePreview(spec, inst, []).vocal).toBe(false)
+  })
+
   it('要約: 名前、更新日時、ツールと版、用途・主ジャンル（初期状態はお任せ）、警告の有無', () => {
     const pv = profilePreview(spec, profileOf(), [])
     expect(pv.name).toBe('曲A')

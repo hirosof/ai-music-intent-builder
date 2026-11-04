@@ -233,7 +233,7 @@ describe('版1 → 2 の移行（§6-2 の 2。判断ポイント68）', () => {
     expect(!r.ok && r.errors.some((e) => e.includes('F1 スキーマ違反'))).toBe(true)
   })
 
-  it('同梱のファクトリープロファイル（版1 のまま）も、移行すれば検証を通る', () => {
+  it('同梱のファクトリープロファイル（外側は版1 のまま）も、移行すれば検証を通る', () => {
     const r = loadSaved(
       spec,
       readFileSync(resolve(SPEC, 'factory-profiles.json'), 'utf8'),

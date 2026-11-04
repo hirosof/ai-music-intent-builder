@@ -143,7 +143,7 @@ def case(name, obj=None, rc=1, has=(), lacks=(), schema=False, strict=False, raw
 # ---------------------------------------------------------------------------
 case("正例: song.example.json", song(), rc=0, counts=(0, 0), has=["形: 楽曲データ"])
 case("正例: song-export.example.json", export(), rc=0, counts=(0, 0), has=["プロファイル 1 件"])
-case("正例: factory-profiles.json（同梱のファクトリープロファイル6件）", copy.deepcopy(FACTORY), rc=0, counts=(0, 0), has=["プロファイル 6 件"], lacks=["F5"])
+case("正例: factory-profiles.json（同梱のファクトリープロファイル9件）", copy.deepcopy(FACTORY), rc=0, counts=(0, 0), has=["プロファイル 9 件"], lacks=["F5"])
 case("正例: factory-profiles.json はスキーマにも適合する", copy.deepcopy(FACTORY), schema=True, rc=0, counts=(0, 0), lacks=["F1"])
 case("正例: ストア（プロファイル1件）", store(), rc=0, counts=(0, 0), has=["プロファイルのストア"])
 case("正例: ストア（0件）", store([]), rc=0, counts=(0, 0))
@@ -744,6 +744,56 @@ def pcase(name, kind="profile", **kw):
 
 # --- 正例: 変更なし・妥当な変更 ----------------------------------------------
 case("正例: 変更のない写しは、エラー 0・警告 0 で通る", mutate=lambda spec: None, rc=0, counts=(0, 0), has=["ツールプロファイル 1。"])
+
+
+# F18 同梱のファクトリープロファイルの決まり（UI 判断ポイント39・81）
+def edit_factory(f):
+    return _edit_json("factory-profiles.json", f)
+
+
+def factory_reqs(d):
+    return [r for p in d["profiles"] for r in p["data"]["requests"]]
+
+
+def factory_unspecified(fid):
+    def f(d):
+        for r in factory_reqs(d):
+            r["axes"][fid] = {"state": "delegated"}
+    return f
+
+
+# 歌詞の項目（広げた分）と、1件だけが使う項目
+for _fid in ("lyricsTheme", "lyricsLanguage", "structure", "styleLean", "ensembleSize"):
+    case("F18: どのプロファイルも①指定で使っていない項目（%s）" % _fid, mutate=edit_factory(factory_unspecified(_fid)),
+         has=["F18 どのファクトリープロファイルも①指定で使っていない項目: %s" % _fid])
+
+
+def factory_replace_author(old, new):
+    def f(d):
+        for r in factory_reqs(d):
+            if r["lyricsAuthor"] == old:
+                r["lyricsAuthor"] = new
+    return f
+
+
+case("F18: 作詞の主体 chat-ai を使っていない", mutate=edit_factory(factory_replace_author("chat-ai", "chat-ai-instruction")),
+     has=["F18 どのファクトリープロファイルも使っていない作詞の主体: chat-ai"])
+case("F18: 作詞の主体 chat-ai-instruction を使っていない", mutate=edit_factory(factory_replace_author("chat-ai-instruction", "chat-ai")),
+     has=["F18 どのファクトリープロファイルも使っていない作詞の主体: chat-ai-instruction"])
+
+
+def factory_no_style(d):
+    for r in factory_reqs(d):
+        if r["output"].get("requestScope") == "style":
+            r["output"]["requestScope"] = "combined"
+
+
+case("F18: 依頼文の範囲 style を使っていない", mutate=edit_factory(factory_no_style), has=["F18 どのファクトリープロファイルも使っていない依頼文の範囲: style"])
+case("F18: 楽曲データの版が 2 でない", mutate=edit_factory(lambda d: d["profiles"][-1]["data"].update(schemaVersion=1)),
+     has=["F18 同梱の楽曲データの版が 2 でない: 自作の歌詞に合わせてスタイルだけ作る（シティポップ）"])
+case("F18: 外側の版が 1 でない", mutate=edit_factory(lambda d: d.update(schemaVersion=2)), has=["F18 同梱ファイルの外側の版は 1: 2"])
+case("F18: ファイルがない", mutate=lambda spec: (spec / "factory-profiles.json").unlink(), has=["F18 factory-profiles.json を読めない"])
+case("F18: 楽曲データの形が崩れている", mutate=edit_factory(lambda d: d["profiles"][0].pop("data")), has=["F18 factory-profiles.json を読めない"])
 case("P11: recommendParams の項目は、プロファイルの recommend のパラメータ（情報として出す）", mutate=lambda spec: None, rc=0,
      has=["P11 出力項目 recommendParams の項目: max-mode, weirdness, style-influence, audio-influence"])
 

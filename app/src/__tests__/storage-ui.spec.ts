@@ -406,6 +406,18 @@ describe('取り込みの選択・プレビュー・直接開く（判断ポイ�
       { name: 'Z', data: f1.data },
     )
 
+  it('各行に、歌ありのときだけ「歌あり」の印が出る（判断ポイント82）', async () => {
+    const w = await mountApp()
+    await receive(
+      w,
+      'a.json',
+      fileText({ name: 'X', data: f1.data }, { name: 'V', data: factoryProfiles[6]!.data }),
+    )
+    const badge = (i: number) => $(`import-row-${i}`)!.querySelector('[data-testid="vocal-badge"]')
+    expect(badge(0)).toBeNull()
+    expect(badge(1)!.textContent).toBe('歌あり')
+  })
+
   it('一覧は初期値ですべて選択。要約（ツールと版・用途・主ジャンル・注意）と、展開した「指定」の項目', async () => {
     const w = await mountApp()
     await receive(
