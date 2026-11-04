@@ -12,6 +12,7 @@
 import contextlib
 import io
 import json
+import re
 import shutil
 import sys
 import tempfile
@@ -507,6 +508,110 @@ class TestA7(unittest.TestCase):
                 code = check_docs.main(["--root", str(t.dir), "--allowlist", str(t.allow)])
             self.assertEqual(code, 1)
             self.assertIn("A7: エラー 1 件", out.getvalue())
+
+
+UI_FILE = D + "decisions/ui-and-nonfunctional.md"
+
+
+def ui_rows(*numbers):
+    rows = "".join("| %s | a | b | c |\n" % n for n in numbers)
+    return "# u\n\n## 7. 判断ポイント\n\n| # | 判断 | 既定値 | 根拠 |\n|---|---|---|---|\n" + rows + "\n## 8. 次\n"
+
+
+def related_item(related, no="A-01"):
+    return item(no, fields=FIELDS[:3] + ["  - 関係: " + related])
+
+
+class TestA8(unittest.TestCase):
+    def missing(self, numbers, related=None, extra=None, allow=None):
+        files = {UI_FILE: ui_rows(*numbers)}
+        if related is not None:
+            files[CHECKLIST] = sheet(related_item(related))
+        files.update(extra or {})
+        with tree(files, allow=allow) as t:
+            return [f.number for f in t.active("A8")]
+
+    def test_80_and_below_are_out_of_scope(self):
+        self.assertEqual(self.missing([1, 79, 80]), [])
+
+    def test_81_is_in_scope(self):
+        self.assertEqual(self.missing([80, 81]), [81])
+
+    def test_every_number_from_81(self):
+        self.assertEqual(self.missing([81, 82, 83], "UI 82"), [81, 83])
+
+    def test_related_clears(self):
+        self.assertEqual(self.missing([81], "UI 81"), [])
+
+    def test_several_in_one_field(self):
+        self.assertEqual(self.missing([81, 82], "UI 1・UI 81・UI 82"), [])
+
+    def test_struck_through_row_counts(self):
+        self.assertEqual(self.missing(["~~81~~"]), [81])
+
+    def test_other_systems_do_not_clear(self):
+        for bad in ("語彙 81", "入力項目 81", "文面 81", "ツール 81"):
+            with self.subTest(bad):
+                self.assertEqual(self.missing([81], bad), [81])
+
+    def test_other_numbers_do_not_clear(self):
+        for bad in ("UI 8", "UI 811", "UI 810", "UI 81注"):
+            with self.subTest(bad):
+                self.assertEqual(self.missing([81], bad), [81])
+
+    def test_other_fields_do_not_clear(self):
+        body = re.sub(r"  - 手順: .*\n", "  - 手順: UI 81\n", item())
+        self.assertIn("手順: UI 81\n", body)
+        self.assertEqual(self.missing([81], extra={CHECKLIST: sheet(body)}), [81])
+
+    def test_outside_item_sections_do_not_clear(self):
+        sample = "# c\n\n## 項目の書式\n\n" + related_item("UI 81") + "\n## A. 節\n\n" + item()
+        self.assertEqual(self.missing([81], extra={CHECKLIST: sample}), [81])
+
+    def test_section_after_item_section_does_not_clear(self):
+        sample = "# c\n\n## A. 節\n\n" + item() + "\n## 補足\n\n" + related_item("UI 81")
+        self.assertEqual(self.missing([81], extra={CHECKLIST: sample}), [81])
+
+    def test_item_section_after_other_section(self):
+        sample = "# c\n\n## 使い方\n\n本文\n\n## A. 節\n\n" + related_item("UI 81")
+        self.assertEqual(self.missing([81], extra={CHECKLIST: sample}), [])
+
+    def test_any_checklist_file_clears(self):
+        other = D + "checklists/sub/b.md"
+        self.assertEqual(self.missing([81], "UI 1", {other: sheet(related_item("UI 81"))}), [])
+        self.assertEqual(self.missing([81], "UI 81", {other: sheet(related_item("UI 1"))}), [])
+
+    def test_non_checklist_file_does_not_clear(self):
+        self.assertEqual(self.missing([81], "UI 1", {D + "a.md": sheet(related_item("UI 81"))}), [81])
+
+    def test_allowlist_with_reason(self):
+        allow = {"a8": [{"system": "ui", "number": 81, "reason": "画面に出ない"}]}
+        self.assertEqual(self.missing([81, 82], allow=allow), [82])
+
+    def test_allowlist_other_number_is_unused(self):
+        allow = {"a8": [{"system": "ui", "number": 90, "reason": "古い"}]}
+        with tree({UI_FILE: ui_rows(81)}, allow=allow) as t:
+            findings, _, unused = t.run()
+            self.assertEqual(len(unused), 1)
+            self.assertEqual([f.number for f in findings if f.check == "A8" and not f.allowed], [81])
+
+    def test_allowlist_without_reason_is_an_error(self):
+        with tree({UI_FILE: ui_rows(81)}, allow={"a8": [{"system": "ui", "number": 81}]}) as t:
+            with self.assertRaises(ValueError):
+                t.run()
+
+    def test_finding_points_at_the_row(self):
+        with tree({UI_FILE: ui_rows(1, 81)}) as t:
+            f = t.active("A8")[0]
+            self.assertEqual((f.level, f.file, f.line), ("error", UI_FILE, 8))
+
+    def test_exit_code_and_summary(self):
+        with tree({UI_FILE: ui_rows(81)}) as t:
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code = check_docs.main(["--root", str(t.dir), "--allowlist", str(t.allow)])
+            self.assertEqual(code, 1)
+            self.assertIn("A8: エラー 1 件", out.getvalue())
 
 
 class TestAllowlistFile(unittest.TestCase):

@@ -13,6 +13,7 @@
     A5 「次の番号」の記載（警告）
     A6 チェックシートのひな形（docs/checklists/）のチェック済みの印
     A7 チェックシートのひな形の全項目の形（番号・欄の並び・チェック結果）
+    A8 UI 判断ポイントの 81 以降が、チェックシートの項目の「関係」に出るか
 
 意図した例・過去からある欠番は、allowlist.json に理由つきで入れる。
 標準ライブラリだけで動く。ネットワークは使わない。
@@ -96,6 +97,10 @@ ITEM_FIELDS_NOTE = ["端末", "手順", "期待", "関係", "注意", "チェッ
 ITEM_DEVICE = ("PC", "スマホ", "両方")
 ITEM_NOTE = "仮のデータで確かめる"
 ITEM_RELATED = re.compile(r"^(?:UI|語彙|入力項目|文面|ツール) \d+(?:・(?:UI|語彙|入力項目|文面|ツール) \d+)*$")
+
+# A8 の対象の始まり（80 以前は、チェックシートを作った時点で洗い出したので見ない）
+A8_FROM = 81
+RELATED_UI = re.compile(r"^UI (\d+)$")
 
 ROW = re.compile(r"^\|\s*(?:~~)?\**(\d+)\**(?:~~)?\s*\|")
 MD_LINK = re.compile(r"\]\(([^)\s]+)\)")
@@ -492,6 +497,37 @@ def check_a7(root):
     return findings
 
 
+def related_ui_numbers(text):
+    """項目を見る節（A7 と同じ）の、「関係」の欄に出る UI の番号。"""
+    numbers = set()
+    in_items = False
+    for line in text.split("\n"):
+        if line.startswith("## "):
+            in_items = bool(ITEM_SECTION.match(line))
+        field = ITEM_FIELD.match(line)
+        if in_items and field and field.group(1) == "関係":
+            for token in field.group(2).split("・"):
+                m = RELATED_UI.match(token)
+                if m:
+                    numbers.add(int(m.group(1)))
+    return numbers
+
+
+def check_a8(root):
+    system = next(s for s in SYSTEMS if s["id"] == "ui")
+    rows, _ = parse_system(root, system)  # 読めないときは A1 が知らせる
+    related = set()
+    for rel in checklist_files(root):
+        related |= related_ui_numbers(read_text(root, rel))
+    findings = []
+    for rel, no, number, _ in rows:
+        if number >= A8_FROM and number not in related:
+            findings.append(Finding("A8", "error", rel, no,
+                                    "UI 判断ポイント %d が、チェックシートの項目の「関係」に出ない（項目を足すか、許可リストに理由つきで載せる）" % number,
+                                    kind="unrelated", system="ui", number=number))
+    return findings
+
+
 def load_allowlist(path):
     if path is None or not Path(path).is_file():
         return {}
@@ -510,7 +546,7 @@ def allowed(f, allow):
     for i, item in enumerate(allow.get(f.check.lower(), [])):
         if item.get("kind") and item["kind"] != f.kind:
             continue
-        if f.check == "A1":
+        if f.check in ("A1", "A8"):
             if item.get("system") == f.system and item.get("number") == f.number:
                 return (f.check.lower(), i)
             continue
@@ -528,7 +564,7 @@ def allowed(f, allow):
 def run(root, allowlist_path):
     allow = load_allowlist(allowlist_path)
     a1, nexts = check_a1(root)
-    findings = a1 + check_a2(root) + check_a3(root) + check_a4(root) + check_a5(root, nexts) + check_a6(root) + check_a7(root)
+    findings = a1 + check_a2(root) + check_a3(root) + check_a4(root) + check_a5(root, nexts) + check_a6(root) + check_a7(root) + check_a8(root)
     used = set()
     result = []
     for f in findings:
@@ -586,7 +622,7 @@ def main(argv=None):
 
     print()
     total_err = 0
-    for c in ("A1", "A2", "A3", "A4", "A5", "A6", "A7"):
+    for c in ("A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8"):
         fs = [f for f in findings if f.check == c]
         err = sum(1 for f in fs if f.level == "error" and not f.allowed)
         warn = sum(1 for f in fs if f.level == "warning" and not f.allowed)

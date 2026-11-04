@@ -76,7 +76,7 @@ docs/
 │   ├── presets.md            語彙のデータ仕様（＋ presets.schema.json、presets-index.schema.json）
 │   ├── presets/              語彙の生成物（tools/build-presets/ で生成。手で編集しない）
 │   ├── song-file.md          保存データの仕様（＋ song.schema.json、song-export.schema.json、ui-settings.schema.json、song.example.json、song-export.example.json）
-│   ├── factory-profiles.json ファクトリープロファイル6件（エクスポートファイルの形。判断ポイント39〜40。`song-file.md` §4-4）
+│   ├── factory-profiles.json ファクトリープロファイル9件（エクスポートファイルの形。判断ポイント39〜40・81。`song-file.md` §4-4）
 │   ├── input-items.md        入力項目の仕様（＋ fields.json、fields.schema.json）
 │   ├── tool-profile.md       ツールプロファイルの仕様（＋ tool-profile.schema.json、tool-profiles/suno.json）
 │   └── request-blocks.md     依頼文ブロックの出力条件とデータの出所（文面の正は decisions/request-text.md）
@@ -153,7 +153,7 @@ docs/
 ### checklists/
 
 - `user-check.md` はひな形。**書き込まない。** 確かめるときは、リポジトリ直下の `temp/` に写して、写しにチェックを付ける。結果は残さず、気になった点は設計スレッドの議題にする（2026-11-03。引き継ぎ書の追記54）
-- 利用者から見える振る舞いを変えたら、同じコミットで直す（`implementation-guide.md` §3-4）。チェック済みの印は `tools/check-docs/check_docs.py` の A6 が、項目の形の崩れは A7 がエラーにする
+- 利用者から見える振る舞いを変えたら、同じコミットで直す（`implementation-guide.md` §3-4）。チェック済みの印は `tools/check-docs/check_docs.py` の A6 が、項目の形の崩れは A7 が、UI 判断ポイントの 81 以降の載せ漏れは A8 がエラーにする
 
 ### research/
 
