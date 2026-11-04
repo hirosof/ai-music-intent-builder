@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 1,
+  "exportType": "profiles",
+  "exportedAt": "2026-09-24T12:00:00+09:00",
+  "profiles": [
+    {
+      "name": "ボス戦BGM（和風オーケストラ）",
+      "updatedAt": "2026-09-24T12:00:00+09:00",
+      "data": {
+        "schemaVersion": 1,
+        "requests": [
+          {
+            "id": "r1",
+            "toolId": "suno",
+            "toolVersion": "v6",
+            "generationType": "new",
+            "vocalMode": "instrumental",
+            "lyricsAuthor": null,
+            "derivedFrom": null,
+            "axes": {
+              "purpose": {"state": "specified", "value": "boss-battle-theme"},
+              "purposeDetail": {"state": "delegated"},
+              "listeningEnvironment": {"state": "specified", "value": "loop"},
+              "mainGenre": {"state": "specified", "value": "orchestral"},
+              "subGenres": {"state": "delegated"},
+              "regionStyles": {"state": "specified", "choices": {"japanese": "use", "celtic": "exclude"}},
+              "styleLean": {"state": "specified", "value": "traditional"},
+              "era": {"state": "delegated"},
+              "mood": {"state": "specified", "choices": {"tense": "use", "valiant": "use", "nostalgic": "exclude"}},
+              "intensity": {"state": "defaulted"},
+              "brightness": {"state": "delegated"},
+              "leadInstruments": {"state": "specified", "choices": {"shakuhachi": "use", "guitar": "exclude"}, "freeText": "尺八が旋律をとる"},
+              "accompanimentInstruments": {"state": "specified", "choices": {"taiko": "use", "strings": "use", "guitar": "exclude"}},
+              "rhythmInstruments": {"state": "delegated"},
+              "voiceTreatment": {"state": "specified", "value": "wordless-choir"},
+              "ensembleSize": {"state": "delegated"},
+              "length": {"state": "toolManaged"},
+              "tempoFeel": {"state": "delegated"},
+              "bpm": {"state": "specified", "value": {"min": 120, "max": 140}},
+              "developmentShape": {"state": "specified", "value": "steady"},
+              "structure": {"state": "specified", "value": ["intro", "theme", "climax", "outro"]},
+              "exclusions": {"state": "specified", "value": "歪んだ音色を避けたい"},
+              "notes": {"state": "delegated"}
+            },
+            "output": {"variantCount": 3, "granularity": ["basic", "detailed"], "outputLanguage": "mixed"}
+          }
+        ]
+      }
+    },
+    {
+      "name": "作業用BGM（ローファイ）",
+      "updatedAt": "2026-09-24T12:00:00+09:00",
+      "data": {
+        "schemaVersion": 1,
+        "requests": [
+          {
+            "id": "r1",
+            "toolId": "suno",
+            "toolVersion": "v6",
+            "generationType": "new",
+            "vocalMode": "instrumental",
+            "lyricsAuthor": null,
+            "derivedFrom": null,
+            "axes": {
+              "purpose": {"state": "specified", "value": "work-background"},
+              "listeningEnvironment": {"state": "specified", "value": "loop"},
+              "mainGenre": {"state": "specified", "value": "lo-fi-hip-hop"},
+              "mood": {"state": "specified", "choices": {"warmth": "use"}},
+              "intensity": {"state": "specified", "value": "subdued"},
+              "developmentShape": {"state": "specified", "value": "steady"},
+              "exclusions": {"state": "specified", "value": "急に音量や雰囲気が変わる展開は避けたい"}
+            },
+            "output": {"variantCount": 3, "granularity": ["basic", "detailed"], "outputLanguage": "mixed"}
+          }
+        ]
+      }
+    },
+    {
+      "name": "村のテーマ（フォーク調）",
+      "updatedAt": "2026-09-24T12:00:00+09:00",
+      "data": {
+        "schemaVersion": 1,
+        "requests": [
+          {
+            "id": "r1",
+            "toolId": "suno",
+            "toolVersion": "v6",
+            "generationType": "new",
+            "vocalMode": "instrumental",
+            "lyricsAuthor": null,
+            "derivedFrom": null,
+            "axes": {
+              "purpose": {"state": "specified", "value": "village-theme"},
+              "purposeDetail": {"state": "specified", "value": "ファンタジーRPGの序盤にある、のどかな村。探索中に長く流れても疲れない曲"},
+              "listeningEnvironment": {"state": "specified", "value": "loop"},
+              "mainGenre": {"state": "specified", "value": "folk"},
+              "regionStyles": {"state": "specified", "choices": {"celtic": "use"}},
+              "mood": {"state": "specified", "choices": {"warmth": "use", "nostalgic": "use"}},
+              "brightness": {"state": "specified", "value": "bright"},
+              "leadInstruments": {"state": "specified", "choices": {"flute": "use", "synthesizer": "exclude"}},
+              "accompanimentInstruments": {"state": "specified", "choices": {"steel-string-acoustic-guitar": "use", "harp": "use", "synthesizer": "exclude"}},
+              "voiceTreatment": {"state": "specified", "value": "no-voice"},
+              "ensembleSize": {"state": "specified", "value": "small-ensemble"},
+              "tempoFeel": {"state": "specified", "value": "moderate"},
+              "developmentShape": {"state": "specified", "value": "steady"}
+            },
+            "output": {"variantCount": 3, "granularity": ["basic", "detailed"], "outputLanguage": "mixed"}
+          }
+        ]
+      }
+    },
+    {
+      "name": "Vlog・日常動画BGM（明るいアコースティック）",
+      "updatedAt": "2026-09-24T12:00:00+09:00",
+      "data": {
+        "schemaVersion": 1,
+        "requests": [
+          {
+            "id": "r1",
+            "toolId": "suno",
+            "toolVersion": "v6",
+            "generationType": "new",
+            "vocalMode": "instrumental",
+            "lyricsAuthor": null,
+            "derivedFrom": null,
+            "axes": {
+              "purpose": {"state": "specified", "value": "vlog-bgm"},
+              "listeningEnvironment": {"state": "specified", "value": "full-play"},
+              "mainGenre": {"state": "specified", "value": "indie-pop"},
+              "subGenres": {"state": "specified", "choices": {"indie-folk": "use"}},
+              "era": {"state": "specified", "value": "2010s"},
+              "mood": {"state": "specified", "choices": {"uplifting": "use", "warmth": "use"}},
+              "brightness": {"state": "specified", "value": "bright"},
+              "leadInstruments": {"state": "specified", "choices": {"ukulele": "use"}},
+              "accompanimentInstruments": {"state": "specified", "choices": {"steel-string-acoustic-guitar": "use", "piano": "use"}},
+              "voiceTreatment": {"state": "specified", "value": "no-voice"},
+              "length": {"state": "specified", "value": 120},
+              "tempoFeel": {"state": "specified", "value": "moderate"},
+              "bpm": {"state": "specified", "value": {"min": 100, "max": 110}},
+              "developmentShape": {"state": "specified", "value": "arc"},
+              "structure": {"state": "specified", "value": ["intro", "theme", "bridge", "theme", "outro"]},
+              "notes": {"state": "specified", "value": "ナレーションや字幕の邪魔にならないよう、中音域は詰め込みすぎない"}
+            },
+            "output": {"variantCount": 3, "granularity": ["basic", "detailed"], "outputLanguage": "mixed"}
+          }
+        ]
+      }
+    },
+    {
+      "name": "瞑想用BGM（アンビエント）",
+      "updatedAt": "2026-09-24T12:00:00+09:00",
+      "data": {
+        "schemaVersion": 1,
+        "requests": [
+          {
+            "id": "r1",
+            "toolId": "suno",
+            "toolVersion": "v6",
+            "generationType": "new",
+            "vocalMode": "instrumental",
+            "lyricsAuthor": null,
+            "derivedFrom": null,
+            "axes": {
+              "purpose": {"state": "specified", "value": "meditation-music"},
+              "listeningEnvironment": {"state": "specified", "value": "loop"},
+              "mainGenre": {"state": "specified", "value": "ambient"},
+              "mood": {"state": "specified", "choices": {"solemn": "use", "ominous": "exclude"}},
+              "intensity": {"state": "specified", "value": "subdued"},
+              "brightness": {"state": "specified", "value": "neutral"},
+              "rhythmInstruments": {"state": "specified", "freeText": "拍を刻む打楽器は使わない"},
+              "length": {"state": "specified", "value": 300},
+              "tempoFeel": {"state": "specified", "value": "very-slow"},
+              "developmentShape": {"state": "specified", "value": "wave"},
+              "spatialTexture": {"state": "specified", "value": "spacious-hall"},
+              "recordingTexture": {"state": "specified", "value": "clean-studio"},
+              "mixDirection": {"state": "specified", "value": "wide"}
+            },
+            "output": {"variantCount": 3, "granularity": ["basic", "detailed"], "outputLanguage": "mixed"}
+          }
+        ]
+      }
+    },
+    {
+      "name": "技術解説動画BGM（テクノ）",
+      "updatedAt": "2026-09-24T12:00:00+09:00",
+      "data": {
+        "schemaVersion": 1,
+        "requests": [
+          {
+            "id": "r1",
+            "toolId": "suno",
+            "toolVersion": "v6",
+            "generationType": "new",
+            "vocalMode": "instrumental",
+            "lyricsAuthor": null,
+            "derivedFrom": null,
+            "axes": {
+              "purpose": {"state": "specified", "value": "video-bgm-general"},
+              "purposeDetail": {"state": "specified", "value": "プログラミングなどの技術系解説動画。ナレーションの下で流れ、集中を妨げない"},
+              "listeningEnvironment": {"state": "specified", "value": "loop"},
+              "mainGenre": {"state": "specified", "value": "techno"},
+              "subGenres": {"state": "specified", "choices": {"minimal-techno": "use", "dub-techno": "use"}},
+              "mood": {"state": "specified", "choices": {"mysterious": "use", "epic-scale": "exclude"}},
+              "intensity": {"state": "specified", "value": "subdued"},
+              "brightness": {"state": "specified", "value": "neutral"},
+              "accompanimentInstruments": {"state": "specified", "choices": {"analog-synth": "use"}},
+              "rhythmInstruments": {"state": "specified", "freeText": "四つ打ちのキックを軸にした、控えめなリズム"},
+              "voiceTreatment": {"state": "specified", "value": "no-voice"},
+              "tempoFeel": {"state": "specified", "value": "moderate"},
+              "bpm": {"state": "specified", "value": {"min": 118, "max": 124}},
+              "developmentShape": {"state": "specified", "value": "steady"},
+              "mixDirection": {"state": "specified", "value": "clean-minimal"},
+              "exclusions": {"state": "specified", "value": "ドロップや急な盛り上がり、耳に残る目立つフックは避けたい"},
+              "notes": {"state": "specified", "value": "ナレーションの邪魔にならないよう、中音域に余白を残したい"}
+            },
+            "output": {"variantCount": 3, "granularity": ["basic", "detailed"], "outputLanguage": "mixed"}
+          }
+        ]
+      }
+    }
+  ]
+}

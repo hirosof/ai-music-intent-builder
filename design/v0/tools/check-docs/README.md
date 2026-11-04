@@ -44,7 +44,7 @@ python tools/check-docs/test_check_docs.py         # 負例テスト（一時フ
 
 - Markdown: `design/v0/docs/` 配下のすべての `.md`、リポジトリ直下の `CLAUDE.md`、`design/v0/tools/*/README.md`
 - JSON（A4 だけ）: `design/v0/docs/specifications/` 配下のすべての `.json`（`presets/` を含む）
-- A6・A7・A8 は、チェックシートとして `docs/checklists/` 配下だけを見る（A3〜A5 は、このフォルダも上の Markdown に含めて見る）。`temp/` の写しは見ない
+- A6・A7・A8 は、チェックシートとして `docs/checklists/` 配下だけを見る（A3〜A5 は、このフォルダも上の Markdown に含めて見る）。`docs/checklists/samples/` は見本ファイルの置き場所なので、A6・A7・A8 では見ない（中の Markdown は A3〜A5 で見る）。`temp/` の写しは見ない
 - A7 は、OK・NG の印の有無を見ない（`[x]`・`[X]` は A6 が見る）。関係の番号が判断ポイントの表に実在するかも見ない
 - A3 は、コードブロック（3連のバッククォートで囲んだ部分）の中と、`*`・`{}`・`<>`・`…` を含むパス（雛形の書き方）を見ない
 - A4 の CR は、作業ツリーのファイルを見る（Git の中身ではない）

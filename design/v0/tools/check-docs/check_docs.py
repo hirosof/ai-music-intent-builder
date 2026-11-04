@@ -84,6 +84,7 @@ HISTORY_FROM = {DOCS + "/handoff-next-thread.md": r"^## 8\. "}
 A5_SKIP_DIRS = (DOCS + "/discussions/", DOCS + "/examples/")
 # A6・A7 の対象（ひな形。確かめるときは temp/ に写すので、ここにチェックは付かない）
 CHECKLISTS = DOCS + "/checklists"
+CHECKLIST_SAMPLES = "samples"
 # A7 で項目を見る節（「## A. …」の形）と、項目の形
 ITEM_SECTION = re.compile(r"^## ([A-Z])\. ")
 ITEM_HEAD = re.compile(r"^- \*\*([A-Z])-(\d{2})\*\* \S")
@@ -394,6 +395,7 @@ def check_a5(root, nexts):
 def checklist_files(root):
     out = []
     for dp, dn, fn in os.walk(Path(root) / CHECKLISTS):
+        dn[:] = [d for d in dn if d != CHECKLIST_SAMPLES]  # 見本ファイルの置き場所。チェックシートではない
         for f in fn:
             if f.endswith(".md"):
                 out.append((Path(dp) / f).relative_to(root).as_posix())

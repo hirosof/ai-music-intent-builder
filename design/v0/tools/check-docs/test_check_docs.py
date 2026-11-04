@@ -254,6 +254,30 @@ class TestA5(unittest.TestCase):
 CHECKLIST = D + "checklists/user-check.md"
 
 
+class TestChecklistSamples(unittest.TestCase):
+    """checklists/samples/ は見本ファイルの置き場所で、チェックシートとして見ない"""
+    README = D + "checklists/samples/README.md"
+
+    def test_not_a_sheet(self):
+        with tree({CHECKLIST: "# c\n", self.README: "# 見本\n\n- [x] 印\n"}) as t:
+            self.assertEqual(t.active("A6"), [])
+            self.assertEqual([f.file for f in t.active("A7")], [CHECKLIST])
+
+    def test_does_not_clear_a8(self):
+        files = {UI_FILE: ui_rows(81), CHECKLIST: sheet(related_item("UI 1")),
+                 D + "checklists/samples/s.md": sheet(related_item("UI 81"))}
+        with tree(files) as t:
+            self.assertEqual([f.number for f in t.active("A8")], [81])
+
+    def test_only_that_name_is_skipped(self):
+        with tree({CHECKLIST: "# c\n", D + "checklists/samples2/a.md": "- [x] 印\n"}) as t:
+            self.assertEqual(len(t.active("A6")), 1)
+
+    def test_still_link_checked(self):
+        with tree({self.README: "[見本](missing.json)\n"}) as t:
+            self.assertEqual(len(t.active("A3")), 1)
+
+
 class TestA6(unittest.TestCase):
     def test_unchecked_is_clean(self):
         with tree({CHECKLIST: "# c\n\n- [ ] **A-01** 項目\n  - 期待: 出る\n"}) as t:
