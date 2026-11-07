@@ -6,7 +6,11 @@ import { describe, it, expect } from 'vitest'
 
 import input from '@examples/inputs/rendered-12.json'
 import { spec } from '@/data/spec'
-import { compareChartText } from '@/domain/request/follow-up'
+import {
+  COMPARE_CHART_NOTE,
+  compareChartSummary,
+  compareChartText,
+} from '@/domain/request/follow-up'
 import type { SongRequest } from '@/domain/types/song'
 import { toCurrentSong } from './helpers'
 
@@ -123,5 +127,54 @@ describe('続けて頼む文 B-FC', () => {
         '```',
       )
     }
+  })
+})
+
+describe('比較図のタブの要約の一言（UI 判断ポイント83）', () => {
+  const summary = (values: Record<string, unknown>) => compareChartSummary(spec, withOutput(values))
+  const PASTE = 'チャットAI の回答のあとに、同じ会話に貼ってください。'
+
+  it('情緒の幅は、軸（明暗×強度）を言う', () => {
+    expect(summary({ variantCount: 4, diffAxis: 'mood' })).toBe(
+      `案4件を、明暗×強度の図（Mermaid）で比べてもらう文です。${PASTE}`,
+    )
+  })
+
+  it.each([
+    ['arrangement', '編成の違い'],
+    ['texture', '質感の違い'],
+    ['auto', '案ごとに付けた違い'],
+    ['interpretation', '案ごとに付けた違い'],
+  ])('%s は、軸をチャットAI が選ぶ旨を言う（%s）', (axis, what) => {
+    expect(summary({ variantCount: 3, diffAxis: axis })).toBe(
+      `案3件を、2つの軸の図（Mermaid）で比べてもらう文です。軸は、${what}が分かるものをチャットAI が選びます。${PASTE}`,
+    )
+  })
+
+  it('案の数はその数になる。省いたときは既定値（3・お任せ）', () => {
+    expect(summary({ variantCount: 10, diffAxis: 'mood' })).toMatch(/^案10件を、/)
+    const req = base()
+    delete req.output.variantCount
+    delete req.output.diffAxis
+    expect(compareChartSummary(spec, req)).toBe(summary({ variantCount: 3, diffAxis: 'auto' }))
+  })
+
+  it('出す条件は B-FC の文と同じ', () => {
+    for (const values of [
+      { variantCount: 1, diffAxis: 'mood' },
+      { variantCount: 3, diffAxis: 'mood', requestScope: 'lyrics' },
+      { variantCount: 3, diffAxis: 'genre' },
+      { variantCount: 2.5, diffAxis: 'mood' },
+    ]) {
+      expect(summary(values)).toBeNull()
+      expect(compareChartText(spec, withOutput(values))).toBeNull()
+    }
+    expect(summary({ variantCount: 2, diffAxis: 'mood', requestScope: 'style' })).not.toBeNull()
+  })
+
+  it('控え方の注意は「ChatGPT では」と限る', () => {
+    expect(COMPARE_CHART_NOTE).toBe(
+      'ChatGPT では、回答全体のコピーに図のコードが入りません。図の右上の「…」→「コードとしてコピー」で控えてください。',
+    )
   })
 })

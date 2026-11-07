@@ -13,7 +13,11 @@ import { STORAGE_KEYS } from '@/data/storage'
 import { spec } from '@/data/spec'
 import { createInitialSong } from '@/domain/editor/initial'
 import { toCurrentSong } from '@/domain/request/__tests__/helpers'
-import { compareChartText } from '@/domain/request/follow-up'
+import {
+  COMPARE_CHART_NOTE,
+  compareChartSummary,
+  compareChartText,
+} from '@/domain/request/follow-up'
 
 const INPUTS = resolve(process.cwd(), '../design/v0/docs/examples/inputs')
 const vocalSong = toCurrentSong(
@@ -211,12 +215,14 @@ describe('依頼文のカード（判断ポイント55）', () => {
   })
 })
 
-describe('比較図を頼む文のコピー（UI 判断ポイント83。文面の判断ポイント51 の B-FC）', () => {
+describe('依頼文のカードのタブ「比較図を頼む文」（UI 判断ポイント83。文面の判断ポイント51 の B-FC）', () => {
+  const $ = (id: string) => document.querySelector(`[data-testid="${id}"]`)
   const order = () =>
     [...document.querySelectorAll('[data-testid="request-area"] [data-testid]')]
       .map((e) => e.getAttribute('data-testid'))
       .filter((t) =>
         [
+          'request-tabs',
           'request-text',
           'request-incomplete',
           'compare-chart',
@@ -224,8 +230,20 @@ describe('比較図を頼む文のコピー（UI 判断ポイント83。文面�
           'notice-chip',
         ].includes(t!),
       )
-  const button = () =>
-    document.querySelector<HTMLButtonElement>('[data-testid="copy-compare-chart"]')
+  const copyButton = () => $('copy-request') as HTMLButtonElement
+  const tabButtons = () => [
+    ...document.querySelectorAll<HTMLElement>('[data-testid="request-area"] [role="tab"]'),
+  ]
+  const activeTab = () =>
+    tabButtons()
+      .find((b) => b.getAttribute('aria-selected') === 'true')
+      ?.textContent?.trim()
+  async function openTab(label: string) {
+    const b = tabButtons().find((x) => x.textContent?.trim() === label)!
+    b.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))
+    await flushPromises()
+  }
+  const req = () => useSongEditor().song.value.requests[0]!
   // jsdom には Clipboard API がないため、useClipboard（legacy: true）は textarea と execCommand('copy') で写す。
   // execCommand を差し替えて、そのときの textarea の中身を写した文とみなす
   const stubCopy = () => {
@@ -239,73 +257,108 @@ describe('比較図を頼む文のコピー（UI 判断ポイント83。文面�
     })
     return copied
   }
+  const unstubCopy = () => delete (document as { execCommand?: unknown }).execCommand
 
-  it('初期状態（案の数3）は、依頼文のすぐ下・注意書きより上に、ボタンと一言を出す。押すと B-FC の文を写す', async () => {
+  it('初期状態（案の数3）はタブを出し、「依頼文」を開く。コピーの文言は「依頼文をコピー」', async () => {
+    await mountApp()
+    expect(tabButtons().map((b) => b.textContent?.trim())).toEqual(['依頼文', '比較図を頼む文'])
+    expect(activeTab()).toBe('依頼文')
+    expect(order()).toEqual(['request-tabs', 'request-text', 'notice-length'])
+    expect(copyButton().textContent?.trim()).toBe('依頼文をコピー')
+    // 依頼文の下の別のボタンはない（見出しの1つだけ）
+    expect($('request-area')!.querySelectorAll('button:not([role="tab"])')).toHaveLength(1)
+  })
+
+  it('比較図のタブ: 要約の一言・控え方の注意・文の本体。見出しのコピーが B-FC の文を写す。注意書きはどちらのタブでも出す', async () => {
     const copied = stubCopy()
     try {
       await mountApp()
-      expect(order()).toEqual(['request-text', 'compare-chart', 'notice-length'])
-      const area = document.querySelector('[data-testid="compare-chart"]')!
-      expect(area.textContent).toContain('比較図を頼む文をコピー')
-      expect(area.textContent).toContain('チャットAI の回答のあとに、同じ会話に貼ってください')
-      expect(button()!.disabled).toBe(false)
-      button()!.click()
+      await openTab('比較図を頼む文')
+      expect(activeTab()).toBe('比較図を頼む文')
+      expect(order()).toEqual(['request-tabs', 'compare-chart', 'notice-length'])
+      expect($('compare-summary')!.textContent).toBe(compareChartSummary(spec, req()))
+      expect($('compare-note')!.textContent).toBe(COMPARE_CHART_NOTE)
+      expect($('compare-text')!.textContent).toBe(compareChartText(spec, req()))
+      expect(copyButton().textContent?.trim()).toBe('比較図の文をコピー')
+      copyButton().click()
       await flushPromises()
-      const req = useSongEditor().song.value.requests[0]!
-      expect(copied).toEqual([compareChartText(spec, req)])
-      expect(copied[0]).toContain('（案1〜案3）')
-      expect(button()!.textContent).toContain('コピーしました')
+      expect(copied).toEqual([compareChartText(spec, req())])
+      expect(copyButton().textContent?.trim()).toBe('コピーしました')
+      // 「依頼文」に戻すと、依頼文のコピー（まだ押していない）
+      await openTab('依頼文')
+      expect(order()).toEqual(['request-tabs', 'request-text', 'notice-length'])
+      expect(copyButton().textContent?.trim()).toBe('依頼文をコピー')
+      copyButton().click()
+      await flushPromises()
+      expect(copied[1]).toBe($('request-text')!.textContent)
+      expect(copied[1]).not.toBe(copied[0])
     } finally {
-      delete (document as { execCommand?: unknown }).execCommand
+      unstubCopy()
     }
   })
 
-  it('案の数を変えると、写す文が変わる（情緒の幅・案の数5）', async () => {
+  it('案の数・差の付け方を変えると、要約と文が変わる（情緒の幅・案の数5）', async () => {
     const s = structuredClone(vocalSong)
     s.requests[0]!.output.variantCount = 5
     s.requests[0]!.output.diffAxis = 'mood'
     localStorage.setItem(STORAGE_KEYS.song, JSON.stringify(s))
-    const copied = stubCopy()
-    try {
-      await mountApp()
-      button()!.click()
-      await flushPromises()
-      expect(copied).toHaveLength(1)
-      expect(copied[0]).toContain('（案1〜案5）')
-      expect(copied[0]).toContain('横軸は明暗')
-    } finally {
-      delete (document as { execCommand?: unknown }).execCommand
-    }
+    await mountApp()
+    await openTab('比較図を頼む文')
+    expect($('compare-summary')!.textContent).toMatch(/^案5件を、明暗×強度の図/)
+    expect($('compare-text')!.textContent).toContain('（案1〜案5）')
+    expect($('compare-text')!.textContent).toContain('横軸は明暗')
   })
 
-  it('案の数が1のときは出さない', async () => {
+  it('案の数が1のときはタブを出さない（1枚の表示）', async () => {
     const s = structuredClone(vocalSong)
     s.requests[0]!.output.variantCount = 1
     localStorage.setItem(STORAGE_KEYS.song, JSON.stringify(s))
     await mountApp()
-    expect(order()).toContain('request-text')
-    expect(document.querySelector('[data-testid="compare-chart"]')).toBeNull()
+    expect($('request-tabs')).toBeNull()
+    expect(order()).toEqual(['request-text', 'notice-length', 'notice-chip'])
+    expect(copyButton().textContent?.trim()).toBe('依頼文をコピー')
   })
 
-  it('依頼文の範囲が歌詞のみのときは出さない。スタイルのみでは出す', async () => {
+  it('依頼文の範囲が歌詞のみのときはタブを出さない。スタイルのみでは出す', async () => {
     const s = structuredClone(vocalSong)
     s.requests[0]!.output.variantCount = 3
     s.requests[0]!.output.requestScope = 'lyrics'
     localStorage.setItem(STORAGE_KEYS.song, JSON.stringify(s))
     await mountApp()
-    expect(document.querySelector('[data-testid="compare-chart"]')).toBeNull()
-    useSongEditor().song.value.requests[0]!.output.requestScope = 'style'
+    expect($('request-tabs')).toBeNull()
+    req().output.requestScope = 'style'
     await flushPromises()
-    expect(document.querySelector('[data-testid="compare-chart"]')).not.toBeNull()
+    expect($('request-tabs')).not.toBeNull()
+    expect(activeTab()).toBe('依頼文')
   })
 
-  it('未完成のときは、出したまま押せない', async () => {
+  it('比較図のタブを開いたまま、そのタブが消えたら「依頼文」に戻る。また出たときも「依頼文」から', async () => {
+    await mountApp()
+    await openTab('比較図を頼む文')
+    expect($('compare-chart')).not.toBeNull()
+    req().output.variantCount = 1
+    await flushPromises()
+    expect($('request-tabs')).toBeNull()
+    expect($('compare-chart')).toBeNull()
+    expect($('request-text')).not.toBeNull()
+    expect(copyButton().textContent?.trim()).toBe('依頼文をコピー')
+    req().output.variantCount = 3
+    await flushPromises()
+    expect(activeTab()).toBe('依頼文')
+    expect($('request-text')).not.toBeNull()
+  })
+
+  it('未完成のときは、どちらのタブでもコピーを押せない', async () => {
     const s = structuredClone(vocalSong)
     s.requests[0]!.output.variantCount = 3
     s.requests[0]!.axes.purposeDetail = { state: 'specified' }
     localStorage.setItem(STORAGE_KEYS.song, JSON.stringify(s))
     await mountApp()
-    expect(order()).toEqual(['request-incomplete', 'compare-chart'])
-    expect(button()!.disabled).toBe(true)
+    expect(order()).toEqual(['request-tabs', 'request-incomplete'])
+    expect(copyButton().disabled).toBe(true)
+    await openTab('比較図を頼む文')
+    expect(order()).toEqual(['request-tabs', 'compare-chart'])
+    expect(copyButton().disabled).toBe(true)
+    expect(copyButton().textContent?.trim()).toBe('比較図の文をコピー')
   })
 })
