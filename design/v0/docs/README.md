@@ -2,7 +2,7 @@
 
 本プロジェクト（音楽生成AI用プロンプト作成依頼文ビルダー）のドキュメント一式。
 
-- 最終更新: 2026-11-05（`checklists/samples/` を足した。UI 判断ポイント81 の細部 (b)）。〔経緯〕2026-11-03（`checklists/` を足した。引き継ぎ書の追記54）。〔経緯〕2026-11-01（整合性の調査〔`../think/audit-2026-11-01.md`〕M-03: 最終更新の行）。〔経緯〕2026-10-26〜28（`tools/check-docs/`・レンダリング例 `-14`・お試しの記録 `chat-test-01` の登録）。〔経緯〕2026-10-25（整合性の調査〔`../think/audit-2026-10-25.md`〕による修正: 登録漏れ〔`lyrics.md`・`factory-profiles.json`・`rendered-06-input-songs/`・`suno-test-02-results/`〕、`tools/` の位置、§6 の進捗）。〔経緯〕2026-10-18
+- 最終更新: 2026-11-08（`tools/check-chart/` を足した。宿題63）。〔経緯〕2026-11-05（`checklists/samples/` を足した。UI 判断ポイント81 の細部 (b)）。〔経緯〕2026-11-03（`checklists/` を足した。引き継ぎ書の追記54）。〔経緯〕2026-11-01（整合性の調査〔`../think/audit-2026-11-01.md`〕M-03: 最終更新の行）。〔経緯〕2026-10-26〜28（`tools/check-docs/`・レンダリング例 `-14`・お試しの記録 `chat-test-01` の登録）。〔経緯〕2026-10-25（整合性の調査〔`../think/audit-2026-10-25.md`〕による修正: 登録漏れ〔`lyrics.md`・`factory-profiles.json`・`rendered-06-input-songs/`・`suno-test-02-results/`〕、`tools/` の位置、§6 の進捗）。〔経緯〕2026-10-18
 - 作業用フォルダ: リポジトリ `ai-music-intent-builder`（`E:\Developments\ClaudeCode\ai-music-intent-builder\`）の **`design/v0/`**（2026-10-18 に移動。旧: `E:\AI_Works\Claude\ai-music-prompt-request-support\`。旧フォルダは移した時点の写しで、以後はリポジトリ側を正とする）。**本書中の `docs/`・`tools/` のパスやコマンドは、`design/v0/` 基準**。リポジトリ直下の `CLAUDE.md` が実装（Claude Code）の入口
 - 想定: 要件・仕様の議論をチャット側で行い、実装は自前開発または Claude Code 側で行う
 - 利用者: 本人のみ（認証・マルチユーザー対応は不要）
@@ -109,6 +109,7 @@ docs/
 `tools/build-presets/` は、`decisions/vocabulary/` の json ブロックを統合・検証して `specifications/presets/`（語彙ごとの JSON）を生成する Python スクリプト（`specifications/presets.md`）。
 `tools/check-fields/` は、入力項目の定義（`specifications/fields.json`）と語彙の整合、保存データ（楽曲データ・エクスポートファイル・ストア）の検証と、その負例テストを行う Python スクリプト（`specifications/input-items.md`、`specifications/song-file.md`）。`export_parity_cases.py` は、アプリ（`app/`）の検証との照合用の正解データを書き出す。
 `tools/measure-logs/` は、6モデルの検証ログ（`validations/prompt-test/results/`）の機械測定を行う Python スクリプト（2026-10-19〜。教訓4-40）。`measure_logs.py` は1つの例の回答から、スタイル欄・除外欄のコードブロックを取り出し、日本語の混入・文字数・否定の形・「自由記述」の位置・除外欄の語を測る。`length_summary.py` は、例をまたいで詳細プロンプトの文字数を集計する（目標・上限の超過。宿題50）。欄の見出しがない回答は、どの案もコードブロックが3つのときだけ並び順で取り出し、それ以外は取り出さずに一覧に出す。
+`tools/check-chart/` は、続けて頼む文「案の比較図」（B-FC。`decisions/request-text.md` §2）の検証を助ける Python スクリプト（2026-11-08〜。宿題63）。`emit` で6モデルに貼る文を作り、`check` で回答の図（mermaid のコードブロック）の点の数・軸・書き方の決まりと、mmdc で描けるかを見る。
 `tools/check-docs/` は、設計書（この `docs/`）の機械検査を行う Python スクリプト（2026-10-26〜）。判断ポイントの表の番号（重複・欠番・並び順）、`song-file.md` §10 の番号の実在、相対リンク切れ、文字の破損、「次の番号」の記載を見る。`--next` で判断ポイントの次の番号を表示する（次の番号は文書に書かない）。意図した例は `allowlist.json` に理由つきで入れる。定期の整合性の調査の依頼文の雛形（`audit-request.md`）も置く（報告は `design/v0/think/` の `audit-YYYY-MM-DD.md`）。
 
 | ディレクトリ | 役割 | 更新のしかた |

@@ -60,6 +60,9 @@ python -m venv .venv
 .venv/Scripts/python tools/build-presets/build_presets.py --check   # 生成物が最新か（終了コード0）。語彙を変えたら最後に必ず行う
 .venv/Scripts/python tools/build-presets/test_build_presets.py      # build_presets.py の負例テスト（S14 グループなど）
 .venv/Scripts/python tools/measure-logs/measure_logs.py LOG_DIR --exclude-term WORD ...   # 6モデルの検証ログの機械測定（日本語の混入・文字数・否定の形・「自由記述」の位置・除外欄の語）
+.venv/Scripts/python tools/check-chart/check_chart.py emit --axis mood --n 3   # 続けて頼む文「案の比較図」（B-FC）の文を出す
+.venv/Scripts/python tools/check-chart/check_chart.py check LOG_DIR --n 3 --axis mood [--mmdc CMD]   # 回答の比較図の検査（点の数・軸・書き方の決まり・mmdc で描けるか）
+.venv/Scripts/python tools/check-chart/test_check_chart.py   # check_chart.py の負例テスト
 .venv/Scripts/python tools/check-docs/check_docs.py          # 設計書の機械検査（判断ポイントの表・リンク・文字の破損・「次の番号」の記載）。期待: エラー0
 .venv/Scripts/python tools/check-docs/check_docs.py --next   # 判断ポイントの次の番号（追記する前に必ず見る。値は文書に書かない）
 .venv/Scripts/python tools/check-docs/test_check_docs.py     # check_docs.py の負例テスト
