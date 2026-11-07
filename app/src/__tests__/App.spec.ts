@@ -13,6 +13,7 @@ import { STORAGE_KEYS } from '@/data/storage'
 import { spec } from '@/data/spec'
 import { createInitialSong } from '@/domain/editor/initial'
 import { toCurrentSong } from '@/domain/request/__tests__/helpers'
+import { compareChartText } from '@/domain/request/follow-up'
 
 const INPUTS = resolve(process.cwd(), '../design/v0/docs/examples/inputs')
 const vocalSong = toCurrentSong(
@@ -207,5 +208,104 @@ describe('依頼文のカード（判断ポイント55）', () => {
     expect(
       document.querySelector('[data-testid="request-area"] [data-testid="notice-length"]'),
     ).not.toBeNull()
+  })
+})
+
+describe('比較図を頼む文のコピー（UI 判断ポイント83。文面の判断ポイント51 の B-FC）', () => {
+  const order = () =>
+    [...document.querySelectorAll('[data-testid="request-area"] [data-testid]')]
+      .map((e) => e.getAttribute('data-testid'))
+      .filter((t) =>
+        [
+          'request-text',
+          'request-incomplete',
+          'compare-chart',
+          'notice-length',
+          'notice-chip',
+        ].includes(t!),
+      )
+  const button = () =>
+    document.querySelector<HTMLButtonElement>('[data-testid="copy-compare-chart"]')
+  // jsdom には Clipboard API がないため、useClipboard（legacy: true）は textarea と execCommand('copy') で写す。
+  // execCommand を差し替えて、そのときの textarea の中身を写した文とみなす
+  const stubCopy = () => {
+    const copied: string[] = []
+    Object.defineProperty(document, 'execCommand', {
+      value: () => {
+        copied.push(document.querySelector('textarea')!.value)
+        return true
+      },
+      configurable: true,
+    })
+    return copied
+  }
+
+  it('初期状態（案の数3）は、依頼文のすぐ下・注意書きより上に、ボタンと一言を出す。押すと B-FC の文を写す', async () => {
+    const copied = stubCopy()
+    try {
+      await mountApp()
+      expect(order()).toEqual(['request-text', 'compare-chart', 'notice-length'])
+      const area = document.querySelector('[data-testid="compare-chart"]')!
+      expect(area.textContent).toContain('比較図を頼む文をコピー')
+      expect(area.textContent).toContain('チャットAI の回答のあとに、同じ会話に貼ってください')
+      expect(button()!.disabled).toBe(false)
+      button()!.click()
+      await flushPromises()
+      const req = useSongEditor().song.value.requests[0]!
+      expect(copied).toEqual([compareChartText(spec, req)])
+      expect(copied[0]).toContain('（案1〜案3）')
+      expect(button()!.textContent).toContain('コピーしました')
+    } finally {
+      delete (document as { execCommand?: unknown }).execCommand
+    }
+  })
+
+  it('案の数を変えると、写す文が変わる（情緒の幅・案の数5）', async () => {
+    const s = structuredClone(vocalSong)
+    s.requests[0]!.output.variantCount = 5
+    s.requests[0]!.output.diffAxis = 'mood'
+    localStorage.setItem(STORAGE_KEYS.song, JSON.stringify(s))
+    const copied = stubCopy()
+    try {
+      await mountApp()
+      button()!.click()
+      await flushPromises()
+      expect(copied).toHaveLength(1)
+      expect(copied[0]).toContain('（案1〜案5）')
+      expect(copied[0]).toContain('横軸は明暗')
+    } finally {
+      delete (document as { execCommand?: unknown }).execCommand
+    }
+  })
+
+  it('案の数が1のときは出さない', async () => {
+    const s = structuredClone(vocalSong)
+    s.requests[0]!.output.variantCount = 1
+    localStorage.setItem(STORAGE_KEYS.song, JSON.stringify(s))
+    await mountApp()
+    expect(order()).toContain('request-text')
+    expect(document.querySelector('[data-testid="compare-chart"]')).toBeNull()
+  })
+
+  it('依頼文の範囲が歌詞のみのときは出さない。スタイルのみでは出す', async () => {
+    const s = structuredClone(vocalSong)
+    s.requests[0]!.output.variantCount = 3
+    s.requests[0]!.output.requestScope = 'lyrics'
+    localStorage.setItem(STORAGE_KEYS.song, JSON.stringify(s))
+    await mountApp()
+    expect(document.querySelector('[data-testid="compare-chart"]')).toBeNull()
+    useSongEditor().song.value.requests[0]!.output.requestScope = 'style'
+    await flushPromises()
+    expect(document.querySelector('[data-testid="compare-chart"]')).not.toBeNull()
+  })
+
+  it('未完成のときは、出したまま押せない', async () => {
+    const s = structuredClone(vocalSong)
+    s.requests[0]!.output.variantCount = 3
+    s.requests[0]!.axes.purposeDetail = { state: 'specified' }
+    localStorage.setItem(STORAGE_KEYS.song, JSON.stringify(s))
+    await mountApp()
+    expect(order()).toEqual(['request-incomplete', 'compare-chart'])
+    expect(button()!.disabled).toBe(true)
   })
 })
